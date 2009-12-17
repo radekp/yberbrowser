@@ -49,6 +49,10 @@
 #include <qwebpage.h>
 #include <qwebsettings.h>
 #include <qwebview.h>
+#include <QGLWidget>
+#include <QX11Info>
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
 
 QNetworkProxy* g_globalProxy;
 static QUrl urlFromUserInput(const QString& string)
@@ -90,6 +94,8 @@ public:
         return m_yRotation;
     }
 
+protected:
+
 private:
     qreal m_yRotation;
 };
@@ -121,8 +127,19 @@ public:
         : QGraphicsView(parent)
         , m_mainWidget(0)
     {
-        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+#if DISABLE_TILE_CACHE
+        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+        setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+#else
+        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+        setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+#endif
+        setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+        setDragMode(QGraphicsView::ScrollHandDrag);
+        setInteractive(false);
+        setViewport(new QGLWidget);
+        setOptimizationFlags(QGraphicsView::DontSavePainterState);
+        setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
 
         setFrameShape(QFrame::NoFrame);
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -140,8 +157,10 @@ public:
         QGraphicsView::resizeEvent(event);
         if (!m_mainWidget)
             return;
+#if !DISABLE_TILE_CACHE
         QRectF rect(QPoint(0, 0), event->size());
         m_mainWidget->setGeometry(rect);
+#endif
     }
 
     void setWaitCursor()
@@ -205,8 +224,14 @@ public:
         m_item = new WebView;
         m_item->setPage((m_page = new WebPage));
 
+#if !DISABLE_TILE_CACHE
+        m_item->setResizesToContent(true);
+        m_page->mainFrame()->setTileCacheEnabled(true);
+#endif
         m_scene->addItem(m_item);
         m_scene->setActiveWindow(m_item);
+        m_scene->setItemIndexMethod(QGraphicsScene::NoIndex);
+
     }
 
     ~SharedScene()
@@ -303,6 +328,25 @@ public:
         return scene->webView()->page();
     }
 
+    void disableHildonDesktopCompositing() {
+        // this should cause desktop compositing to be turned off for
+        // fullscreen apps. This should speed up drawing. Unclear if
+        // it does.
+        // see also: hildon-desktop/src/mb/hd-comp-mgr.c
+        unsigned long val = 1;
+        Atom atom;
+        atom = XInternAtom(QX11Info::display(), "_HILDON_NON_COMPOSITED_WINDOW", 0);
+        XChangeProperty (QX11Info::display(),
+                         winId(),
+                         atom,
+                         XA_INTEGER,
+                         32,
+                         PropModeReplace,
+                         (unsigned char *) &val,
+                         1);
+    }
+
+
 protected slots:
     void changeLocation()
     {
@@ -326,11 +370,11 @@ protected slots:
     }
 
 public slots:
-    void newWindow(const QString &url = QString())
+    MainWindow* newWindow(const QString &url = QString())
     {
         MainWindow* mw = new MainWindow();
         mw->load(url);
-        mw->show();
+        return mw;
     }
 
     void clone()
@@ -412,6 +456,8 @@ QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
     return mw->page();
 }
 
+void usage(const char* name);
+
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
@@ -433,20 +479,61 @@ int main(int argc, char** argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalStorageEnabled, true);
 
-    const QStringList args = app.arguments();
+    QStringList args = app.arguments();
+
+    bool noFullscreen = false;
+    bool gotFlag = true;
+    while (gotFlag) {
+        if (args.count() > 1) {
+            if (args.at(1) == "-w") {
+                noFullscreen = true;
+                args.removeAt(1);
+            } else if (args.at(1) == "-?" || args.at(1) == "-h" || args.at(1) == "--help") {
+                usage(argv[0]);
+                return EXIT_SUCCESS;
+            } else {
+                gotFlag = false;
+            }
+        } else {
+            gotFlag = false;
+        }
+    }
+
     if (args.count() > 1)
         url = args.at(1);
 
     MainWindow* window = new MainWindow;
     window->load(url);
+    if (noFullscreen)
+        window->show();
+    else {
+        window->showFullScreen();
+        window->disableHildonDesktopCompositing();
+    }
 
-    for (int i = 2; i < args.count(); i++)
+    for (int i = 2; i < args.count(); i++) {
         window->newWindow(args.at(i));
-
-    window->show();
+        if (noFullscreen)
+            window->show();
+        else {
+            window->showFullScreen();
+            window->disableHildonDesktopCompositing();
+        }
+    }
 
     delete g_globalProxy;
     return app.exec();
+}
+
+
+void usage(const char* name) 
+{
+    QTextStream s(stderr);
+    s << "usage: " << name << " [options] url" << endl;
+    s << " -w disable fullscreen" << endl;
+    s << " -h|-?|--help help" << endl;
+    s << endl;
+    s << " use http_proxy env var to set http proxy" << endl;
 }
 
 #include "main.moc"
