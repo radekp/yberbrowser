@@ -55,6 +55,10 @@
 #include <X11/Xatom.h>
 
 QNetworkProxy* g_globalProxy;
+
+bool g_disableToolbar;
+bool g_useGL;
+
 static QUrl urlFromUserInput(const QString& string)
 {
     QString input(string);
@@ -127,19 +131,21 @@ public:
         : QGraphicsView(parent)
         , m_mainWidget(0)
     {
+        if (g_useGL)
+            setViewport(new QGLWidget);
+        setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
+
 #if DISABLE_TILE_CACHE
-        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-        setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 #else
         setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
         setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-#endif
-        setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+
+        setOptimizationFlags(QGraphicsView::DontSavePainterState);
         setDragMode(QGraphicsView::ScrollHandDrag);
         setInteractive(false);
-        setViewport(new QGLWidget);
-        setOptimizationFlags(QGraphicsView::DontSavePainterState);
-        setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
+#endif
 
         setFrameShape(QFrame::NoFrame);
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -157,7 +163,7 @@ public:
         QGraphicsView::resizeEvent(event);
         if (!m_mainWidget)
             return;
-#if !DISABLE_TILE_CACHE
+#if DISABLE_TILE_CACHE
         QRectF rect(QPoint(0, 0), event->size());
         m_mainWidget->setGeometry(rect);
 #endif
@@ -223,7 +229,6 @@ public:
         m_scene = new QGraphicsScene;
         m_item = new WebView;
         m_item->setPage((m_page = new WebPage));
-
 #if !DISABLE_TILE_CACHE
         m_item->setResizesToContent(true);
         m_page->mainFrame()->setTileCacheEnabled(true);
@@ -422,6 +427,8 @@ private:
         bar->addAction(page->action(QWebPage::Reload));
         bar->addAction(page->action(QWebPage::Stop));
         bar->addWidget(urlEdit);
+        if (g_disableToolbar)
+            bar->hide();
 
         QMenu* fileMenu = menuBar()->addMenu("&File");
         fileMenu->addAction("New Window", this, SLOT(newWindow()));
@@ -488,6 +495,12 @@ int main(int argc, char** argv)
             if (args.at(1) == "-w") {
                 noFullscreen = true;
                 args.removeAt(1);
+            } else if (args.at(1) == "-t") {
+                g_disableToolbar = true;
+                args.removeAt(1);
+            } else if (args.at(1) == "-g") {
+                g_useGL = true;
+                args.removeAt(1);
             } else if (args.at(1) == "-?" || args.at(1) == "-h" || args.at(1) == "--help") {
                 usage(argv[0]);
                 return EXIT_SUCCESS;
@@ -531,6 +544,8 @@ void usage(const char* name)
     QTextStream s(stderr);
     s << "usage: " << name << " [options] url" << endl;
     s << " -w disable fullscreen" << endl;
+    s << " -t disable toolbar" << endl;
+    s << " -g use glwidget as qgv viewport" << endl;
     s << " -h|-?|--help help" << endl;
     s << endl;
     s << " use http_proxy env var to set http proxy" << endl;

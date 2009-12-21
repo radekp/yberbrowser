@@ -1,0 +1,74 @@
+#!/usr/bin/make -f
+APPNAME := yberbrowser
+QMAKEFLAGS := CONFIG+=release CONFIG-=debug
+
+
+#this is for qt 4.6, it is installed in /opt/qt4-maemo5/
+QT_EXPORT_CMDS := \
+ export PATH=/opt/qt4-maemo5/bin:$$PATH && \
+ export QTDIR=/opt/qt4-maemo5 && \
+ export PKG_CONFIG_PATH=/opt/qt4-maemo5/lib/pkgconfig:$$PKG_CONFIG_PATH
+
+ifneq (,$(findstring defaultqt,$(DEB_BUILD_OPTIONS)))
+	bldstr:=$(bldsttr)defaultqt-
+#this is for qt 4.5.3 in fremantle, it is installed in PATH (/usr/)
+	QT_EXPORT_CMDS:=true
+endif
+ifneq (,$(findstring notile,$(DEB_BUILD_OPTIONS)))
+	QMAKEFLAGS:=$(QMAKEFLAGS) CONFIG+=disable_tile_cache
+endif
+
+builddir:
+	mkdir -p builddir
+
+builddir/Makefile: builddir
+	$(QT_EXPORT_CMDS) && \
+	cd builddir && qmake PREFIX=/usr ../$(APPNAME).pro $(QMAKEFLAGS)
+
+build: build-stamp
+
+build-stamp: builddir/Makefile
+	dh_testdir
+	# Add here commands to compile the package.
+	cd builddir && $(MAKE)
+	touch $@
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	# Add here commands to clean up after the build process.
+	rm -rf builddir
+	dh_clean
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+	# Add here commands to install the package into debian/your_appname
+	cd builddir && $(MAKE) INSTALL_ROOT=$(CURDIR)/debian/$(APPNAME) install
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs
+	dh_installexamples
+	dh_installman
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure

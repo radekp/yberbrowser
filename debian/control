@@ -1,0 +1,23 @@
+Source: yberbrowser
+Section: interpreters
+Priority: optional
+Maintainer: Kimmo Kinnunen <kimmo.t.kinnunen@nokia.com>
+Build-Depends: debhelper (>= 5),  libqt4-maemo5-dev
+Standards-Version: 3.7.3
+
+Package: yberbrowser
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Simple browser
+    Simple browser (WebKit)
+XB-Maemo-Icon-26:
+ iVBORw0KGgoAAAANSUhEUgAAABoAAAAaCAYAAACpSkzOAAAABmJLR0QA/wD/AP+g
+ vaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH1gURDQoYya0JlwAAAU9J 
+ REFUSMftlL1KA0EUhb/NZl/ggnHQxsJUxt5CUucVJCCkDfgyKdIGG5/A0s5HEBtJ
+ EdDAQGBgmw0YJmMzgXXYza5CtNkDW9zZw5z7c+ZCgwb/Ai3i9sVl/Bq8RIs4LRK1 
+ gJDsKvJyNXmJMuYTsMoY1zpgozaABdYArQNPZQ1kfyGU7SpqVwxzAMwABWhgpIwp
+ 4vWBB+AUWAI3ypjnfEXtPU4bLKx9vErTeCeiRSYF+fTn1j5dp2myE9EiU+DSi3wX 
+ ymeqRQAmZ3EcA5E/fgO6BULT8zhOcrwXoJdrXRa2Lgps2y2odAUcBUIXQdz78YyC
+ SldAp8b7+bXrIv91qjZBietqCc2DjbAt4b2WxJkyZljVujlwp0U0cPxuLcAIuC+4 
+ dKxFlsDJarvdAGP/b6hFnDImYs+uG3hbO2AB3Jbsur63tQM+fFx3bzZocEB8AdV2
+ gJBZgKTwAAAAAElFTkSuQmCC 
