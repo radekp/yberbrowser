@@ -1,5 +1,5 @@
 TEMPLATE = app
-SOURCES += main.cpp
+SOURCES += src/main.cpp
 CONFIG -= app_bundle
 
 isEmpty(PREFIX) {
