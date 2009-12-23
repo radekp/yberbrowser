@@ -54,10 +54,19 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
+
+#include "AutoScroller.h"
+
 QNetworkProxy* g_globalProxy;
 
 bool g_disableToolbar;
 bool g_useGL;
+
+#if WEBKIT_SUPPORTS_TILE_CACHE
+bool g_disableTiling;
+#else
+bool g_disableTiling = false;
+#endif
 
 static QUrl urlFromUserInput(const QString& string)
 {
@@ -66,42 +75,17 @@ static QUrl urlFromUserInput(const QString& string)
     if (fi.exists() && fi.isRelative())
         input = fi.absoluteFilePath();
 
-#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
     return QUrl::fromUserInput(input);
-#else
-    return QUrl(input);
-#endif
 }
 
 class WebView : public QGraphicsWebView {
     Q_OBJECT
-    Q_PROPERTY(qreal yRotation READ yRotation WRITE setYRotation)
 
 public:
     WebView(QGraphicsItem* parent = 0)
         : QGraphicsWebView(parent)
     {
     }
-    void setYRotation(qreal angle)
-    {
-#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
-        QRectF r = boundingRect();
-        setTransform(QTransform()
-            .translate(r.width() / 2, r.height() / 2)
-            .rotate(angle, Qt::YAxis)
-            .translate(-r.width() / 2, -r.height() / 2));
-#endif
-        m_yRotation = angle;
-    }
-    qreal yRotation() const
-    {
-        return m_yRotation;
-    }
-
-protected:
-
-private:
-    qreal m_yRotation;
 };
 
 class WebPage : public QWebPage {
@@ -133,19 +117,19 @@ public:
     {
         if (g_useGL)
             setViewport(new QGLWidget);
+
         setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
-
-#if DISABLE_TILE_CACHE
-        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-#else
-        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-        setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-
-        setOptimizationFlags(QGraphicsView::DontSavePainterState);
         setDragMode(QGraphicsView::ScrollHandDrag);
         setInteractive(false);
-#endif
+        setOptimizationFlags(QGraphicsView::DontSavePainterState);
+
+        if (!g_disableTiling) {
+            setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+            setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+        } else {
+            setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+            setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        }
 
         setFrameShape(QFrame::NoFrame);
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -158,163 +142,74 @@ public:
         m_mainWidget = widget;
     }
 
+    QGraphicsWidget* mainWidget()
+    {
+        return m_mainWidget;
+    }
+
     void resizeEvent(QResizeEvent* event)
     {
         QGraphicsView::resizeEvent(event);
         if (!m_mainWidget)
             return;
-#if DISABLE_TILE_CACHE
-        QRectF rect(QPoint(0, 0), event->size());
-        m_mainWidget->setGeometry(rect);
-#endif
+
+        if (g_disableTiling) {
+            QRectF rect(QPoint(0, 0), event->size());
+            m_mainWidget->setGeometry(rect);
+        }
     }
-
-    void setWaitCursor()
-    {
-        m_mainWidget->setCursor(Qt::WaitCursor);
-    }
-
-    void resetCursor()
-    {
-        m_mainWidget->unsetCursor();
-    }
-
-public slots:
-    void flip()
-    {
-#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
-        QSizeF center = m_mainWidget->boundingRect().size() / 2;
-        QPointF centerPoint = QPointF(center.width(), center.height());
-        m_mainWidget->setTransformOriginPoint(centerPoint);
-
-        m_mainWidget->setRotation(m_mainWidget->rotation() ? 0 : 180);
-#endif
-    }
-
-    void animatedFlip()
-    {
-#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
-        QSizeF center = m_mainWidget->boundingRect().size() / 2;
-        QPointF centerPoint = QPointF(center.width(), center.height());
-        m_mainWidget->setTransformOriginPoint(centerPoint);
-
-        QPropertyAnimation* animation = new QPropertyAnimation(m_mainWidget, "rotation", this);
-        animation->setDuration(1000);
-
-        int rotation = int(m_mainWidget->rotation());
-
-        animation->setStartValue(rotation);
-        animation->setEndValue(rotation + 180 - (rotation % 180));
-
-        animation->start(QAbstractAnimation::DeleteWhenStopped);
-#endif
-    }
-
-    void animatedYFlip()
-    {
-        emit flipRequest();
-    }
-
-signals:
-    void flipRequest();
 
 private:
     QGraphicsWidget* m_mainWidget;
-};
-
-class SharedScene : public QSharedData {
-public:
-    SharedScene()
-    {
-        m_scene = new QGraphicsScene;
-        m_item = new WebView;
-        m_item->setPage((m_page = new WebPage));
-#if !DISABLE_TILE_CACHE
-        m_item->setResizesToContent(true);
-        m_page->mainFrame()->setTileCacheEnabled(true);
-#endif
-        m_scene->addItem(m_item);
-        m_scene->setActiveWindow(m_item);
-        m_scene->setItemIndexMethod(QGraphicsScene::NoIndex);
-
-    }
-
-    ~SharedScene()
-    {
-        delete m_item;
-        delete m_scene;
-        delete m_page;
-    }
-
-    QGraphicsScene* scene() const { return m_scene; }
-    WebView* webView() const { return m_item; }
-
-private:
-    QGraphicsScene* m_scene;
-    WebView* m_item;
-    WebPage* m_page;
 };
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QExplicitlySharedDataPointer<SharedScene> other)
+    MainWindow()
         : QMainWindow()
-        , view(new MainView(this))
-        , scene(other)
+        , m_view(new MainView(this))
+        , m_scene(new QGraphicsScene)
+        , m_webViewItem(new WebView)
+        , m_page(0)
     {
         init();
     }
 
-    MainWindow()
-        : QMainWindow()
-        , view(new MainView(this))
-        , scene(new SharedScene())
+    ~MainWindow()
     {
-        init();
+        delete m_page;
+        delete m_webViewItem;
+        delete m_scene;
     }
 
     void init()
     {
         setAttribute(Qt::WA_DeleteOnClose);
 
-        view->setScene(scene->scene());
-
-        setCentralWidget(view);
-
-        view->setMainWidget(scene->webView());
-
-        connect(scene->webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
-        connect(scene->webView(), SIGNAL(titleChanged(const QString&)), this, SLOT(setWindowTitle(const QString&)));
-        connect(scene->webView()->page(), SIGNAL(windowCloseRequested()), this, SLOT(close()));
-
-#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 0)
-        QStateMachine *machine = new QStateMachine(this);
-        QState *s0 = new QState(machine);
-        s0->assignProperty(scene->webView(), "yRotation", 0);
-
-        QState *s1 = new QState(machine);
-        s1->assignProperty(scene->webView(), "yRotation", 90);
-
-        QAbstractTransition *t1 = s0->addTransition(view, SIGNAL(flipRequest()), s1);
-        QPropertyAnimation *yRotationAnim = new QPropertyAnimation(scene->webView(), "yRotation", this);
-        yRotationAnim->setDuration(1000);
-        t1->addAnimation(yRotationAnim);
-
-        QState *s2 = new QState(machine);
-        s2->assignProperty(scene->webView(), "yRotation", -90);
-        s1->addTransition(s1, SIGNAL(polished()), s2);
-
-        QAbstractTransition *t2 = s2->addTransition(s0);
-        t2->addAnimation(yRotationAnim);
-
-        machine->setInitialState(s0);
-        machine->start();
+        m_webViewItem->setPage((m_page = new WebPage));
+        m_webViewItem->setResizesToContent(true);
+#if WEBKIT_SUPPORTS_TILE_CACHE
+        m_page->mainFrame()->setTileCacheEnabled(!g_disableTiling);
 #endif
+        m_scene->addItem(m_webViewItem);
+        m_scene->setActiveWindow(m_webViewItem);
+        m_scene->setItemIndexMethod(QGraphicsScene::NoIndex);
+
+        m_view->setScene(m_scene);
+
+        setCentralWidget(m_view);
+
+        m_view->setMainWidget(m_webViewItem);
+
+        connect(m_webViewItem, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
+        connect(m_webViewItem, SIGNAL(titleChanged(const QString&)), this, SLOT(setWindowTitle(const QString&)));
+        connect(m_webViewItem->page(), SIGNAL(windowCloseRequested()), this, SLOT(close()));
 
         resize(640, 480);
         buildUI();
+
     }
 
     void load(const QString& url)
@@ -324,13 +219,13 @@ public:
             deducedUrl = QUrl("http://" + url + "/");
 
         urlEdit->setText(deducedUrl.toEncoded());
-        scene->webView()->load(deducedUrl);
-        scene->webView()->setFocus(Qt::OtherFocusReason);
+        m_webViewItem->load(deducedUrl);
+        m_webViewItem->setFocus(Qt::OtherFocusReason);
     }
 
     QWebPage* page() const
     {
-        return scene->webView()->page();
+        return m_webViewItem->page();
     }
 
     void disableHildonDesktopCompositing() {
@@ -350,7 +245,7 @@ public:
                          (unsigned char *) &val,
                          1);
     }
-
+    MainView* view() { return m_view; }
 
 protected slots:
     void changeLocation()
@@ -360,7 +255,7 @@ protected slots:
 
     void loadFinished(bool)
     {
-        QUrl url = scene->webView()->url();
+        QUrl url = m_webViewItem->url();
         urlEdit->setText(url.toString());
 
         QUrl::FormattingOptions opts;
@@ -371,7 +266,8 @@ protected slots:
         s = s.mid(2);
         if (s.isEmpty())
             return;
-        //FIXME: something missing here
+
+
     }
 
 public slots:
@@ -382,41 +278,10 @@ public slots:
         return mw;
     }
 
-    void clone()
-    {
-        MainWindow* mw = new MainWindow(scene);
-        mw->show();
-    }
-
-    void setWaitCursor()
-    {
-        view->setWaitCursor();
-    }
-
-    void resetCursor()
-    {
-        view->resetCursor();
-    }
-
-    void flip()
-    {
-        view->flip();
-    }
-
-    void animatedFlip()
-    {
-        view->animatedFlip();
-    }
-
-    void animatedYFlip()
-    {
-        view->animatedYFlip();
-    }
-
 private:
     void buildUI()
     {
-        QWebPage* page = scene->webView()->page();
+        QWebPage* page = m_webViewItem->page();
         urlEdit = new QLineEdit(this);
         urlEdit->setSizePolicy(QSizePolicy::Expanding, urlEdit->sizePolicy().verticalPolicy());
         connect(urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
@@ -432,29 +297,22 @@ private:
 
         QMenu* fileMenu = menuBar()->addMenu("&File");
         fileMenu->addAction("New Window", this, SLOT(newWindow()));
-        fileMenu->addAction("Clone view", this, SLOT(clone()));
         fileMenu->addAction("Close", this, SLOT(close()));
 
         QMenu* viewMenu = menuBar()->addMenu("&View");
         viewMenu->addAction(page->action(QWebPage::Stop));
         viewMenu->addAction(page->action(QWebPage::Reload));
-
-        QMenu* testMenu = menuBar()->addMenu("&Tests");
-        testMenu->addAction("Set Wait Cursor", this, SLOT(setWaitCursor()), QKeySequence("Ctrl+W"));
-        testMenu->addAction("Reset Cursor", this, SLOT(resetCursor()), QKeySequence("Ctrl+Shift+W"));
-
-        QMenu* fxMenu = menuBar()->addMenu("&Effects");
-        fxMenu->addAction("Flip", this, SLOT(flip()));
-        fxMenu->addAction("Animated Flip", this, SLOT(animatedFlip()), QKeySequence("Ctrl+R"));
-        fxMenu->addAction("Animated Y-Flip", this, SLOT(animatedYFlip()), QKeySequence("Ctrl+Y"));
     }
 
 private:
-    MainView* view;
-    QExplicitlySharedDataPointer<SharedScene> scene;
+    MainView* m_view;
+    QGraphicsScene* m_scene;
+    WebView* m_webViewItem;
+    WebPage* m_page;
 
     QLineEdit* urlEdit;
 };
+
 
 QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
 {
@@ -489,6 +347,7 @@ int main(int argc, char** argv)
     QStringList args = app.arguments();
 
     bool noFullscreen = false;
+    bool autoScroll  = false;
     bool gotFlag = true;
     while (gotFlag) {
         if (args.count() > 1) {
@@ -500,6 +359,12 @@ int main(int argc, char** argv)
                 args.removeAt(1);
             } else if (args.at(1) == "-g") {
                 g_useGL = true;
+                args.removeAt(1);
+            } else if (args.at(1) == "-s") {
+                autoScroll = true;
+                args.removeAt(1);
+            } else if (args.at(1) == "-c") {
+                g_disableTiling = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-?" || args.at(1) == "-h" || args.at(1) == "--help") {
                 usage(argv[0]);
@@ -533,9 +398,16 @@ int main(int argc, char** argv)
             window->disableHildonDesktopCompositing();
         }
     }
+    if (autoScroll) {
+        AutoScroller* as = new AutoScroller;
+        as->install(window->view(), window->view()->mainWidget());
+    }
+
+    int retval = app.exec();
+
 
     delete g_globalProxy;
-    return app.exec();
+    return retval;
 }
 
 
@@ -546,6 +418,8 @@ void usage(const char* name)
     s << " -w disable fullscreen" << endl;
     s << " -t disable toolbar" << endl;
     s << " -g use glwidget as qgv viewport" << endl;
+    s << " -s scroll" << endl;
+    s << " -c disable tile cache" << endl;
     s << " -h|-?|--help help" << endl;
     s << endl;
     s << " use http_proxy env var to set http proxy" << endl;

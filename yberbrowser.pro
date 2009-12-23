@@ -3,7 +3,6 @@
 }
 
 TEMPLATE = app
-SOURCES += src/main.cpp
 CONFIG -= app_bundle
 
 isEmpty(PREFIX) {
@@ -17,7 +16,9 @@ QT += network opengl
 macx:QT+=xml
 
 disable_tile_cache {
-    DEFINES+=DISABLE_TILE_CACHE=1
+
+} else {
+    DEFINES+=WEBKIT_SUPPORTS_TILE_CACHE=1
 }
 
 contains(WEBKIT, system) {
@@ -69,6 +70,14 @@ symbian {
     TARGET.CAPABILITY = ReadUserData WriteUserData NetworkServices
 }
 
-target.path = $$BINDIR
 
+
+target.path = $$BINDIR
 INSTALLS += target
+
+HEADERS = \
+  src/AutoScroller.h
+
+SOURCES = \
+  src/main.cpp \
+  src/AutoScroller.cpp
