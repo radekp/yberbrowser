@@ -76,8 +76,12 @@ target.path = $$BINDIR
 INSTALLS += target
 
 HEADERS = \
-  src/AutoScroller.h
+  src/AutoScroller.h \
+  src/MainWindow.h \
+  src/MainView.h
 
 SOURCES = \
   src/main.cpp \
-  src/AutoScroller.cpp
+  src/AutoScroller.cpp \
+  src/MainWindow.cpp \
+  src/MainView.cpp
