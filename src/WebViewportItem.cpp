@@ -46,30 +46,34 @@
 #include "WebViewportItem.h"
 #include "MainView.h"
 
-int WebViewportItem::s_zoomValues[] = {30, 50, 67, 80, 90, 100, 110, 120, 133, 150, 170, 200, 240, 300};
+static const int s_zoomAnimDurationMS = 300;
+static const int s_zoomCommitTimerDurationMS = 500;
 
-#if USE_RECTITEM
-WebViewportItem::WebViewportItem(MainView* owner, const QRectF& rect, QGraphicsItem* parent)
-    : QGraphicsRectItem(rect, parent)
-#else
+static const int s_zoomValues[] = {30, 50, 67, 80, 90, 100, 110, 120, 133, 150, 170, 200, 240, 300};
+static const int s_numOfZoomLevels = int(sizeof(s_zoomValues) / sizeof(int)) - 1;
+
 WebViewportItem::WebViewportItem(MainView* owner, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-#endif
-    , m_zoomScale(1.)
     , m_isDragging(false)
     , m_owner(owner)
     , m_zoomLevel(5)
     , m_zoomAnim(this, "zoomScale")
 {
-    m_zoomAnim.setDuration(300);
+    m_zoomScale = zoomScaleForZoomLevel();
+
+    m_zoomAnim.setDuration(s_zoomAnimDurationMS);
     connect(&m_zoomCommitTimer, SIGNAL(timeout()), this, SLOT(commitZoom()));
     m_zoomCommitTimer.setSingleShot(true);
 
 }
 
+qreal WebViewportItem::zoomScaleForZoomLevel() const
+{
+    return s_zoomValues[m_zoomLevel] / 100.;
+}
+
 void WebViewportItem::mousePressEvent(QGraphicsSceneMouseEvent * event)
 {
-    qDebug() << __PRETTY_FUNCTION__;
     m_isDragging = true;
     m_dragPos = event->pos();
 
@@ -77,10 +81,8 @@ void WebViewportItem::mousePressEvent(QGraphicsSceneMouseEvent * event)
 
 void WebViewportItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
-    qDebug() << __PRETTY_FUNCTION__;
     m_isDragging = false;
     m_offset += event->pos() - m_dragPos;
-
 }
 
 void WebViewportItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
@@ -98,28 +100,21 @@ void WebViewportItem::setZoomScale(qreal value)
 {
     m_zoomScale = value;
     m_owner->zoom(m_zoomScale);
-    m_zoomCommitTimer.start(500);
+    m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
 }
 
 void WebViewportItem::wheelEvent(QGraphicsSceneWheelEvent *event)
 {
     int adv = event->delta() / (15*8);
-    m_zoomLevel = qBound(0, m_zoomLevel + adv, int(sizeof(s_zoomValues) / sizeof(int)) - 1);
+    m_zoomLevel = qBound(0, m_zoomLevel + adv, s_numOfZoomLevels);
 
     m_zoomAnim.stop();
     m_zoomAnim.setStartValue(m_zoomScale);
-    m_zoomAnim.setEndValue(s_zoomValues[m_zoomLevel] / 100.);
+    m_zoomAnim.setEndValue(zoomScaleForZoomLevel());
     m_zoomAnim.start();
-}
-
-bool WebViewportItem::sceneEvent(QEvent *event)
-{
-    //qDebug() << __PRETTY_FUNCTION__;
-    return QGraphicsItem::sceneEvent(event);
 }
 
 void WebViewportItem::commitZoom()
 {
-    qDebug() << __PRETTY_FUNCTION__;
     m_owner->commitZoom(m_zoomScale);
 }

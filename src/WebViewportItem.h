@@ -28,31 +28,20 @@
 #ifndef WebViewportItem_h_
 #define WebViewportItem_h_
 
+
+#include <QGraphicsWidget>
 #include <QPropertyAnimation>
 #include <QTimer>
 
 class MainView;
 
-#define USE_RECTITEM 0
-#if USE_RECTITEM
-#include <QGraphicsRectItem>
-
-class WebViewportItem : public QGraphicsObject, public virtual QGraphicsRectItem
-#else
-
-#include <QGraphicsWidget>
 class WebViewportItem : public QGraphicsWidget
-#endif
 {
     Q_OBJECT
     Q_PROPERTY(qreal zoomScale READ zoomScale WRITE setZoomScale)
 
 public:
-#if USE_RECTITEM
-    WebViewportItem(MainView* owner, const QRectF& rect, QGraphicsItem* parent = 0);
-#else
     WebViewportItem(MainView* owner, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
-#endif
 
     qreal zoomScale();
     void setZoomScale(qreal value);
@@ -62,10 +51,12 @@ protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
     void wheelEvent(QGraphicsSceneWheelEvent * event);
-    bool sceneEvent(QEvent *event);
 
 protected Q_SLOTS:
     void commitZoom();
+
+private:
+    qreal zoomScaleForZoomLevel() const;
 
 private:
     qreal m_zoomScale;
@@ -76,7 +67,6 @@ private:
     int m_zoomLevel;
     QPropertyAnimation m_zoomAnim;
     QTimer m_zoomCommitTimer;
-    static int s_zoomValues[];
 };
 
 #endif

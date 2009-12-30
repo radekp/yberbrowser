@@ -90,18 +90,11 @@ void MainView::setMainWidget(QGraphicsWebView* webViewItem)
 
     if (webViewItem) {
         if (!m_interactionItem) {
-#if USE_RECTITEM
-            m_interactionItem = new WebViewportItem(this, QRectF(QRect(QPoint(0, 0), size())));
-            curscene->addItem(m_interactionItem);
-            curscene->setActivePanel(m_interactionItem);
-            m_interactionItem->grabMouse();
-#else
             m_interactionItem = new WebViewportItem(this);
             curscene->addItem(m_interactionItem);
             curscene->setActiveWindow(m_interactionItem);
             m_interactionItem->grabMouse();
             updateSize();
-#endif
         }
         m_mainWidget = webViewItem;
         m_mainWidget->setParentItem(m_interactionItem);
@@ -126,11 +119,7 @@ void MainView::updateSize()
         return;
 
     QRectF rect(QRect(QPoint(0, 0), size()));
-#if USE_RECTITEM
-    m_interactionItem->setRect(rect);
-#else
     m_interactionItem->setGeometry(rect);
-#endif
 }
 
 void MainView::mousePressEvent(QMouseEvent * event)
