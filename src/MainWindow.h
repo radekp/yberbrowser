@@ -79,7 +79,6 @@ public:
 
     void load(const QString& url);
 
-    WebPage* createWebPage();
     MainWindow* createWindow();
 
     QWebPage* page() const;

@@ -56,8 +56,6 @@
 #include "MainWindow.h"
 #include "MainView.h"
 
-
-
 QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
 {
     MainWindow* mw = m_ownerWindow->createWindow();
@@ -80,15 +78,6 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
 
 MainWindow::~MainWindow()
 {
-    delete m_page;
-}
-
-WebPage* MainWindow::createWebPage()
-{
-    WebPage* page = new WebPage(0, this);
-    if (m_proxy)
-        page->networkAccessManager()->setProxy(*m_proxy);
-    return page;
 }
 
 MainWindow* MainWindow::createWindow()
@@ -99,7 +88,10 @@ MainWindow* MainWindow::createWindow()
 void MainWindow::init()
 {
     setAttribute(Qt::WA_DeleteOnClose);
-    m_page = createWebPage();
+    m_page = new WebPage(m_webViewItem, this);
+    if (m_proxy)
+        m_page->networkAccessManager()->setProxy(*m_proxy);
+
     m_webViewItem->setPage(m_page);
     
     m_webViewItem->setResizesToContent(true);
