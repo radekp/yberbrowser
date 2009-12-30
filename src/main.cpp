@@ -56,7 +56,6 @@
 
 #include "MainWindow.h"
 #include "MainView.h"
-#include "AutoScroller.h"
 
 QNetworkProxy* g_globalProxy;
 
@@ -96,7 +95,6 @@ int main(int argc, char** argv)
 #endif
 
     bool noFullscreen = false;
-    bool autoScroll  = false;
     bool gotFlag = true;
     while (gotFlag) {
         if (args.count() > 1) {
@@ -108,9 +106,6 @@ int main(int argc, char** argv)
                 args.removeAt(1);
             } else if (args.at(1) == "-g") {
                 useGL = true;
-                args.removeAt(1);
-            } else if (args.at(1) == "-s") {
-                autoScroll = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-c") {
                 disableTiling = true;
@@ -147,10 +142,6 @@ int main(int argc, char** argv)
             window->disableHildonDesktopCompositing();
         }
     }
-    if (autoScroll) {
-        AutoScroller* as = new AutoScroller;
-        as->install(window->view(), window->view()->mainWidget());
-    }
 
     int retval = app.exec();
 
@@ -167,7 +158,6 @@ void usage(const char* name)
     s << " -w disable fullscreen" << endl;
     s << " -t disable toolbar" << endl;
     s << " -g use glwidget as qgv viewport" << endl;
-    s << " -s scroll" << endl;
     s << " -c disable tile cache" << endl;
     s << " -h|-?|--help help" << endl;
     s << endl;

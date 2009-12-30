@@ -33,7 +33,7 @@
 #include <QPropertyAnimation>
 #include <QTimer>
 
-class MainView;
+class QGraphicsWebView;
 
 class WebViewportItem : public QGraphicsWidget
 {
@@ -41,11 +41,12 @@ class WebViewportItem : public QGraphicsWidget
     Q_PROPERTY(qreal zoomScale READ zoomScale WRITE setZoomScale)
 
 public:
-    WebViewportItem(MainView* owner, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    WebViewportItem(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
 
     qreal zoomScale();
     void setZoomScale(qreal value);
 
+    void setWebView(QGraphicsWebView* view);
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent * event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
@@ -59,12 +60,13 @@ private:
     qreal zoomScaleForZoomLevel() const;
 
 private:
-    qreal m_zoomScale;
+    QGraphicsWebView* m_webView;
     bool m_isDragging;
-    MainView* m_owner;
-    QPointF m_dragPos;
-    QPointF m_offset;
     int m_zoomLevel;
+    qreal m_zoomScale;
+    QPointF m_dragStartPos;
+    QPointF m_pos;
+
     QPropertyAnimation m_zoomAnim;
     QTimer m_zoomCommitTimer;
 };

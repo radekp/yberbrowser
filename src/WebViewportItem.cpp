@@ -52,12 +52,13 @@ static const int s_zoomCommitTimerDurationMS = 500;
 static const int s_zoomValues[] = {30, 50, 67, 80, 90, 100, 110, 120, 133, 150, 170, 200, 240, 300};
 static const int s_numOfZoomLevels = int(sizeof(s_zoomValues) / sizeof(int)) - 1;
 
-WebViewportItem::WebViewportItem(MainView* owner, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
+    , m_webView(0)
     , m_isDragging(false)
-    , m_owner(owner)
     , m_zoomLevel(5)
     , m_zoomAnim(this, "zoomScale")
+    , m_zoomCommitTimer(this)
 {
     m_zoomScale = zoomScaleForZoomLevel();
 
@@ -72,23 +73,23 @@ qreal WebViewportItem::zoomScaleForZoomLevel() const
     return s_zoomValues[m_zoomLevel] / 100.;
 }
 
-void WebViewportItem::mousePressEvent(QGraphicsSceneMouseEvent * event)
+void WebViewportItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
     m_isDragging = true;
-    m_dragPos = event->pos();
-
+    m_dragStartPos = event->pos();
 }
 
 void WebViewportItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
     m_isDragging = false;
-    m_offset += event->pos() - m_dragPos;
+    m_pos += event->pos() - m_dragStartPos;
 }
 
-void WebViewportItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
+void WebViewportItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-    if (m_isDragging)
-        m_owner->move(m_offset + (event->pos() - m_dragPos));
+    if (m_isDragging) {
+        m_webView->setPos(m_pos + (event->pos() - m_dragStartPos));
+    }
 }
 
 qreal WebViewportItem::zoomScale()
@@ -98,8 +99,13 @@ qreal WebViewportItem::zoomScale()
 
 void WebViewportItem::setZoomScale(qreal value)
 {
-    m_zoomScale = value;
-    m_owner->zoom(m_zoomScale);
+    if (value != m_zoomScale) {
+        m_zoomScale = value;
+        m_webView->setScale(m_zoomScale);
+    }
+
+    qDebug() << "zooming: " << m_zoomScale;
+    m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
     m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
 }
 
@@ -116,5 +122,19 @@ void WebViewportItem::wheelEvent(QGraphicsSceneWheelEvent *event)
 
 void WebViewportItem::commitZoom()
 {
-    m_owner->commitZoom(m_zoomScale);
+    m_webView->setTileCacheZoomFactorX(m_zoomScale);
+    m_webView->setTileCacheZoomFactorY(m_zoomScale);
+    m_webView->setTileCacheState(QWebFrame::TileCacheNormal);
 }
+
+void WebViewportItem::setWebView(QGraphicsWebView* view)
+{
+    if (m_webView) {
+        m_webView->setParentItem(0);
+        delete m_webView;
+    }
+
+    m_webView = view;
+    m_webView->setParentItem(this);
+}
+

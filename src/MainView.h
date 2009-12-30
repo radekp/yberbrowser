@@ -48,19 +48,13 @@ class MainView : public QGraphicsView {
 public:
     MainView(QWidget* parent, Settings);
     ~MainView();
-    void setMainWidget(QGraphicsWebView* widget);
-    QGraphicsWebView* mainWidget();
 
+    void setWebView(QGraphicsWebView* widget);
     void resizeEvent(QResizeEvent* event);
-    void move(const QPointF&);
-    void zoom(float);
-    void commitZoom(float);
-protected:
-    void mousePressEvent(QMouseEvent * event);
+
 private:
     void updateSize();
-
-    QGraphicsWebView* m_mainWidget; // not owned (FIXME)
+private:
     WebViewportItem* m_interactionItem;
     qreal m_zoomFactor;
 };

@@ -69,7 +69,7 @@ QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
 MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
     : QMainWindow()
     , m_view(new MainView(this, settings))
-    , m_scene(new QGraphicsScene)
+    , m_scene(new QGraphicsScene(this))
     , m_webViewItem(new WebView)
     , m_page(0)
     , m_proxy(proxy)
@@ -81,8 +81,6 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
 MainWindow::~MainWindow()
 {
     delete m_page;
-    delete m_webViewItem;
-    delete m_scene;
 }
 
 WebPage* MainWindow::createWebPage()
@@ -97,6 +95,7 @@ MainWindow* MainWindow::createWindow()
 {
     return new MainWindow(m_proxy, m_settings);
 }
+
 void MainWindow::init()
 {
     setAttribute(Qt::WA_DeleteOnClose);
@@ -112,7 +111,7 @@ void MainWindow::init()
     m_view->setScene(m_scene);
 
     setCentralWidget(m_view);
-    m_view->setMainWidget(m_webViewItem);
+    m_view->setWebView(m_webViewItem);
 
     connect(m_webViewItem, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(m_webViewItem, SIGNAL(titleChanged(const QString&)), this, SLOT(setWindowTitle(const QString&)));

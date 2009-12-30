@@ -55,7 +55,6 @@
 
 MainView::MainView(QWidget* parent, Settings settings)
     : QGraphicsView(parent)
-    , m_mainWidget(0)
     , m_interactionItem(0)
     , m_zoomFactor(1.)
 {
@@ -77,34 +76,22 @@ MainView::~MainView()
     delete m_interactionItem;
 }
 
-void MainView::setMainWidget(QGraphicsWebView* webViewItem)
+void MainView::setWebView(QGraphicsWebView* webViewItem)
 {
-    QGraphicsScene* curscene = scene();
-    Q_ASSERT(curscene);
-
-    if (m_mainWidget) {
-        Q_ASSERT(m_interactionItem);
-        m_mainWidget->setParentItem(0);
-        m_mainWidget = 0;
-    }
-
     if (webViewItem) {
         if (!m_interactionItem) {
-            m_interactionItem = new WebViewportItem(this);
-            curscene->addItem(m_interactionItem);
-            curscene->setActiveWindow(m_interactionItem);
+            Q_ASSERT(scene());
+            m_interactionItem = new WebViewportItem();
+            scene()->addItem(m_interactionItem);
+            scene()->setActiveWindow(m_interactionItem);
             m_interactionItem->grabMouse();
             updateSize();
         }
-        m_mainWidget = webViewItem;
-        m_mainWidget->setParentItem(m_interactionItem);
     }
+    if (m_interactionItem)
+        m_interactionItem->setWebView(webViewItem);
 }
 
-QGraphicsWebView* MainView::mainWidget()
-{
-    return m_mainWidget;
-}
 
 void MainView::resizeEvent(QResizeEvent* event)
 {
@@ -122,30 +109,3 @@ void MainView::updateSize()
     m_interactionItem->setGeometry(rect);
 }
 
-void MainView::mousePressEvent(QMouseEvent * event)
-{
-    QGraphicsView::mousePressEvent(event);
-}
-
-void MainView::move(const QPointF& delta)
-{
-    m_mainWidget->setPos(delta);
-}
-
-void MainView::zoom(float zoomFactor)
-{
-    qDebug() << "zooming: " << zoomFactor;
-    m_mainWidget->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
-    if (m_zoomFactor != zoomFactor) {
-        m_mainWidget->setScale(m_zoomFactor = zoomFactor);
-    }
-}
-
-void MainView::commitZoom(float zoomFactor)
-{
-    qDebug() << "freezing zoom: " << zoomFactor;
-    m_mainWidget->setTileCacheZoomFactorX(zoomFactor);
-    m_mainWidget->setTileCacheZoomFactorY(zoomFactor);
-    m_mainWidget->setTileCacheState(QWebFrame::TileCacheNormal);
-
-}
