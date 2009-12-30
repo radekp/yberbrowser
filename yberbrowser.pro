@@ -78,10 +78,12 @@ INSTALLS += target
 HEADERS = \
   src/AutoScroller.h \
   src/MainWindow.h \
+  src/WebViewportItem.h \
   src/MainView.h
 
 SOURCES = \
   src/main.cpp \
   src/AutoScroller.cpp \
   src/MainWindow.cpp \
+  src/WebViewportItem.cpp \
   src/MainView.cpp

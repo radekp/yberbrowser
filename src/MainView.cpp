@@ -48,42 +48,67 @@
 #include <qwebsettings.h>
 #include <qwebview.h>
 #include <QGLWidget>
+#include <QtGlobal>
 
 #include "MainView.h"
+#include "WebViewportItem.h"
 
 MainView::MainView(QWidget* parent, Settings settings)
     : QGraphicsView(parent)
     , m_mainWidget(0)
-    , m_settings(settings)
+    , m_interactionItem(0)
+    , m_zoomFactor(1.)
 {
-    if (m_settings.m_useGL)
+    if (settings.m_useGL)
         setViewport(new QGLWidget);
 
     setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
-    setDragMode(QGraphicsView::ScrollHandDrag);
-    setInteractive(false);
     setOptimizationFlags(QGraphicsView::DontSavePainterState);
 
-    if (!m_settings.m_disableTiling) {
-        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-        setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    } else {
-        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    }
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     setFrameShape(QFrame::NoFrame);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
 
-void MainView::setMainWidget(QGraphicsWidget* widget)
+MainView::~MainView()
 {
-    QRectF rect(QRect(QPoint(0, 0), size()));
-    widget->setGeometry(rect);
-    m_mainWidget = widget;
+    delete m_interactionItem;
 }
 
-QGraphicsWidget* MainView::mainWidget()
+void MainView::setMainWidget(QGraphicsWebView* webViewItem)
+{
+    QGraphicsScene* curscene = scene();
+    Q_ASSERT(curscene);
+
+    if (m_mainWidget) {
+        Q_ASSERT(m_interactionItem);
+        m_mainWidget->setParentItem(0);
+        m_mainWidget = 0;
+    }
+
+    if (webViewItem) {
+        if (!m_interactionItem) {
+#if USE_RECTITEM
+            m_interactionItem = new WebViewportItem(this, QRectF(QRect(QPoint(0, 0), size())));
+            curscene->addItem(m_interactionItem);
+            curscene->setActivePanel(m_interactionItem);
+            m_interactionItem->grabMouse();
+#else
+            m_interactionItem = new WebViewportItem(this);
+            curscene->addItem(m_interactionItem);
+            curscene->setActiveWindow(m_interactionItem);
+            m_interactionItem->grabMouse();
+            updateSize();
+#endif
+        }
+        m_mainWidget = webViewItem;
+        m_mainWidget->setParentItem(m_interactionItem);
+    }
+}
+
+QGraphicsWebView* MainView::mainWidget()
 {
     return m_mainWidget;
 }
@@ -91,11 +116,47 @@ QGraphicsWidget* MainView::mainWidget()
 void MainView::resizeEvent(QResizeEvent* event)
 {
     QGraphicsView::resizeEvent(event);
-    if (!m_mainWidget)
+
+    updateSize();
+}
+
+void MainView::updateSize()
+{
+    if (!m_interactionItem)
         return;
 
-    if (m_settings.m_disableTiling) {
-        QRectF rect(QPoint(0, 0), event->size());
-        m_mainWidget->setGeometry(rect);
+    QRectF rect(QRect(QPoint(0, 0), size()));
+#if USE_RECTITEM
+    m_interactionItem->setRect(rect);
+#else
+    m_interactionItem->setGeometry(rect);
+#endif
+}
+
+void MainView::mousePressEvent(QMouseEvent * event)
+{
+    QGraphicsView::mousePressEvent(event);
+}
+
+void MainView::move(const QPointF& delta)
+{
+    m_mainWidget->setPos(delta);
+}
+
+void MainView::zoom(float zoomFactor)
+{
+    qDebug() << "zooming: " << zoomFactor;
+    m_mainWidget->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
+    if (m_zoomFactor != zoomFactor) {
+        m_mainWidget->setScale(m_zoomFactor = zoomFactor);
     }
+}
+
+void MainView::commitZoom(float zoomFactor)
+{
+    qDebug() << "freezing zoom: " << zoomFactor;
+    m_mainWidget->setTileCacheZoomFactorX(zoomFactor);
+    m_mainWidget->setTileCacheZoomFactorY(zoomFactor);
+    m_mainWidget->setTileCacheState(QWebFrame::TileCacheNormal);
+
 }

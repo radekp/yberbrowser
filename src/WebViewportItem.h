@@ -1,12 +1,5 @@
 /*
  * Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies)
- * Copyright (C) 2006 George Staikos <staikos@kde.org>
- * Copyright (C) 2006 Dirk Mueller <mueller@kde.org>
- * Copyright (C) 2006 Zack Rusin <zack@kde.org>
- * Copyright (C) 2006 Simon Hausmann <hausmann@kde.org>
- * Copyright (C) 2009 Kenneth Christiansen <kenneth@webkit.org>
- * Copyright (C) 2009 Antonio Gomes <antonio.gomes@openbossa.org>
- * Copyright (C) 2009 Girish Ramakrishnan <girish@forwardbias.in>
  *
  * All rights reserved.
  *
@@ -32,37 +25,58 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MainView_h_
-#define MainView_h_
+#ifndef WebViewportItem_h_
+#define WebViewportItem_h_
 
-#include <QGraphicsView>
-#include "MainWindow.h"
+#include <QPropertyAnimation>
+#include <QTimer>
 
-class QGraphicsWidget;
-class QResizeEvent;
-class WebViewportItem;
+class MainView;
 
-class MainView : public QGraphicsView {
+#define USE_RECTITEM 0
+#if USE_RECTITEM
+#include <QGraphicsRectItem>
+
+class WebViewportItem : public QGraphicsObject, public virtual QGraphicsRectItem
+#else
+
+#include <QGraphicsWidget>
+class WebViewportItem : public QGraphicsWidget
+#endif
+{
     Q_OBJECT
+    Q_PROPERTY(qreal zoomScale READ zoomScale WRITE setZoomScale)
 
 public:
-    MainView(QWidget* parent, Settings);
-    ~MainView();
-    void setMainWidget(QGraphicsWebView* widget);
-    QGraphicsWebView* mainWidget();
+#if USE_RECTITEM
+    WebViewportItem(MainView* owner, const QRectF& rect, QGraphicsItem* parent = 0);
+#else
+    WebViewportItem(MainView* owner, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+#endif
 
-    void resizeEvent(QResizeEvent* event);
-    void move(const QPointF&);
-    void zoom(float);
-    void commitZoom(float);
+    qreal zoomScale();
+    void setZoomScale(qreal value);
+
 protected:
-    void mousePressEvent(QMouseEvent * event);
-private:
-    void updateSize();
+    void mousePressEvent(QGraphicsSceneMouseEvent * event);
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
+    void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
+    void wheelEvent(QGraphicsSceneWheelEvent * event);
+    bool sceneEvent(QEvent *event);
 
-    QGraphicsWebView* m_mainWidget; // not owned (FIXME)
-    WebViewportItem* m_interactionItem;
-    qreal m_zoomFactor;
+protected Q_SLOTS:
+    void commitZoom();
+
+private:
+    qreal m_zoomScale;
+    bool m_isDragging;
+    MainView* m_owner;
+    QPointF m_dragPos;
+    QPointF m_offset;
+    int m_zoomLevel;
+    QPropertyAnimation m_zoomAnim;
+    QTimer m_zoomCommitTimer;
+    static int s_zoomValues[];
 };
 
 #endif

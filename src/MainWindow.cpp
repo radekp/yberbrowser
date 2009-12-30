@@ -107,14 +107,11 @@ void MainWindow::init()
 #if WEBKIT_SUPPORTS_TILE_CACHE
     m_page->mainFrame()->setTileCacheEnabled(!m_settings.m_disableTiling);
 #endif
-    m_scene->addItem(m_webViewItem);
-    m_scene->setActiveWindow(m_webViewItem);
+
     m_scene->setItemIndexMethod(QGraphicsScene::NoIndex);
-    
     m_view->setScene(m_scene);
 
     setCentralWidget(m_view);
-
     m_view->setMainWidget(m_webViewItem);
 
     connect(m_webViewItem, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
