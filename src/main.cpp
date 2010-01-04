@@ -164,4 +164,3 @@ void usage(const char* name)
     s << " use http_proxy env var to set http proxy" << endl;
 }
 
-#include "main.moc"
