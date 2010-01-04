@@ -75,14 +75,27 @@ qreal WebViewportItem::zoomScaleForZoomLevel() const
 
 void WebViewportItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
+    if (event->button() != Qt::LeftButton) {
+        event->ignore();
+        QGraphicsWidget::mousePressEvent(event);
+        return;
+    }
     m_isDragging = true;
     m_dragStartPos = event->pos();
+    event->accept();
 }
 
 void WebViewportItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
+    if (event->button() != Qt::LeftButton) {
+        event->ignore();
+        QGraphicsWidget::mouseReleaseEvent(event);
+        return;
+    }
+
     m_isDragging = false;
     m_pos += event->pos() - m_dragStartPos;
+    event->accept();
 }
 
 void WebViewportItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
@@ -112,12 +125,23 @@ void WebViewportItem::setZoomScale(qreal value)
 void WebViewportItem::wheelEvent(QGraphicsSceneWheelEvent *event)
 {
     int adv = event->delta() / (15*8);
-    m_zoomLevel = qBound(0, m_zoomLevel + adv, s_numOfZoomLevels);
+    setZoomLevel(zoomLevel() + adv);
+}
+
+int WebViewportItem::zoomLevel() const
+{
+    return m_zoomLevel;
+}
+
+void WebViewportItem::setZoomLevel(int level)
+{
+    m_zoomLevel = qBound(0, level, s_numOfZoomLevels);
 
     m_zoomAnim.stop();
     m_zoomAnim.setStartValue(m_zoomScale);
     m_zoomAnim.setEndValue(zoomScaleForZoomLevel());
     m_zoomAnim.start();
+
 }
 
 void WebViewportItem::commitZoom()

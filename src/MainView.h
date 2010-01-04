@@ -52,8 +52,11 @@ public:
     void setWebView(QGraphicsWebView* widget);
     void resizeEvent(QResizeEvent* event);
 
+    WebViewportItem* interactionItem() { return m_interactionItem; }
+
 private:
     void updateSize();
+
 private:
     WebViewportItem* m_interactionItem;
     qreal m_zoomFactor;

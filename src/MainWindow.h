@@ -96,6 +96,9 @@ public:
 public slots:
     MainWindow* newWindow(const QString &url = QString());
 
+protected:
+    void keyPressEvent(QKeyEvent* event);
+
 private:
     void buildUI();
 

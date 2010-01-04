@@ -55,6 +55,7 @@
 
 #include "MainWindow.h"
 #include "MainView.h"
+#include "WebViewportItem.h"
 
 QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
 {
@@ -214,3 +215,16 @@ QUrl MainWindow::urlFromUserInput(const QString& string)
     return QUrl::fromUserInput(input);
 }
 
+void MainWindow::keyPressEvent(QKeyEvent* event) {
+    if (!m_view->interactionItem())
+        return;
+
+    if (event->modifiers() & Qt::ControlModifier) {
+        if (event->key() == Qt::Key_I)
+            m_view->interactionItem()->setZoomLevel(m_view->interactionItem()->zoomLevel() + 1);
+        else if (event->key() == Qt::Key_O)
+            m_view->interactionItem()->setZoomLevel(m_view->interactionItem()->zoomLevel() - 1);
+        else
+            QMainWindow::keyPressEvent(event);
+    }
+}

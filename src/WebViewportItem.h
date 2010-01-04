@@ -46,6 +46,9 @@ public:
     qreal zoomScale();
     void setZoomScale(qreal value);
 
+    int zoomLevel() const;
+    void setZoomLevel(int value);
+
     void setWebView(QGraphicsWebView* view);
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent * event);
