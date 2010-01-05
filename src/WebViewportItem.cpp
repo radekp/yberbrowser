@@ -60,7 +60,9 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_zoomAnim(this, "zoomScale")
     , m_zoomCommitTimer(this)
 {
-//    setFlag(QGraphicsItem::ItemHasNoContents, true);
+#if !defined(ENABLE_PAINT_DEBUG)
+    setFlag(QGraphicsItem::ItemHasNoContents, true);
+#endif
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
     setAttribute(Qt::WA_OpaquePaintEvent, true);
@@ -168,7 +170,7 @@ void WebViewportItem::setWebView(QGraphicsWebView* view)
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
 }
 
-#if ENABLE_PAINT_DEBUG
+#if defined(ENABLE_PAINT_DEBUG)
 void WebViewportItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
     static int n = 0;

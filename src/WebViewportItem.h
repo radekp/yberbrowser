@@ -56,7 +56,7 @@ protected:
     void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
     void wheelEvent(QGraphicsSceneWheelEvent * event);
 
-#if ENABLE_PAINT_DEBUG
+#if defined(ENABLE_PAINT_DEBUG)
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 #endif
 
