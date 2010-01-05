@@ -87,14 +87,13 @@ public:
 
     MainView* view();
 
-    void changeLocation();
-
-    void loadFinished(bool);
 
     static QUrl urlFromUserInput(const QString& string);
 
-public slots:
+public Q_SLOTS:
     MainWindow* newWindow(const QString &url = QString());
+    void changeLocation();
+    void loadFinished(bool);
 
 protected:
     void keyPressEvent(QKeyEvent* event);
