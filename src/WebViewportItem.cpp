@@ -60,6 +60,11 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_zoomAnim(this, "zoomScale")
     , m_zoomCommitTimer(this)
 {
+//    setFlag(QGraphicsItem::ItemHasNoContents, true);
+    setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
+    setFlag(QGraphicsItem::ItemClipsToShape, true);
+    setAttribute(Qt::WA_OpaquePaintEvent, true);
+
     m_zoomScale = zoomScaleForZoomLevel();
 
     m_zoomAnim.setDuration(s_zoomAnimDurationMS);
@@ -160,5 +165,21 @@ void WebViewportItem::setWebView(QGraphicsWebView* view)
 
     m_webView = view;
     m_webView->setParentItem(this);
+    m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
 }
 
+#if ENABLE_PAINT_DEBUG
+void WebViewportItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+{
+    static int n = 0;
+    ++n;
+    qDebug() << "WebViewportItem::paint" << option->exposedRect.toRect() << boundingRect() << (n % 2 ? "Qt::green" : "Qt::darkGreen");
+
+    painter->save();
+    painter->setPen(Qt::green);
+    painter->setBrush(Qt::green);
+    painter->fillRect(option->exposedRect.toRect(), n % 2 ? Qt::green : Qt::darkGreen );
+    painter->restore();
+    QGraphicsWidget::paint(painter, option, widget);
+}
+#endif
