@@ -31,7 +31,9 @@
 
 #include <QGraphicsWidget>
 #include <QPropertyAnimation>
+#include <QGraphicsItemAnimation>
 #include <QTimer>
+#include <QTimeLine>
 
 class QGraphicsWebView;
 
@@ -49,11 +51,13 @@ public:
     int zoomLevel() const;
     void setZoomLevel(int value);
 
+    void animateZoomScaleTo(qreal targetZoomScale);
     void setWebView(QGraphicsWebView* view);
 
     void resetState(bool resetZoom);
 
 protected:
+    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event);
     void mousePressEvent(QGraphicsSceneMouseEvent * event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
@@ -65,6 +69,7 @@ protected:
 
 protected Q_SLOTS:
     void commitZoom();
+    void panAnimStateChanged(QTimeLine::State newState);
 
 private:
     qreal zoomScaleForZoomLevel() const;
@@ -76,8 +81,8 @@ private:
     qreal m_zoomScale;
     QPointF m_dragStartPos;
     QPointF m_itemPos;
-
     QPropertyAnimation m_zoomAnim;
+    QGraphicsItemAnimation m_panAnim;
     QTimer m_zoomCommitTimer;
 };
 

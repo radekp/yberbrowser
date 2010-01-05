@@ -57,6 +57,7 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_webView(0)
     , m_zoomAnim(this, "zoomScale")
+    , m_panAnim(this)
     , m_zoomCommitTimer(this)
 {
 #if !defined(ENABLE_PAINT_DEBUG)
@@ -66,11 +67,44 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     setFlag(QGraphicsItem::ItemClipsToShape, true);
     setAttribute(Qt::WA_OpaquePaintEvent, true);
 
+    m_panAnim.setTimeLine(new QTimeLine(s_zoomAnimDurationMS));
+    connect(m_panAnim.timeLine(), SIGNAL(stateChanged(QTimeLine::State)), this, SLOT(panAnimStateChanged(QTimeLine::State)));
+
     m_zoomAnim.setDuration(s_zoomAnimDurationMS);
     connect(&m_zoomCommitTimer, SIGNAL(timeout()), this, SLOT(commitZoom()));
     m_zoomCommitTimer.setSingleShot(true);
 
     resetState(true);
+}
+
+void WebViewportItem::panAnimStateChanged(QTimeLine::State newState)
+{
+    switch(newState) {
+    case QTimeLine::Running:
+        m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
+        break;
+    case QTimeLine::NotRunning: {
+        m_panAnim.timeLine()->stop();
+        qreal s = m_panAnim.horizontalScaleAt(1);
+        QPointF p = m_panAnim.posAt(1);
+
+        // we have to clear the anim transforms
+        m_panAnim.clear();
+        // calling just QGraphicsItemAnimation::clear(),setPos(0) does
+        // not work it leaves the scaling there
+        m_panAnim.setScaleAt(0, 1., 1.);
+        m_panAnim.setPosAt(0, QPointF(0,0));
+        m_panAnim.setStep(0);
+
+        m_webView->setPos(p);
+        m_webView->setScale(s);
+        m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
+        break;
+    }
+    case QTimeLine::Paused:
+    default:
+        break;
+    }
 }
 
 qreal WebViewportItem::zoomScaleForZoomLevel() const
@@ -99,30 +133,67 @@ void WebViewportItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     }
 
     m_isDragging = false;
-    m_itemPos += event->pos() - m_dragStartPos;
     event->accept();
 }
 
 void WebViewportItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
     if (m_isDragging) {
-        m_webView->setPos(m_itemPos + (event->pos() - m_dragStartPos));
+        QPointF d = event->pos() - m_dragStartPos;
+        m_webView->moveBy(d.x(), d.y());
+        m_dragStartPos = event->pos();
     }
+}
+
+void WebViewportItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
+{
+    //setZoomLevel(zoomLevel() + 1);
+    event->accept();
+
+    QPointF p = mapToItem(m_webView, event->pos());
+
+    QWebHitTestResult r = m_webView->page()->mainFrame()->hitTestContent(p.toPoint());
+
+    QSize cs = m_webView->page()->mainFrame()->contentsSize();
+
+    QSize ts = r.boundingRect().size();
+    qreal targetScale = static_cast<qreal>(cs.width()) / ts.width();
+
+    QPointF targetPoint =  (-r.boundingRect().topLeft()) * targetScale;
+
+    qreal curScale = m_webView->scale();
+
+    if (targetScale == zoomScale()) {
+        targetScale = static_cast<qreal>(size().width()) / cs.width();
+        targetPoint = QPointF(0, (m_webView->pos().y()/curScale)*targetScale);
+    }
+
+    QPointF curPos = m_webView->pos();
+
+    m_webView->setPos(QPointF(0,0));
+    m_webView->setScale(1.);
+    m_panAnim.setPosAt(0, curPos);
+    m_panAnim.setPosAt(1, targetPoint);
+    m_panAnim.setScaleAt(0, curScale, curScale);
+    m_panAnim.setScaleAt(1, targetScale, targetScale);
+    m_panAnim.timeLine()->start();
 }
 
 qreal WebViewportItem::zoomScale()
 {
-    return m_zoomScale;
+    if (!m_webView)
+        return 1.;
+
+    return m_webView->scale();
 }
 
 void WebViewportItem::setZoomScale(qreal value)
 {
-    if (value != m_zoomScale) {
+    if (value != zoomScale()) {
         m_zoomScale = value;
-        m_webView->setScale(m_zoomScale);
+        m_webView->setScale(value);
     }
 
-    qDebug() << "zooming: " << m_zoomScale;
     m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
     m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
 }
@@ -141,18 +212,22 @@ int WebViewportItem::zoomLevel() const
 void WebViewportItem::setZoomLevel(int level)
 {
     m_zoomLevel = qBound(0, level, s_numOfZoomLevels);
+    animateZoomScaleTo(zoomScaleForZoomLevel());
+}
 
+void WebViewportItem::animateZoomScaleTo(qreal targetZoomScale)
+{
     m_zoomAnim.stop();
-    m_zoomAnim.setStartValue(m_zoomScale);
-    m_zoomAnim.setEndValue(zoomScaleForZoomLevel());
+    m_zoomAnim.setStartValue(zoomScale());
+    m_zoomAnim.setEndValue(targetZoomScale);
     m_zoomAnim.start();
-
 }
 
 void WebViewportItem::commitZoom()
 {
-    m_webView->setTileCacheZoomFactorX(m_zoomScale);
-    m_webView->setTileCacheZoomFactorY(m_zoomScale);
+    qreal s = m_webView->scale();
+    m_webView->setTileCacheZoomFactorX(s);
+    m_webView->setTileCacheZoomFactorY(s);
     m_webView->setTileCacheState(QWebFrame::TileCacheNormal);
 }
 
@@ -166,13 +241,13 @@ void WebViewportItem::setWebView(QGraphicsWebView* view)
     m_webView = view;
     m_webView->setParentItem(this);
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
+    m_panAnim.setItem(m_webView);
 }
 
 void WebViewportItem::resetState(bool resetZoom)
 {
-    m_itemPos = QPoint(0, 0);
     if (m_webView)
-        m_webView->setPos(m_itemPos);
+        m_webView->setPos(QPointF(0, 0));
 
     if (resetZoom) {
         m_zoomLevel = s_defaultZoomLevel;
@@ -180,9 +255,13 @@ void WebViewportItem::resetState(bool resetZoom)
 
     m_zoomScale = zoomScaleForZoomLevel();
 
+    if (m_webView)
+        m_webView->setScale(m_zoomScale);
+
     m_isDragging = false;
     m_dragStartPos = QPoint();
     m_zoomAnim.stop();
+    m_panAnim.timeLine()->stop();
 }
 
 #if defined(ENABLE_PAINT_DEBUG)
