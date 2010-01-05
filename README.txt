@@ -3,6 +3,7 @@ This is based on QGVLauncher
 Credits: QGVLauncher committers
 
 
+
 Build with system webkit package
 --------------------------------
 
@@ -33,6 +34,30 @@ mkdir builddir && cd builddir
 qmake ../yberbrowser.pro WEBKIT=local WEBKIT_PATH=`pwd`/../webkit/
 
 
+
+Day-to-day development
+---------------------
+
+See scripts/ -dir for qmake build scripts, etc
+
+
+
+
+Run examples
+------------
+
+
+Help:
+./yberbrowser -h
+
+Fullscreen:
+./yberbrowser /path/to/file
+
+Windowed, raster:
+./yberbrowser -graphicssystem raster -w
+
+Windowed, raster, GLWidget for QGraphicsView:
+./yberbrowser -graphicssystem raster -w -g http://slashdot.org
 
 
 
