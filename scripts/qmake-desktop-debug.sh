@@ -1,3 +1,3 @@
 #!/bin/bash
 
-qmake ../yberbrowser.pro WEBKIT=local WEBKIT_PATH=/home/kimkinnu/work/webkit-other/ CONFIG+=release CONFIG-=debug DEFINES+=ENABLE_PAINT_DEBUG=1
+../scripts/qmake-desktop-dev.sh DEFINES+=ENABLE_PAINT_DEBUG=1
