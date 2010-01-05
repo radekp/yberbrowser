@@ -49,14 +49,13 @@
 static const int s_zoomAnimDurationMS = 300;
 static const int s_zoomCommitTimerDurationMS = 500;
 
+static const int s_defaultZoomLevel = 5;
 static const int s_zoomValues[] = {30, 50, 67, 80, 90, 100, 110, 120, 133, 150, 170, 200, 240, 300};
 static const int s_numOfZoomLevels = int(sizeof(s_zoomValues) / sizeof(int)) - 1;
 
 WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_webView(0)
-    , m_isDragging(false)
-    , m_zoomLevel(5)
     , m_zoomAnim(this, "zoomScale")
     , m_zoomCommitTimer(this)
 {
@@ -67,12 +66,11 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     setFlag(QGraphicsItem::ItemClipsToShape, true);
     setAttribute(Qt::WA_OpaquePaintEvent, true);
 
-    m_zoomScale = zoomScaleForZoomLevel();
-
     m_zoomAnim.setDuration(s_zoomAnimDurationMS);
     connect(&m_zoomCommitTimer, SIGNAL(timeout()), this, SLOT(commitZoom()));
     m_zoomCommitTimer.setSingleShot(true);
 
+    resetState(true);
 }
 
 qreal WebViewportItem::zoomScaleForZoomLevel() const
@@ -101,14 +99,14 @@ void WebViewportItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     }
 
     m_isDragging = false;
-    m_pos += event->pos() - m_dragStartPos;
+    m_itemPos += event->pos() - m_dragStartPos;
     event->accept();
 }
 
 void WebViewportItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
     if (m_isDragging) {
-        m_webView->setPos(m_pos + (event->pos() - m_dragStartPos));
+        m_webView->setPos(m_itemPos + (event->pos() - m_dragStartPos));
     }
 }
 
@@ -168,6 +166,23 @@ void WebViewportItem::setWebView(QGraphicsWebView* view)
     m_webView = view;
     m_webView->setParentItem(this);
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
+}
+
+void WebViewportItem::resetState(bool resetZoom)
+{
+    m_itemPos = QPoint(0, 0);
+    if (m_webView)
+        m_webView->setPos(m_itemPos);
+
+    if (resetZoom) {
+        m_zoomLevel = s_defaultZoomLevel;
+    }
+
+    m_zoomScale = zoomScaleForZoomLevel();
+
+    m_isDragging = false;
+    m_dragStartPos = QPoint();
+    m_zoomAnim.stop();
 }
 
 #if defined(ENABLE_PAINT_DEBUG)

@@ -50,6 +50,9 @@ public:
     void setZoomLevel(int value);
 
     void setWebView(QGraphicsWebView* view);
+
+    void resetState(bool resetZoom);
+
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent * event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
@@ -72,7 +75,7 @@ private:
     int m_zoomLevel;
     qreal m_zoomScale;
     QPointF m_dragStartPos;
-    QPointF m_pos;
+    QPointF m_itemPos;
 
     QPropertyAnimation m_zoomAnim;
     QTimer m_zoomCommitTimer;
