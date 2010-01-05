@@ -96,7 +96,6 @@ void MainView::setWebView(QGraphicsWebView* webViewItem)
 void MainView::resizeEvent(QResizeEvent* event)
 {
     QGraphicsView::resizeEvent(event);
-
     updateSize();
 }
 
@@ -105,7 +104,8 @@ void MainView::updateSize()
     if (!m_interactionItem)
         return;
 
-    QRectF rect(QRect(QPoint(0, 0), size()));
+    QRectF rect(QPointF(0, 0), size());
+    scene()->setSceneRect(rect);
     m_interactionItem->setGeometry(rect);
 }
 
