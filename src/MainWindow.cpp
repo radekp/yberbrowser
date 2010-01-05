@@ -88,6 +88,8 @@ MainWindow* MainWindow::createWindow()
 
 void MainWindow::init()
 {
+    resize(640, 480);
+
     setAttribute(Qt::WA_DeleteOnClose);
     m_page = new WebPage(m_webViewItem, this);
     if (m_proxy)
@@ -107,12 +109,12 @@ void MainWindow::init()
     m_view->setWebView(m_webViewItem);
 
     connect(m_webViewItem, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
+    connect(m_webViewItem, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
     connect(m_webViewItem, SIGNAL(titleChanged(const QString&)), this, SLOT(setWindowTitle(const QString&)));
     connect(m_webViewItem->page(), SIGNAL(windowCloseRequested()), this, SLOT(close()));
 
-    resize(640, 480);
     buildUI();
-
+    setLoadInProgress(false);
 }
 
 void MainWindow::load(const QString& url)
@@ -124,6 +126,16 @@ void MainWindow::load(const QString& url)
     urlEdit->setText(deducedUrl.toEncoded());
     m_webViewItem->load(deducedUrl);
     m_webViewItem->setFocus(Qt::OtherFocusReason);
+}
+
+void MainWindow::loadStarted()
+{
+    setLoadInProgress(true);
+}
+void MainWindow::setLoadInProgress(bool flag)
+{
+/*  m_stopAction->setVisible(flag);
+    m_reloadAction->setVisible(!flag);*/
 }
 
 QWebPage* MainWindow::page() const
@@ -159,6 +171,8 @@ void MainWindow::changeLocation()
 
 void MainWindow::loadFinished(bool)
 {
+    setLoadInProgress(false);
+
     QUrl url = m_webViewItem->url();
     urlEdit->setText(url.toString());
 
@@ -189,9 +203,8 @@ void MainWindow::buildUI()
 
     QToolBar* bar = addToolBar("Navigation");
     bar->addAction(page->action(QWebPage::Back));
-    bar->addAction(page->action(QWebPage::Forward));
-    bar->addAction(page->action(QWebPage::Reload));
-    bar->addAction(page->action(QWebPage::Stop));
+    bar->addAction(m_reloadAction = page->action(QWebPage::Reload));
+    bar->addAction(m_stopAction = page->action(QWebPage::Stop));
     bar->addWidget(urlEdit);
     if (m_settings.m_disableToolbar)
         bar->hide();
@@ -200,7 +213,9 @@ void MainWindow::buildUI()
     fileMenu->addAction("New Window", this, SLOT(newWindow()));
     fileMenu->addAction("Close", this, SLOT(close()));
 
-    QMenu* viewMenu = menuBar()->addMenu("&View");
+    QMenu* viewMenu = menuBar()->addMenu("&Navigation");
+    viewMenu->addAction(page->action(QWebPage::Back));
+    viewMenu->addAction(page->action(QWebPage::Forward));
     viewMenu->addAction(page->action(QWebPage::Stop));
     viewMenu->addAction(page->action(QWebPage::Reload));
 }

@@ -93,6 +93,8 @@ public:
 public Q_SLOTS:
     MainWindow* newWindow(const QString &url = QString());
     void changeLocation();
+
+    void loadStarted();
     void loadFinished(bool);
 
 protected:
@@ -100,6 +102,7 @@ protected:
 
 private:
     void buildUI();
+    void setLoadInProgress(bool);
 
 private:
     MainView* m_view;
@@ -108,7 +111,9 @@ private:
     WebPage* m_page;
     QNetworkProxy* m_proxy;     // not owned (FIXME)
     Settings m_settings;
-
+    QAction* m_stopAction;
+    QAction* m_reloadAction;
+    
     QLineEdit* urlEdit;
 };
 
