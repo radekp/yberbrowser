@@ -66,7 +66,7 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
     setAttribute(Qt::WA_OpaquePaintEvent, true);
-
+    setFiltersChildEvents(true);
     m_panAnim.setTimeLine(new QTimeLine(s_zoomAnimDurationMS));
     connect(m_panAnim.timeLine(), SIGNAL(stateChanged(QTimeLine::State)), this, SLOT(panAnimStateChanged(QTimeLine::State)));
 
@@ -202,6 +202,7 @@ void WebViewportItem::wheelEvent(QGraphicsSceneWheelEvent *event)
 {
     int adv = event->delta() / (15*8);
     setZoomLevel(zoomLevel() + adv);
+    event->accept();
 }
 
 int WebViewportItem::zoomLevel() const
@@ -279,3 +280,110 @@ void WebViewportItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* o
     QGraphicsWidget::paint(painter, option, widget);
 }
 #endif
+
+/*!
+  Copies common properties of mouse/wheel event to new event. Maps the coordinates from the event
+  to the coordinate space of the receiving item
+
+  This is very errorprone and should be replaced.
+  \internal
+ */
+template<typename EventType>
+bool mapEventCommonPropertiesIfApplicable(QGraphicsItem* parent, const EventType* event, EventType& mappedEvent)
+{
+    // lifted form qmlgraphicsflickable.cpp, LGPL Nokia
+    QRectF parentRect = parent->mapToScene(parent->boundingRect()).boundingRect();
+    if (!parentRect.contains(event->scenePos().toPoint()))
+        return false;
+
+    mappedEvent.setAccepted(false);
+    mappedEvent.setPos(parent->mapFromScene(event->scenePos()));
+    mappedEvent.setScenePos(event->scenePos());
+    mappedEvent.setScreenPos(event->screenPos());
+    mappedEvent.setModifiers(event->modifiers());
+    mappedEvent.setButtons(event->buttons());
+
+    return true;
+}
+
+bool WebViewportItem::sendMouseEventFromChild(QGraphicsSceneMouseEvent *event)
+{
+    QGraphicsSceneMouseEvent mappedEvent(event->type());
+    if (!mapEventCommonPropertiesIfApplicable(this, event, mappedEvent))
+        return false;
+
+    for (int i = 0x1; i <= 0x10; i <<= 1) {
+        if (event->buttons() & i) {
+            Qt::MouseButton button = Qt::MouseButton(i);
+            mappedEvent.setButtonDownPos(button, mapFromScene(event->buttonDownPos(button)));
+            mappedEvent.setButtonDownScenePos(button, event->buttonDownScenePos(button));
+            mappedEvent.setButtonDownScreenPos(button, event->buttonDownScreenPos(button));
+        }
+    }
+
+    mappedEvent.setLastPos(mapFromScene(event->lastScenePos()));
+    mappedEvent.setLastScenePos(event->lastScenePos());
+    mappedEvent.setLastScreenPos(event->lastScreenPos());
+    mappedEvent.setButton(event->button());
+
+
+    switch(mappedEvent.type()) {
+    case QEvent::GraphicsSceneMouseDoubleClick:
+        mouseDoubleClickEvent(&mappedEvent);
+        break;
+    case QEvent::GraphicsSceneMouseMove:
+        mouseMoveEvent(&mappedEvent);
+        break;
+    case QEvent::GraphicsSceneMousePress:
+        mousePressEvent(&mappedEvent);
+        break;
+    case QEvent::GraphicsSceneMouseRelease:
+        mouseReleaseEvent(&mappedEvent);
+        break;
+    default:
+        break;
+    }
+    return mappedEvent.isAccepted();
+}
+
+bool WebViewportItem::sendWheelEventFromChild(QGraphicsSceneWheelEvent *event)
+{
+    QGraphicsSceneWheelEvent mappedEvent(event->type());
+    if (!mapEventCommonPropertiesIfApplicable(this, event, mappedEvent))
+        return false;
+
+    mappedEvent.setDelta(event->delta());
+    mappedEvent.setOrientation(event->orientation());
+
+    wheelEvent(&mappedEvent);
+    return mappedEvent.isAccepted();
+}
+
+bool WebViewportItem::sceneEventFilter(QGraphicsItem *i, QEvent *e)
+{
+    // lifted form qmlgraphicsflickable.cpp, LGPL Nokia
+
+    if (!isVisible())
+        return QGraphicsItem::sceneEventFilter(i, e);
+
+
+    switch (e->type()) {
+    case QEvent::GraphicsSceneMouseDoubleClick:
+    case QEvent::GraphicsSceneMousePress:
+    case QEvent::GraphicsSceneMouseMove:
+    case QEvent::GraphicsSceneMouseRelease:
+        return sendMouseEventFromChild(static_cast<QGraphicsSceneMouseEvent *>(e));
+
+    case QEvent::GraphicsSceneWheel:
+        return sendWheelEventFromChild(static_cast<QGraphicsSceneWheelEvent*>(e));
+        break;
+
+    default:
+        return QGraphicsItem::sceneEventFilter(i, e);
+    }
+
+    if (e->isAccepted())
+        return true;
+
+    return QGraphicsItem::sceneEventFilter(i, e);
+}

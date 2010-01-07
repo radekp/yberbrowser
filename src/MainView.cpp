@@ -84,7 +84,6 @@ void MainView::setWebView(QGraphicsWebView* webViewItem)
             m_interactionItem = new WebViewportItem();
             scene()->addItem(m_interactionItem);
             scene()->setActiveWindow(m_interactionItem);
-            m_interactionItem->grabMouse();
             updateSize();
         }
     }

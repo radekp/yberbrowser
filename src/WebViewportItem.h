@@ -66,6 +66,7 @@ protected:
 #if defined(ENABLE_PAINT_DEBUG)
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 #endif
+    bool sceneEventFilter(QGraphicsItem *i, QEvent *e);
 
 protected Q_SLOTS:
     void commitZoom();
@@ -73,6 +74,9 @@ protected Q_SLOTS:
 
 private:
     qreal zoomScaleForZoomLevel() const;
+
+    bool sendWheelEventFromChild(QGraphicsSceneWheelEvent *event);
+    bool sendMouseEventFromChild(QGraphicsSceneMouseEvent *event);
 
 private:
     QGraphicsWebView* m_webView;
