@@ -50,16 +50,30 @@ public:
     ~MainView();
 
     void setWebView(QGraphicsWebView* widget);
+    QGraphicsWebView* webView();
+
     void resizeEvent(QResizeEvent* event);
 
     WebViewportItem* interactionItem() { return m_interactionItem; }
 
+protected Q_SLOTS:
+    void resetState();
+    void contentsSizeChanged(const QSize &size);
+    void loadFinished(bool);
+
 private:
     void updateSize();
+    void installSignalHandlers();
+
+    enum State {
+        InitialLoad,
+        Interaction
+    };
 
 private:
     WebViewportItem* m_interactionItem;
-    qreal m_zoomFactor;
+    qreal m_zoomScaleAtLoadStart;
+    State m_state;
 };
 
 #endif

@@ -53,10 +53,16 @@
 #include "MainView.h"
 #include "WebViewportItem.h"
 
+
+// TODO:
+// detect when user interaction has been done and do
+// m_state = Interaction;
+
 MainView::MainView(QWidget* parent, Settings settings)
     : QGraphicsView(parent)
     , m_interactionItem(0)
-    , m_zoomFactor(1.)
+    , m_zoomScaleAtLoadStart(1.)
+    , m_state(InitialLoad)
 {
     if (settings.m_useGL)
         setViewport(new QGLWidget);
@@ -86,11 +92,12 @@ void MainView::setWebView(QGraphicsWebView* webViewItem)
             scene()->setActiveWindow(m_interactionItem);
             updateSize();
         }
-    }
-    if (m_interactionItem)
         m_interactionItem->setWebView(webViewItem);
+        installSignalHandlers();
+    } else {
+        m_interactionItem->setWebView(0);
+    }
 }
-
 
 void MainView::resizeEvent(QResizeEvent* event)
 {
@@ -108,3 +115,41 @@ void MainView::updateSize()
     m_interactionItem->setGeometry(rect);
 }
 
+QGraphicsWebView* MainView::webView()
+{
+    return m_interactionItem->webView();
+}
+
+void MainView::installSignalHandlers()
+{
+    connect(webView()->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), this, SLOT(resetState()));
+    connect(webView()->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(contentsSizeChanged(const QSize&)));
+    connect(webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
+}
+
+void MainView::resetState()
+{
+    m_state = InitialLoad;
+    m_interactionItem->resetState(true);
+
+    m_zoomScaleAtLoadStart = m_interactionItem->zoomScale();
+}
+
+void MainView::loadFinished(bool)
+{
+    if (m_state == InitialLoad)
+        m_state = Interaction;
+}
+
+void MainView::contentsSizeChanged(const QSize&)
+{
+    // FIXME: QSize& arg vs contentsSize(): these  report different sizes
+    // probably scrollbar thing
+    QSize contentsSize = webView()->page()->mainFrame()->contentsSize();
+
+    if (m_state == InitialLoad && m_zoomScaleAtLoadStart == m_interactionItem->zoomScale()) {
+        qreal targetScale = static_cast<qreal>(m_interactionItem->size().width()) / contentsSize.width();
+        m_interactionItem->setZoomScale(targetScale, true);
+        m_zoomScaleAtLoadStart = m_interactionItem->zoomScale();
+    }
+}

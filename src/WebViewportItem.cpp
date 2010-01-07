@@ -197,7 +197,7 @@ qreal WebViewportItem::zoomScale()
     return m_zoomAnim.horizontalScaleAt(1) * m_webView->scale();
 }
 
-void WebViewportItem::setZoomScale(qreal value)
+void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
 {
     value = qBound(s_minZoomScale, value, s_maxZoomScale);
 
@@ -205,8 +205,12 @@ void WebViewportItem::setZoomScale(qreal value)
         m_webView->setScale(value);
     }
 
-    m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
-    m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
+    if (commitInstantly) {
+        commitZoom();
+    } else {
+        m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
+        m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
+    }
 }
 
 void WebViewportItem::wheelEvent(QGraphicsSceneWheelEvent *event)
@@ -392,4 +396,9 @@ bool WebViewportItem::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     }
 
     return QGraphicsItem::sceneEventFilter(i, e);
+}
+
+QGraphicsWebView* WebViewportItem::webView()
+{
+    return m_webView;
 }

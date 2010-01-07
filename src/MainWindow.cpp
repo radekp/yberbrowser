@@ -112,7 +112,6 @@ void MainWindow::init()
 
     connect(m_webViewItem, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(m_webViewItem, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
-    connect(m_webViewItem->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), this, SLOT(resetState()));
     connect(m_webViewItem, SIGNAL(titleChanged(const QString&)), this, SLOT(setWindowTitle(const QString&)));
     connect(m_webViewItem->page(), SIGNAL(windowCloseRequested()), this, SLOT(close()));
 
@@ -134,11 +133,6 @@ void MainWindow::load(const QString& url)
 void MainWindow::loadStarted()
 {
     setLoadInProgress(true);
-}
-
-void MainWindow::resetState()
-{
-    m_view->interactionItem()->resetState(false);
 }
 
 void MainWindow::setLoadInProgress(bool /*flag*/)

@@ -46,10 +46,11 @@ public:
     WebViewportItem(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
 
     qreal zoomScale();
-    void setZoomScale(qreal value);
+    void setZoomScale(qreal value, bool commitInstantly = false);
 
     void animateZoomScaleTo(qreal targetZoomScale);
     void setWebView(QGraphicsWebView* view);
+    QGraphicsWebView* webView();
 
     void resetState(bool resetZoom);
 

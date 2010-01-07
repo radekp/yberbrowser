@@ -96,7 +96,6 @@ public Q_SLOTS:
 
     void loadStarted();
     void loadFinished(bool);
-    void resetState();
 
 protected:
     void keyPressEvent(QKeyEvent* event);
