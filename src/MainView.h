@@ -64,6 +64,7 @@ protected Q_SLOTS:
 private:
     void updateSize();
     void installSignalHandlers();
+    void updateZoomScaleToPageWidth();
 
     enum State {
         InitialLoad,
