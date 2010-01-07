@@ -54,6 +54,9 @@ static const qreal s_minZoomScale = .01; // arbitrary
 static const qreal s_maxZoomScale = 10.; // arbitrary
 
 
+static const int s_minDoubleClickZoomTargetWidth = 100; // in document coords, aka CSS pixels
+
+
 WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_webView(0)
@@ -132,25 +135,45 @@ void WebViewportItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
     event->accept();
 
-    QPointF p = mapToItem(m_webView, event->pos());
-
-    QWebHitTestResult r = m_webView->page()->mainFrame()->hitTestContent(p.toPoint());
-
-    QSize cs = m_webView->page()->mainFrame()->contentsSize();
-
-    QSize ts = r.boundingRect().size();
-    qreal targetScale = static_cast<qreal>(cs.width()) / ts.width();
-
-    QPointF targetPoint =  (-r.boundingRect().topLeft()) * targetScale;
-
     qreal curScale = m_webView->scale();
+    QSize contentsSize = m_webView->page()->mainFrame()->contentsSize();
 
-    if (targetScale == zoomScale()) {
-        targetScale = static_cast<qreal>(size().width()) / cs.width();
+    qreal targetScale;
+    QPointF targetPoint;
+
+    if (isZoomedIn()) {
+        targetScale = static_cast<qreal>(size().width()) / contentsSize.width();
         targetPoint = QPointF(0, (m_webView->pos().y()/curScale)*targetScale);
+    } else {
+        QPointF p = mapToItem(m_webView, event->pos());
+
+        // assume to find atleast something
+        targetScale = zoomScale() + s_zoomScaleWheelStep;
+        targetPoint = event->pos();
+
+        QWebHitTestResult r = m_webView->page()->mainFrame()->hitTestContent(p.toPoint());
+        QWebElement e = r.enclosingBlockElement();
+
+        while (!e.isNull() && e.geometry().width() < s_minDoubleClickZoomTargetWidth) {
+            e = e.parent();
+        }
+        if (!e.isNull()) {
+            QRectF targetRect = e.geometry();
+            QSizeF targetSize = targetRect.size();
+
+            targetScale = static_cast<qreal>(contentsSize.width()) / targetSize.width();
+            targetPoint =  (-targetRect.topLeft()) * targetScale;
+        }
     }
 
     startZoomAnimTo(targetPoint, targetScale);
+}
+
+bool WebViewportItem::isZoomedIn() const
+{
+    QSize contentsSize = m_webView->page()->mainFrame()->contentsSize();
+    qreal targetScale = static_cast<qreal>(size().width()) / contentsSize.width();
+    return zoomScale() > targetScale;
 }
 
 void WebViewportItem::startZoomAnimTo(const QPointF& targetPoint, qreal targetScale)
@@ -189,7 +212,7 @@ void WebViewportItem::transferAnimStateToView()
 }
 
 
-qreal WebViewportItem::zoomScale()
+qreal WebViewportItem::zoomScale() const
 {
     if (!m_webView)
         return 1.;

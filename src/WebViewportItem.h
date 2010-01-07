@@ -45,7 +45,7 @@ class WebViewportItem : public QGraphicsWidget
 public:
     WebViewportItem(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
 
-    qreal zoomScale();
+    qreal zoomScale() const;
     void setZoomScale(qreal value, bool commitInstantly = false);
 
     void animateZoomScaleTo(qreal targetZoomScale);
@@ -76,6 +76,8 @@ private:
     void transferAnimStateToView();
     void resetZoomAnim();
     void startZoomAnimTo(const QPointF& targetPoint, qreal targetScale);
+
+    bool isZoomedIn() const;
 
 private:
     QGraphicsWebView* m_webView;
