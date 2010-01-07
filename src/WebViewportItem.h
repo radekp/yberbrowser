@@ -44,6 +44,7 @@ class WebViewportItem : public QGraphicsWidget
 
 public:
     WebViewportItem(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    ~WebViewportItem();
 
     qreal zoomScale() const;
     void setZoomScale(qreal value, bool commitInstantly = false);
@@ -60,6 +61,7 @@ protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
     void wheelEvent(QGraphicsSceneWheelEvent * event);
+    void timerEvent(QTimerEvent *event);
 
 #if defined(ENABLE_PAINT_DEBUG)
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
@@ -80,8 +82,10 @@ private:
     bool isZoomedIn() const;
 
     void clearDelayedPress();
-    void captureDelayedPress(QGraphicsSceneMouseEvent *event);
+    void captureDelayedPress(QGraphicsSceneMouseEvent *event, bool wasRelease = false);
+    void sendDelayedPress();
 
+    
 private:
     QGraphicsWebView* m_webView;
     bool m_isDragging;
@@ -92,6 +96,7 @@ private:
     QTimer m_zoomCommitTimer;
 
     QGraphicsSceneMouseEvent* m_delayedPressEvent;
+    QGraphicsSceneMouseEvent* m_delayedReleaseEvent;
     QGraphicsItem* m_delayedPressTarget;
     QBasicTimer m_delayedPressTimer;
     int m_pressDelay;

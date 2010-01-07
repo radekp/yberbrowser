@@ -62,8 +62,9 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_zoomAnim(this)
     , m_zoomCommitTimer(this)
     , m_delayedPressEvent(0)
+    , m_delayedReleaseEvent(0)
     , m_delayedPressTarget(0)
-    , m_pressDelay(10)
+    , m_pressDelay(300)
 
 {
 #if !defined(ENABLE_PAINT_DEBUG)
@@ -81,6 +82,11 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     m_zoomCommitTimer.setSingleShot(true);
 
     resetState(true);
+}
+
+WebViewportItem::~WebViewportItem()
+{
+    clearDelayedPress();
 }
 
 void WebViewportItem::panAnimStateChanged(QTimeLine::State newState)
@@ -352,6 +358,10 @@ bool mapEventCommonPropertiesIfApplicable(QGraphicsItem* parent, const EventType
 
 bool WebViewportItem::sendMouseEventFromChild(QGraphicsSceneMouseEvent *event)
 {
+    // these events will be sent by this class, don't filter these
+    if (m_delayedPressEvent == event || m_delayedReleaseEvent == event)
+        return false;
+
     QGraphicsSceneMouseEvent mappedEvent(event->type());
     if (!mapEventCommonPropertiesIfApplicable(this, event, mappedEvent))
         return false;
@@ -373,26 +383,25 @@ bool WebViewportItem::sendMouseEventFromChild(QGraphicsSceneMouseEvent *event)
 
     switch(mappedEvent.type()) {
     case QEvent::GraphicsSceneMouseDoubleClick:
+        clearDelayedPress();
         mouseDoubleClickEvent(&mappedEvent);
         break;
+
     case QEvent::GraphicsSceneMouseMove:
         mouseMoveEvent(&mappedEvent);
         break;
-    case QEvent::GraphicsSceneMousePress:
-        if (m_delayedPressEvent)
-            return false;
 
+    case QEvent::GraphicsSceneMousePress:
         mousePressEvent(&mappedEvent);
-        captureDelayedPress(event);
+
+        if (!m_delayedPressEvent && mappedEvent.isAccepted())
+            captureDelayedPress(event);
         break;
     case QEvent::GraphicsSceneMouseRelease:
-        if (m_delayedPressEvent) {
-            scene()->sendEvent(m_delayedPressTarget, m_delayedPressEvent);
-            clearDelayedPress();
-            return false;
-        }
-
         mouseReleaseEvent(&mappedEvent);
+
+        if (m_delayedPressEvent && !m_delayedReleaseEvent && mappedEvent.isAccepted())
+            captureDelayedPress(event, true);
         break;
     default:
         break;
@@ -443,35 +452,42 @@ QGraphicsWebView* WebViewportItem::webView()
 }
 
 
-void WebViewportItem::captureDelayedPress(QGraphicsSceneMouseEvent *event)
+void WebViewportItem::captureDelayedPress(QGraphicsSceneMouseEvent *event, bool wasRelease)
 {
-    Q_ASSERT(!m_delayedPressEvent);
-    Q_ASSERT(!m_delayedPressTarget);
+    Q_ASSERT(!m_delayedPressTarget && !m_delayedPressEvent && !wasRelease);
+    Q_ASSERT(m_delayedPressTarget && m_delayedPressEvent && !m_delayedReleaseEvent && wasRelease);
 
     if (!scene() || m_pressDelay <= 0)
         return;
-
-    m_delayedPressTarget = scene()->mouseGrabberItem();
-    m_delayedPressEvent = new QGraphicsSceneMouseEvent(event->type());
-    m_delayedPressEvent->setAccepted(false);
+    
+    QGraphicsSceneMouseEvent* delayedEvent = new QGraphicsSceneMouseEvent(event->type());
+    delayedEvent->setAccepted(false);
     for (int i = 0x1; i <= 0x10; i <<= 1) {
         if (event->buttons() & i) {
             Qt::MouseButton button = Qt::MouseButton(i);
-            m_delayedPressEvent->setButtonDownPos(button, event->buttonDownPos(button));
-            m_delayedPressEvent->setButtonDownScenePos(button, event->buttonDownScenePos(button));
-            m_delayedPressEvent->setButtonDownScreenPos(button, event->buttonDownScreenPos(button));
+            delayedEvent->setButtonDownPos(button, event->buttonDownPos(button));
+            delayedEvent->setButtonDownScenePos(button, event->buttonDownScenePos(button));
+            delayedEvent->setButtonDownScreenPos(button, event->buttonDownScreenPos(button));
         }
     }
-    m_delayedPressEvent->setButtons(event->buttons());
-    m_delayedPressEvent->setButton(event->button());
-    m_delayedPressEvent->setPos(event->pos());
-    m_delayedPressEvent->setScenePos(event->scenePos());
-    m_delayedPressEvent->setScreenPos(event->screenPos());
-    m_delayedPressEvent->setLastPos(event->lastPos());
-    m_delayedPressEvent->setLastScenePos(event->lastScenePos());
-    m_delayedPressEvent->setLastScreenPos(event->lastScreenPos());
-    m_delayedPressEvent->setModifiers(event->modifiers());
-    //m_delayedPressTimer.start(m_pressDelay, q);
+    delayedEvent->setButtons(event->buttons());
+    delayedEvent->setButton(event->button());
+    delayedEvent->setPos(event->pos());
+    delayedEvent->setScenePos(event->scenePos());
+    delayedEvent->setScreenPos(event->screenPos());
+    delayedEvent->setLastPos(event->lastPos());
+    delayedEvent->setLastScenePos(event->lastScenePos());
+    delayedEvent->setLastScreenPos(event->lastScreenPos());
+    delayedEvent->setModifiers(event->modifiers());
+    delayedEvent->setWidget(event->widget());
+
+    if (wasRelease) {
+        m_delayedReleaseEvent = delayedEvent;
+        m_delayedPressTimer.start(m_pressDelay, this);
+    } else {
+        m_delayedPressEvent = delayedEvent;
+        m_delayedPressTarget = scene()->mouseGrabberItem();
+    }
 }
 
 void WebViewportItem::clearDelayedPress()
@@ -480,6 +496,18 @@ void WebViewportItem::clearDelayedPress()
         m_delayedPressTimer.stop();
         delete m_delayedPressEvent;
         m_delayedPressEvent = 0;
+        delete m_delayedReleaseEvent;
+        m_delayedReleaseEvent = 0;
         m_delayedPressTarget = 0;
+    }
+}
+
+void WebViewportItem::timerEvent(QTimerEvent *event)
+{
+    if (event->timerId() == m_delayedPressTimer.timerId()) {
+        m_delayedPressTimer.stop();
+        scene()->sendEvent(m_delayedPressTarget, m_delayedPressEvent);
+        scene()->sendEvent(m_delayedPressTarget, m_delayedReleaseEvent);
+        clearDelayedPress();
     }
 }
