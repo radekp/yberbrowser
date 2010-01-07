@@ -79,6 +79,9 @@ private:
 
     bool isZoomedIn() const;
 
+    void clearDelayedPress();
+    void captureDelayedPress(QGraphicsSceneMouseEvent *event);
+
 private:
     QGraphicsWebView* m_webView;
     bool m_isDragging;
@@ -87,6 +90,12 @@ private:
     QPointF m_itemPos;
     QGraphicsItemAnimation m_zoomAnim;
     QTimer m_zoomCommitTimer;
+
+    QGraphicsSceneMouseEvent* m_delayedPressEvent;
+    QGraphicsItem* m_delayedPressTarget;
+    QBasicTimer m_delayedPressTimer;
+    int m_pressDelay;
+
 };
 
 #endif
