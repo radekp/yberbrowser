@@ -49,15 +49,15 @@
 static const int s_zoomAnimDurationMS = 300;
 static const int s_zoomCommitTimerDurationMS = 500;
 
-static const int s_defaultZoomLevel = 5;
-static const int s_zoomValues[] = {30, 50, 67, 80, 90, 100, 110, 120, 133, 150, 170, 200, 240, 300};
-static const int s_numOfZoomLevels = int(sizeof(s_zoomValues) / sizeof(int)) - 1;
+static const float s_zoomScaleWheelStep = .2;
+static const qreal s_minZoomScale = .01; // arbitrary
+static const qreal s_maxZoomScale = 10.; // arbitrary
+
 
 WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_webView(0)
-    , m_zoomAnim(this, "zoomScale")
-    , m_panAnim(this)
+    , m_zoomAnim(this)
     , m_zoomCommitTimer(this)
 {
 #if !defined(ENABLE_PAINT_DEBUG)
@@ -67,10 +67,10 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     setFlag(QGraphicsItem::ItemClipsToShape, true);
     setAttribute(Qt::WA_OpaquePaintEvent, true);
     setFiltersChildEvents(true);
-    m_panAnim.setTimeLine(new QTimeLine(s_zoomAnimDurationMS));
-    connect(m_panAnim.timeLine(), SIGNAL(stateChanged(QTimeLine::State)), this, SLOT(panAnimStateChanged(QTimeLine::State)));
 
-    m_zoomAnim.setDuration(s_zoomAnimDurationMS);
+    m_zoomAnim.setTimeLine(new QTimeLine(s_zoomAnimDurationMS));
+    connect(m_zoomAnim.timeLine(), SIGNAL(stateChanged(QTimeLine::State)), this, SLOT(panAnimStateChanged(QTimeLine::State)));
+
     connect(&m_zoomCommitTimer, SIGNAL(timeout()), this, SLOT(commitZoom()));
     m_zoomCommitTimer.setSingleShot(true);
 
@@ -84,32 +84,15 @@ void WebViewportItem::panAnimStateChanged(QTimeLine::State newState)
         m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
         break;
     case QTimeLine::NotRunning: {
-        m_panAnim.timeLine()->stop();
-        qreal s = m_panAnim.horizontalScaleAt(1);
-        QPointF p = m_panAnim.posAt(1);
-
-        // we have to clear the anim transforms
-        m_panAnim.clear();
-        // calling just QGraphicsItemAnimation::clear(),setPos(0) does
-        // not work it leaves the scaling there
-        m_panAnim.setScaleAt(0, 1., 1.);
-        m_panAnim.setPosAt(0, QPointF(0,0));
-        m_panAnim.setStep(0);
-
-        m_webView->setPos(p);
-        m_webView->setScale(s);
+        transferAnimStateToView();
         m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
         break;
     }
     case QTimeLine::Paused:
+        // ### what to do?
     default:
         break;
     }
-}
-
-qreal WebViewportItem::zoomScaleForZoomLevel() const
-{
-    return s_zoomValues[m_zoomLevel] / 100.;
 }
 
 void WebViewportItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
@@ -147,7 +130,6 @@ void WebViewportItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 
 void WebViewportItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
-    //setZoomLevel(zoomLevel() + 1);
     event->accept();
 
     QPointF p = mapToItem(m_webView, event->pos());
@@ -168,29 +150,58 @@ void WebViewportItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
         targetPoint = QPointF(0, (m_webView->pos().y()/curScale)*targetScale);
     }
 
-    QPointF curPos = m_webView->pos();
+    startZoomAnimTo(targetPoint, targetScale);
+}
+
+void WebViewportItem::startZoomAnimTo(const QPointF& targetPoint, qreal targetScale)
+{
+    m_zoomAnim.timeLine()->stop();
+    qreal step = m_zoomAnim.timeLine()->currentValue();
+
+    qreal curScale = m_zoomAnim.horizontalScaleAt(step) * m_webView->scale();
+    QPointF curPos = m_zoomAnim.posAt(step) + m_webView->pos();
 
     m_webView->setPos(QPointF(0,0));
     m_webView->setScale(1.);
-    m_panAnim.setPosAt(0, curPos);
-    m_panAnim.setPosAt(1, targetPoint);
-    m_panAnim.setScaleAt(0, curScale, curScale);
-    m_panAnim.setScaleAt(1, targetScale, targetScale);
-    m_panAnim.timeLine()->start();
+
+    m_zoomAnim.setPosAt(0, curPos);
+    m_zoomAnim.setPosAt(1, targetPoint);
+    m_zoomAnim.setScaleAt(0, curScale, curScale);
+    m_zoomAnim.setScaleAt(1, targetScale, targetScale);
+    m_zoomAnim.setStep(0);
+    m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
+    m_zoomAnim.timeLine()->start();
 }
+
+void WebViewportItem::transferAnimStateToView()
+{
+    Q_ASSERT(m_zoomAnim.timeLine()->state == QTimeLine::NotRunning);
+
+    qreal step = m_zoomAnim.timeLine()->currentValue();
+
+    qreal s = m_zoomAnim.horizontalScaleAt(step);
+    QPointF p = m_zoomAnim.posAt(step);
+
+    resetZoomAnim();
+
+    m_webView->setPos(p);
+    m_webView->setScale(s);
+}
+
 
 qreal WebViewportItem::zoomScale()
 {
     if (!m_webView)
         return 1.;
 
-    return m_webView->scale();
+    return m_zoomAnim.horizontalScaleAt(1) * m_webView->scale();
 }
 
 void WebViewportItem::setZoomScale(qreal value)
 {
+    value = qBound(s_minZoomScale, value, s_maxZoomScale);
+
     if (value != zoomScale()) {
-        m_zoomScale = value;
         m_webView->setScale(value);
     }
 
@@ -201,27 +212,14 @@ void WebViewportItem::setZoomScale(qreal value)
 void WebViewportItem::wheelEvent(QGraphicsSceneWheelEvent *event)
 {
     int adv = event->delta() / (15*8);
-    setZoomLevel(zoomLevel() + adv);
+    animateZoomScaleTo(zoomScale() + adv * s_zoomScaleWheelStep);
     event->accept();
-}
-
-int WebViewportItem::zoomLevel() const
-{
-    return m_zoomLevel;
-}
-
-void WebViewportItem::setZoomLevel(int level)
-{
-    m_zoomLevel = qBound(0, level, s_numOfZoomLevels);
-    animateZoomScaleTo(zoomScaleForZoomLevel());
 }
 
 void WebViewportItem::animateZoomScaleTo(qreal targetZoomScale)
 {
-    m_zoomAnim.stop();
-    m_zoomAnim.setStartValue(zoomScale());
-    m_zoomAnim.setEndValue(targetZoomScale);
-    m_zoomAnim.start();
+    targetZoomScale = qBound(s_minZoomScale, targetZoomScale, s_maxZoomScale);
+    startZoomAnimTo(m_webView->pos(), targetZoomScale);
 }
 
 void WebViewportItem::commitZoom()
@@ -242,7 +240,7 @@ void WebViewportItem::setWebView(QGraphicsWebView* view)
     m_webView = view;
     m_webView->setParentItem(this);
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
-    m_panAnim.setItem(m_webView);
+    m_zoomAnim.setItem(m_webView);
 }
 
 void WebViewportItem::resetState(bool resetZoom)
@@ -250,19 +248,33 @@ void WebViewportItem::resetState(bool resetZoom)
     if (m_webView)
         m_webView->setPos(QPointF(0, 0));
 
+    m_zoomAnim.setPosAt(0, QPointF(0,0));
+    m_zoomAnim.setPosAt(1, QPointF(0,0));
+
     if (resetZoom) {
-        m_zoomLevel = s_defaultZoomLevel;
+        if (m_webView) {
+            m_webView->setScale(1.);
+            m_webView->setTileCacheZoomFactorX(1.);
+            m_webView->setTileCacheZoomFactorY(1.);
+            m_webView->setTileCacheState(QWebFrame::TileCacheNormal);
+        }
+        m_zoomAnim.timeLine()->stop();
+        resetZoomAnim();
     }
-
-    m_zoomScale = zoomScaleForZoomLevel();
-
-    if (m_webView)
-        m_webView->setScale(m_zoomScale);
 
     m_isDragging = false;
     m_dragStartPos = QPoint();
-    m_zoomAnim.stop();
-    m_panAnim.timeLine()->stop();
+}
+
+void WebViewportItem::resetZoomAnim()
+{
+    // we have to clear the anim transforms
+    m_zoomAnim.clear();
+    // calling just QGraphicsItemAnimation::clear(),setPos(0) does
+    // not work. it leaves the scaling there
+    m_zoomAnim.setScaleAt(0, 1., 1.);
+    m_zoomAnim.setPosAt(0, QPointF(0,0));
+    m_zoomAnim.setStep(0);
 }
 
 #if defined(ENABLE_PAINT_DEBUG)
@@ -362,10 +374,8 @@ bool WebViewportItem::sendWheelEventFromChild(QGraphicsSceneWheelEvent *event)
 bool WebViewportItem::sceneEventFilter(QGraphicsItem *i, QEvent *e)
 {
     // lifted form qmlgraphicsflickable.cpp, LGPL Nokia
-
     if (!isVisible())
         return QGraphicsItem::sceneEventFilter(i, e);
-
 
     switch (e->type()) {
     case QEvent::GraphicsSceneMouseDoubleClick:
@@ -376,14 +386,10 @@ bool WebViewportItem::sceneEventFilter(QGraphicsItem *i, QEvent *e)
 
     case QEvent::GraphicsSceneWheel:
         return sendWheelEventFromChild(static_cast<QGraphicsSceneWheelEvent*>(e));
-        break;
 
     default:
-        return QGraphicsItem::sceneEventFilter(i, e);
+        break;
     }
-
-    if (e->isAccepted())
-        return true;
 
     return QGraphicsItem::sceneEventFilter(i, e);
 }

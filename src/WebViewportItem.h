@@ -48,9 +48,6 @@ public:
     qreal zoomScale();
     void setZoomScale(qreal value);
 
-    int zoomLevel() const;
-    void setZoomLevel(int value);
-
     void animateZoomScaleTo(qreal targetZoomScale);
     void setWebView(QGraphicsWebView* view);
 
@@ -73,20 +70,19 @@ protected Q_SLOTS:
     void panAnimStateChanged(QTimeLine::State newState);
 
 private:
-    qreal zoomScaleForZoomLevel() const;
-
     bool sendWheelEventFromChild(QGraphicsSceneWheelEvent *event);
     bool sendMouseEventFromChild(QGraphicsSceneMouseEvent *event);
+    void transferAnimStateToView();
+    void resetZoomAnim();
+    void startZoomAnimTo(const QPointF& targetPoint, qreal targetScale);
 
 private:
     QGraphicsWebView* m_webView;
     bool m_isDragging;
-    int m_zoomLevel;
     qreal m_zoomScale;
     QPointF m_dragStartPos;
     QPointF m_itemPos;
-    QPropertyAnimation m_zoomAnim;
-    QGraphicsItemAnimation m_panAnim;
+    QGraphicsItemAnimation m_zoomAnim;
     QTimer m_zoomCommitTimer;
 };
 

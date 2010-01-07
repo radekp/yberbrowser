@@ -57,6 +57,8 @@
 #include "MainView.h"
 #include "WebViewportItem.h"
 
+static const float s_zoomScaleKeyStep = .2;
+
 QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
 {
     MainWindow* mw = m_ownerWindow->createWindow();
@@ -238,15 +240,22 @@ QUrl MainWindow::urlFromUserInput(const QString& string)
 }
 
 void MainWindow::keyPressEvent(QKeyEvent* event) {
-    if (!m_view->interactionItem())
-        return;
+    if (m_view->interactionItem()) {
+        WebViewportItem *viewportItem = m_view->interactionItem();
 
-    if (event->modifiers() & Qt::ControlModifier) {
-        if (event->key() == Qt::Key_I)
-            m_view->interactionItem()->setZoomLevel(m_view->interactionItem()->zoomLevel() + 1);
-        else if (event->key() == Qt::Key_O)
-            m_view->interactionItem()->setZoomLevel(m_view->interactionItem()->zoomLevel() - 1);
-        else
-            QMainWindow::keyPressEvent(event);
+        if (event->modifiers() & Qt::ControlModifier) {
+            if (event->key() == Qt::Key_I) {
+                viewportItem->animateZoomScaleTo(viewportItem->zoomScale() + s_zoomScaleKeyStep);
+                event->accept();
+                return;
+            } else if (event->key() == Qt::Key_O) {
+                viewportItem->animateZoomScaleTo(viewportItem->zoomScale() - s_zoomScaleKeyStep);
+                event->accept();
+                return;
+            }
+        }
     }
+
+    QMainWindow::keyPressEvent(event);
+
 }
