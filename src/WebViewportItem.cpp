@@ -116,10 +116,11 @@ void WebViewportItem::panBy(const QPointF& delta)
     QSizeF contentsSize = m_webView->page()->mainFrame()->contentsSize() * zoomScale();
     QSizeF sz = size();
 
-    qreal minX = -qMax(contentsSize.width() - sz.width(), 0.);
-    qreal minY = -qMax(contentsSize.height() - sz.height(), 0.);
+    qreal minX = -qMax(contentsSize.width() - sz.width(), static_cast<qreal>(0.));
+    qreal minY = -qMax(contentsSize.height() - sz.height(), static_cast<qreal>(0.));
 
-    m_webView->setPos(QPointF(qBound(minX, p.x(), 0.), qBound(minY, p.y(), 0.)));
+    m_webView->setPos(QPointF(qBound(minX, p.x(), static_cast<qreal>(0.)),
+                              qBound(minY, p.y(), static_cast<qreal>(0.))));
 }
 
 void WebViewportItem::stopPanGesture()
@@ -154,7 +155,7 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
         targetScale = static_cast<qreal>(size().width()) / contentsSize.width();
         targetPoint = QPointF(0, (m_webView->pos().y()/curScale)*targetScale);
     } else {
-        QPointF p = mapToItem(m_webView, pressEventLike->pos());
+        QPointF p = m_webView->mapFromScene(pressEventLike->scenePos());
 
         // assume to find atleast something
         targetScale = zoomScale() + s_zoomScaleWheelStep;
