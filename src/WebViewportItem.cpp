@@ -338,12 +338,11 @@ void WebViewportItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* o
   \internal
  */
 template<typename EventType>
-bool mapEventCommonPropertiesIfApplicable(QGraphicsItem* parent, const EventType* event, EventType& mappedEvent)
+void mapEventCommonProperties(QGraphicsItem* parent, const EventType* event, EventType& mappedEvent)
 {
     // lifted form qmlgraphicsflickable.cpp, LGPL Nokia
+
     QRectF parentRect = parent->mapToScene(parent->boundingRect()).boundingRect();
-    if (!parentRect.contains(event->scenePos().toPoint()))
-        return false;
 
     mappedEvent.setAccepted(false);
     mappedEvent.setPos(parent->mapFromScene(event->scenePos()));
@@ -351,15 +350,12 @@ bool mapEventCommonPropertiesIfApplicable(QGraphicsItem* parent, const EventType
     mappedEvent.setScreenPos(event->screenPos());
     mappedEvent.setModifiers(event->modifiers());
     mappedEvent.setButtons(event->buttons());
-
-    return true;
 }
 
 bool WebViewportItem::sendMouseEventFromChild(QGraphicsSceneMouseEvent *event)
 {
     QGraphicsSceneMouseEvent mappedEvent(event->type());
-    if (!mapEventCommonPropertiesIfApplicable(this, event, mappedEvent))
-        return false;
+    mapEventCommonProperties(this, event, mappedEvent);
 
     for (int i = 0x1; i <= 0x10; i <<= 1) {
         if (event->buttons() & i) {
@@ -381,8 +377,7 @@ bool WebViewportItem::sendMouseEventFromChild(QGraphicsSceneMouseEvent *event)
 bool WebViewportItem::sendWheelEventFromChild(QGraphicsSceneWheelEvent *event)
 {
     QGraphicsSceneWheelEvent mappedEvent(event->type());
-    if (!mapEventCommonPropertiesIfApplicable(this, event, mappedEvent))
-        return false;
+    mapEventCommonProperties(this, event, mappedEvent);
 
     mappedEvent.setDelta(event->delta());
     mappedEvent.setOrientation(event->orientation());
