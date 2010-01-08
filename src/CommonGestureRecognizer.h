@@ -4,6 +4,7 @@
 #include <QBasicTimer>
 #include <QObject>
 #include <QPointF>
+#include <QTime>
 
 class QGraphicsItem;
 class QGraphicsSceneMouseEvent;
@@ -58,6 +59,7 @@ private:
 
     QGraphicsSceneMouseEvent* m_delayedPressEvent;
     QGraphicsSceneMouseEvent* m_delayedReleaseEvent;
+    QTime m_delayedPressMoment;
     QBasicTimer m_delayedPressTimer;
     int m_pressDelay;
     QPointF m_dragStartPos;

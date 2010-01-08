@@ -2,6 +2,8 @@
 
 #include "CommonGestureRecognizer.h"
 
+static const int s_waitForClickTimeoutMS = 200;
+
 CommonGestureRecognizer::CommonGestureRecognizer(CommonGestureConsumer* consumer)
     : m_consumer(consumer)
     , m_delayedPressEvent(0)
@@ -35,9 +37,6 @@ bool CommonGestureRecognizer::filterMouseEvent(QGraphicsSceneMouseEvent *event)
         break;
     case QEvent::GraphicsSceneMousePress:
         accepted = mousePressEvent(event);
-
-        if (!m_delayedPressEvent && accepted)
-            captureDelayedPress(event);
         break;
 
     case QEvent::GraphicsSceneMouseRelease:
@@ -86,6 +85,7 @@ void CommonGestureRecognizer::captureDelayedPress(QGraphicsSceneMouseEvent *even
         m_delayedPressTimer.start(m_pressDelay, this);
     } else {
         m_delayedPressEvent = delayedEvent;
+        m_delayedPressMoment.start();
     }
 }
 
@@ -122,8 +122,8 @@ bool CommonGestureRecognizer::mousePressEvent(QGraphicsSceneMouseEvent* event)
     if (event->button() != Qt::LeftButton)
         return false;
 
-    m_consumer->startPanGesture();
-    m_dragStartPos = event->screenPos();
+    if (!m_delayedPressEvent)
+        captureDelayedPress(event);
 
     return true;
 }
@@ -139,12 +139,32 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
 bool CommonGestureRecognizer::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-    if (m_consumer->isPanning()) {
+    bool isPanning = m_consumer->isPanning();
+
+    if (!isPanning) {
+        // if the button is still pressed
+        if (m_delayedPressEvent && !m_delayedReleaseEvent) {
+            QPoint d = m_delayedPressEvent->screenPos() - event->screenPos();
+            if (qAbs(d.y()) > QApplication::startDragDistance()
+                || qAbs(d.x()) > QApplication::startDragDistance()
+                || m_delayedPressMoment.elapsed() > s_waitForClickTimeoutMS) {
+                m_consumer->startPanGesture();
+                isPanning = m_consumer->isPanning();
+
+                // to avoid initial warping, don't use m_delayedPressEvent->screenPos()
+                m_dragStartPos = event->screenPos();
+                clearDelayedPress();
+            }
+        }
+    }
+
+    if (isPanning) {
         clearDelayedPress();
         m_consumer->panBy(event->screenPos() - m_dragStartPos);
         m_dragStartPos = event->screenPos();
         return true;
     }
+
     return false;
 }
 
