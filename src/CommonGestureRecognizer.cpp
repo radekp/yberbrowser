@@ -3,6 +3,19 @@
 #include "CommonGestureRecognizer.h"
 
 static const int s_waitForClickTimeoutMS = 200;
+/* TODO
+
+    - This should go away
+
+    - At max, this should synthetize TouchEvents
+
+    - The event coords are not welldefined, since the events might
+      sometimes come from the container (WebViewportItem), sometimes
+      from the childs (Web View)
+
+    - This should do mouse click filtering, as it is very unreliable
+      on device.
+ */
 
 CommonGestureRecognizer::CommonGestureRecognizer(CommonGestureConsumer* consumer)
     : m_consumer(consumer)
@@ -133,7 +146,9 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     if (event->button() != Qt::LeftButton)
         return false;
 
-    m_consumer->stopPanGesture();
+    if (m_consumer->isPanning())
+        m_consumer->stopPanGesture();
+
     return true;
 }
 
