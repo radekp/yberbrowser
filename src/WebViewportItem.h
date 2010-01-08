@@ -95,6 +95,8 @@ private:
     void startInteraction();
     void stopInteraction();
 
+    QPointF clipPointToViewport(const QPointF& p, qreal targetScale);
+
 private:
     QGraphicsWebView* m_webView;
     InteractionState m_interactionState;

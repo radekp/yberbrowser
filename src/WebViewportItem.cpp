@@ -113,14 +113,20 @@ void WebViewportItem::startPanGesture()
 void WebViewportItem::panBy(const QPointF& delta)
 {
     QPointF p = m_webView->pos() + delta;
-    QSizeF contentsSize = m_webView->page()->mainFrame()->contentsSize() * zoomScale();
+    m_webView->setPos(clipPointToViewport(p, zoomScale()));
+}
+
+QPointF WebViewportItem::clipPointToViewport(const QPointF& p, qreal targetZoomScale)
+{
+    
+    QSizeF contentsSize = m_webView->page()->mainFrame()->contentsSize() * targetZoomScale;
     QSizeF sz = size();
 
     qreal minX = -qMax(contentsSize.width() - sz.width(), static_cast<qreal>(0.));
     qreal minY = -qMax(contentsSize.height() - sz.height(), static_cast<qreal>(0.));
 
-    m_webView->setPos(QPointF(qBound(minX, p.x(), static_cast<qreal>(0.)),
-                              qBound(minY, p.y(), static_cast<qreal>(0.))));
+    return QPointF(qBound(minX, p.x(), static_cast<qreal>(0.)),
+                   qBound(minY, p.y(), static_cast<qreal>(0.)));
 }
 
 void WebViewportItem::stopPanGesture()
@@ -147,19 +153,21 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
 {
     qreal curScale = m_webView->scale();
     QSize contentsSize = m_webView->page()->mainFrame()->contentsSize();
+    QSizeF viewportSize = size();
 
     qreal targetScale;
     QPointF targetPoint;
 
     if (isZoomedIn()) {
-        targetScale = static_cast<qreal>(size().width()) / contentsSize.width();
+        targetScale = static_cast<qreal>(viewportSize.width()) / contentsSize.width();
         targetPoint = QPointF(0, (m_webView->pos().y()/curScale)*targetScale);
     } else {
         QPointF p = m_webView->mapFromScene(pressEventLike->scenePos());
 
+        
         // assume to find atleast something
         targetScale = zoomScale() + s_zoomScaleWheelStep;
-        targetPoint = pressEventLike->pos();
+
 
         QWebHitTestResult r = m_webView->page()->mainFrame()->hitTestContent(p.toPoint());
         QWebElement e = r.enclosingBlockElement();
@@ -172,8 +180,9 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
             QSizeF targetSize = targetRect.size();
 
             targetScale = static_cast<qreal>(contentsSize.width()) / targetSize.width();
-            targetPoint =  (-targetRect.topLeft()) * targetScale;
         }
+
+        targetPoint = clipPointToViewport(QPointF(viewportSize.width()/2, viewportSize.height()/2) - (p * targetScale), targetScale);
     }
 
     startZoomAnimTo(targetPoint, targetScale);
