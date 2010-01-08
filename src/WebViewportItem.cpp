@@ -138,8 +138,6 @@ void WebViewportItem::stopInteraction()
 
 void WebViewportItem::tapGesture(QGraphicsSceneMouseEvent* pressEventLike, QGraphicsSceneMouseEvent* releaseEventLike)
 {
-    QGraphicsItem* pressTarget = scene()->mouseGrabberItem();
-
     scene()->sendEvent(m_webView, pressEventLike);
     scene()->sendEvent(m_webView, releaseEventLike);
 }
