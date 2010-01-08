@@ -35,9 +35,11 @@
 #include <QTimer>
 #include <QTimeLine>
 
+#include "CommonGestureRecognizer.h"
+
 class QGraphicsWebView;
 
-class WebViewportItem : public QGraphicsWidget
+class WebViewportItem : public QGraphicsWidget, private CommonGestureConsumer
 {
     Q_OBJECT
     Q_PROPERTY(qreal zoomScale READ zoomScale WRITE setZoomScale)
@@ -56,12 +58,7 @@ public:
     void resetState(bool resetZoom);
 
 protected:
-    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event);
-    void mousePressEvent(QGraphicsSceneMouseEvent * event);
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
-    void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
     void wheelEvent(QGraphicsSceneWheelEvent * event);
-    void timerEvent(QTimerEvent *event);
 
 #if defined(ENABLE_PAINT_DEBUG)
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
@@ -73,6 +70,12 @@ protected Q_SLOTS:
     void panAnimStateChanged(QTimeLine::State newState);
 
 private:
+    enum InteractionState {
+        NoInteraction = 0,
+        PanInteraction = 0x1,
+        ZoomInteraction = 0x2
+    };
+
     bool sendWheelEventFromChild(QGraphicsSceneWheelEvent *event);
     bool sendMouseEventFromChild(QGraphicsSceneMouseEvent *event);
     void transferAnimStateToView();
@@ -81,26 +84,26 @@ private:
 
     bool isZoomedIn() const;
 
-    void clearDelayedPress();
-    void captureDelayedPress(QGraphicsSceneMouseEvent *event, bool wasRelease = false);
-    void sendDelayedPress();
+    void tapGesture(QGraphicsSceneMouseEvent* pressEventLike, QGraphicsSceneMouseEvent* releaseEventLike);
+    void doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike);
 
-    
+    bool isPanning() const { return m_interactionState & PanInteraction; }
+    void startPanGesture();
+    void panBy(const QPointF& delta);
+    void stopPanGesture();
+
+    void startInteraction();
+    void stopInteraction();
+
 private:
     QGraphicsWebView* m_webView;
-    bool m_isDragging;
+    InteractionState m_interactionState;
+
     qreal m_zoomScale;
-    QPointF m_dragStartPos;
-    QPointF m_itemPos;
     QGraphicsItemAnimation m_zoomAnim;
     QTimer m_zoomCommitTimer;
 
-    QGraphicsSceneMouseEvent* m_delayedPressEvent;
-    QGraphicsSceneMouseEvent* m_delayedReleaseEvent;
-    QGraphicsItem* m_delayedPressTarget;
-    QBasicTimer m_delayedPressTimer;
-    int m_pressDelay;
-
+    CommonGestureRecognizer m_recognizer;
 };
 
 #endif

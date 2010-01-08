@@ -79,6 +79,7 @@ HEADERS = \
   src/AutoScroller.h \
   src/MainWindow.h \
   src/WebViewportItem.h \
+  src/CommonGestureRecognizer.h \
   src/MainView.h
 
 SOURCES = \
@@ -86,4 +87,5 @@ SOURCES = \
   src/AutoScroller.cpp \
   src/MainWindow.cpp \
   src/WebViewportItem.cpp \
+  src/CommonGestureRecognizer.cpp \
   src/MainView.cpp

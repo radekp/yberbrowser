@@ -61,10 +61,7 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_webView(0)
     , m_zoomAnim(this)
     , m_zoomCommitTimer(this)
-    , m_delayedPressEvent(0)
-    , m_delayedReleaseEvent(0)
-    , m_delayedPressTarget(0)
-    , m_pressDelay(300)
+    , m_recognizer(this)
 
 {
 #if !defined(ENABLE_PAINT_DEBUG)
@@ -86,7 +83,7 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 
 WebViewportItem::~WebViewportItem()
 {
-    clearDelayedPress();
+
 }
 
 void WebViewportItem::panAnimStateChanged(QTimeLine::State newState)
@@ -107,45 +104,48 @@ void WebViewportItem::panAnimStateChanged(QTimeLine::State newState)
     }
 }
 
-void WebViewportItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
+void WebViewportItem::startPanGesture() 
 {
-    if (event->button() != Qt::LeftButton) {
-        event->ignore();
-        QGraphicsWidget::mousePressEvent(event);
-        return;
-    }
-    m_isDragging = true;
-    m_dragStartPos = event->pos();
-    event->accept();
+    m_interactionState = static_cast<InteractionState>(m_interactionState | PanInteraction);
+    startInteraction();
 }
 
-void WebViewportItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
+void WebViewportItem::panBy(const QPointF& delta)
 {
-    if (event->button() != Qt::LeftButton) {
-        event->ignore();
-        QGraphicsWidget::mouseReleaseEvent(event);
-        return;
-    }
+    QPointF p = m_webView->pos() + delta;
+    QSizeF contentsSize = m_webView->page()->mainFrame()->contentsSize() * zoomScale();
+    QSizeF sz = size();
 
-    m_isDragging = false;
-    event->accept();
+    qreal minX = -qMax(contentsSize.width() - sz.width(), 0.);
+    qreal minY = -qMax(contentsSize.height() - sz.height(), 0.);
+
+    m_webView->setPos(QPointF(qBound(minX, p.x(), 0.), qBound(minY, p.y(), 0.)));
 }
 
-void WebViewportItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
+void WebViewportItem::stopPanGesture()
 {
-    clearDelayedPress();
-
-    if (m_isDragging) {
-        QPointF d = event->pos() - m_dragStartPos;
-        m_webView->moveBy(d.x(), d.y());
-        m_dragStartPos = event->pos();
-    }
+    m_interactionState = static_cast<InteractionState>(m_interactionState & ~PanInteraction);
+    stopInteraction();
 }
 
-void WebViewportItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
+void WebViewportItem::startInteraction()
 {
-    event->accept();
+}
 
+void WebViewportItem::stopInteraction()
+{
+}
+
+void WebViewportItem::tapGesture(QGraphicsSceneMouseEvent* pressEventLike, QGraphicsSceneMouseEvent* releaseEventLike)
+{
+    QGraphicsItem* pressTarget = scene()->mouseGrabberItem();
+
+    scene()->sendEvent(m_webView, pressEventLike);
+    scene()->sendEvent(m_webView, releaseEventLike);
+}
+
+void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
+{
     qreal curScale = m_webView->scale();
     QSize contentsSize = m_webView->page()->mainFrame()->contentsSize();
 
@@ -156,11 +156,11 @@ void WebViewportItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
         targetScale = static_cast<qreal>(size().width()) / contentsSize.width();
         targetPoint = QPointF(0, (m_webView->pos().y()/curScale)*targetScale);
     } else {
-        QPointF p = mapToItem(m_webView, event->pos());
+        QPointF p = mapToItem(m_webView, pressEventLike->pos());
 
         // assume to find atleast something
         targetScale = zoomScale() + s_zoomScaleWheelStep;
-        targetPoint = event->pos();
+        targetPoint = pressEventLike->pos();
 
         QWebHitTestResult r = m_webView->page()->mainFrame()->hitTestContent(p.toPoint());
         QWebElement e = r.enclosingBlockElement();
@@ -283,6 +283,9 @@ void WebViewportItem::setWebView(QGraphicsWebView* view)
 
 void WebViewportItem::resetState(bool resetZoom)
 {
+    m_interactionState = NoInteraction;
+    m_recognizer.reset();
+
     if (m_webView)
         m_webView->setPos(QPointF(0, 0));
 
@@ -300,8 +303,6 @@ void WebViewportItem::resetState(bool resetZoom)
         resetZoomAnim();
     }
 
-    m_isDragging = false;
-    m_dragStartPos = QPoint();
 }
 
 void WebViewportItem::resetZoomAnim()
@@ -358,10 +359,6 @@ bool mapEventCommonPropertiesIfApplicable(QGraphicsItem* parent, const EventType
 
 bool WebViewportItem::sendMouseEventFromChild(QGraphicsSceneMouseEvent *event)
 {
-    // these events will be sent by this class, don't filter these
-    if (m_delayedPressEvent == event || m_delayedReleaseEvent == event)
-        return false;
-
     QGraphicsSceneMouseEvent mappedEvent(event->type());
     if (!mapEventCommonPropertiesIfApplicable(this, event, mappedEvent))
         return false;
@@ -380,34 +377,7 @@ bool WebViewportItem::sendMouseEventFromChild(QGraphicsSceneMouseEvent *event)
     mappedEvent.setLastScreenPos(event->lastScreenPos());
     mappedEvent.setButton(event->button());
 
-
-    switch(mappedEvent.type()) {
-    case QEvent::GraphicsSceneMouseDoubleClick:
-        clearDelayedPress();
-        mouseDoubleClickEvent(&mappedEvent);
-        break;
-
-    case QEvent::GraphicsSceneMouseMove:
-        mouseMoveEvent(&mappedEvent);
-        break;
-
-    case QEvent::GraphicsSceneMousePress:
-        mousePressEvent(&mappedEvent);
-
-        if (!m_delayedPressEvent && mappedEvent.isAccepted())
-            captureDelayedPress(event);
-        break;
-    case QEvent::GraphicsSceneMouseRelease:
-        mouseReleaseEvent(&mappedEvent);
-
-        if (m_delayedPressEvent && !m_delayedReleaseEvent && mappedEvent.isAccepted())
-            captureDelayedPress(event, true);
-        break;
-    default:
-        break;
-    }
-
-    return mappedEvent.isAccepted();
+    return m_recognizer.filterMouseEvent(event);
 }
 
 bool WebViewportItem::sendWheelEventFromChild(QGraphicsSceneWheelEvent *event)
@@ -451,63 +421,3 @@ QGraphicsWebView* WebViewportItem::webView()
     return m_webView;
 }
 
-
-void WebViewportItem::captureDelayedPress(QGraphicsSceneMouseEvent *event, bool wasRelease)
-{
-    Q_ASSERT(!m_delayedPressTarget && !m_delayedPressEvent && !wasRelease);
-    Q_ASSERT(m_delayedPressTarget && m_delayedPressEvent && !m_delayedReleaseEvent && wasRelease);
-
-    if (!scene() || m_pressDelay <= 0)
-        return;
-    
-    QGraphicsSceneMouseEvent* delayedEvent = new QGraphicsSceneMouseEvent(event->type());
-    delayedEvent->setAccepted(false);
-    for (int i = 0x1; i <= 0x10; i <<= 1) {
-        if (event->buttons() & i) {
-            Qt::MouseButton button = Qt::MouseButton(i);
-            delayedEvent->setButtonDownPos(button, event->buttonDownPos(button));
-            delayedEvent->setButtonDownScenePos(button, event->buttonDownScenePos(button));
-            delayedEvent->setButtonDownScreenPos(button, event->buttonDownScreenPos(button));
-        }
-    }
-    delayedEvent->setButtons(event->buttons());
-    delayedEvent->setButton(event->button());
-    delayedEvent->setPos(event->pos());
-    delayedEvent->setScenePos(event->scenePos());
-    delayedEvent->setScreenPos(event->screenPos());
-    delayedEvent->setLastPos(event->lastPos());
-    delayedEvent->setLastScenePos(event->lastScenePos());
-    delayedEvent->setLastScreenPos(event->lastScreenPos());
-    delayedEvent->setModifiers(event->modifiers());
-    delayedEvent->setWidget(event->widget());
-
-    if (wasRelease) {
-        m_delayedReleaseEvent = delayedEvent;
-        m_delayedPressTimer.start(m_pressDelay, this);
-    } else {
-        m_delayedPressEvent = delayedEvent;
-        m_delayedPressTarget = scene()->mouseGrabberItem();
-    }
-}
-
-void WebViewportItem::clearDelayedPress()
-{
-    if (m_delayedPressEvent) {
-        m_delayedPressTimer.stop();
-        delete m_delayedPressEvent;
-        m_delayedPressEvent = 0;
-        delete m_delayedReleaseEvent;
-        m_delayedReleaseEvent = 0;
-        m_delayedPressTarget = 0;
-    }
-}
-
-void WebViewportItem::timerEvent(QTimerEvent *event)
-{
-    if (event->timerId() == m_delayedPressTimer.timerId()) {
-        m_delayedPressTimer.stop();
-        scene()->sendEvent(m_delayedPressTarget, m_delayedPressEvent);
-        scene()->sendEvent(m_delayedPressTarget, m_delayedReleaseEvent);
-        clearDelayedPress();
-    }
-}
