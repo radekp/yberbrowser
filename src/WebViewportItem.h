@@ -72,8 +72,11 @@ protected Q_SLOTS:
 private:
     enum InteractionState {
         NoInteraction = 0,
-        PanInteraction = 0x1,
-        ZoomInteraction = 0x2
+        ZoomInteraction = 0x1,
+        PanInteraction = 0x2,
+        VPanInteraction = 0x4,
+        HPanInteraction = 0x8
+
     };
 
     bool sendWheelEventFromChild(QGraphicsSceneWheelEvent *event);
@@ -88,7 +91,7 @@ private:
     void doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike);
 
     bool isPanning() const { return m_interactionState & PanInteraction; }
-    void startPanGesture();
+    void startPanGesture(CommonGestureConsumer::PanDirection);
     void panBy(const QPointF& delta);
     void stopPanGesture();
 
@@ -106,6 +109,7 @@ private:
     QTimer m_zoomCommitTimer;
 
     CommonGestureRecognizer m_recognizer;
+    QPointF m_panModeResidue;
 };
 
 #endif

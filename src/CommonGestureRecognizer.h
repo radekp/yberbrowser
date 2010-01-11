@@ -21,8 +21,12 @@ public:
 
     // interface "PanGestureConsumer"
 public:
+    enum PanDirection {
+        HPan,
+        VPan
+    };
     virtual bool isPanning() const = 0;
-    virtual void startPanGesture() = 0;
+    virtual void startPanGesture(CommonGestureConsumer::PanDirection) = 0;
     virtual void panBy(const QPointF& delta) = 0;
     virtual void stopPanGesture() = 0;
 };

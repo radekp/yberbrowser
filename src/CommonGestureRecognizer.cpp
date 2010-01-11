@@ -178,10 +178,16 @@ bool CommonGestureRecognizer::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
         // if the button is still pressed
         if (m_delayedPressEvent && !m_delayedReleaseEvent) {
             QPoint d = m_delayedPressEvent->screenPos() - event->screenPos();
-            if (qAbs(d.y()) > s_startPanDistance
-                || qAbs(d.x()) > s_startPanDistance
+            qreal dy = qAbs(d.y());
+            qreal dx = qAbs(d.x());
+            if (dy > s_startPanDistance
+                || dx > s_startPanDistance
                 || m_delayedPressMoment.elapsed() > s_waitForClickTimeoutMS) {
-                m_consumer->startPanGesture();
+                if (dx > dy)
+                    m_consumer->startPanGesture(CommonGestureConsumer::HPan);
+                else
+                    m_consumer->startPanGesture(CommonGestureConsumer::VPan);
+
                 isPanning = m_consumer->isPanning();
 
                 // to avoid initial warping, don't use m_delayedPressEvent->screenPos()

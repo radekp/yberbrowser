@@ -56,6 +56,10 @@ static const qreal s_maxZoomScale = 10.; // arbitrary
 
 static const int s_minDoubleClickZoomTargetWidth = 100; // in document coords, aka CSS pixels
 
+// the amount of pixels to try to pan before pan mode unlocks vertically / horzontally
+static const int s_panModeChangeDelta = 200; // pixels in doc coords
+
+
 
 WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
@@ -105,21 +109,45 @@ void WebViewportItem::panAnimStateChanged(QTimeLine::State newState)
     }
 }
 
-void WebViewportItem::startPanGesture() 
+void WebViewportItem::startPanGesture(CommonGestureConsumer::PanDirection directionHint)
 {
-    m_interactionState = static_cast<InteractionState>(m_interactionState | PanInteraction);
+    int s = PanInteraction;
+    if (directionHint == CommonGestureConsumer::VPan)
+        s |= VPanInteraction;
+    else
+        s |= HPanInteraction;
+
+    m_interactionState = static_cast<InteractionState>(m_interactionState | s);
+    m_panModeResidue = QPointF(0., 0.);
     startInteraction();
 }
 
 void WebViewportItem::panBy(const QPointF& delta)
 {
-    QPointF p = m_webView->pos() + delta;
+    QPointF p = m_webView->pos();
+    m_panModeResidue += delta;
+
+    if (qAbs(m_panModeResidue.x()) > s_panModeChangeDelta) {
+        m_interactionState = static_cast<InteractionState>(m_interactionState | HPanInteraction);
+    }
+
+    if (qAbs(m_panModeResidue.y()) > s_panModeChangeDelta) {
+        m_interactionState = static_cast<InteractionState>(m_interactionState | VPanInteraction);
+    }
+
+    if (m_interactionState & HPanInteraction) {
+        p += QPointF(delta.x(), 0.);
+    }
+
+    if (m_interactionState & VPanInteraction) {
+        p += QPointF(0., delta.y());
+    }
+
     m_webView->setPos(clipPointToViewport(p, zoomScale()));
 }
 
 QPointF WebViewportItem::clipPointToViewport(const QPointF& p, qreal targetZoomScale)
 {
-    
     QSizeF contentsSize = m_webView->page()->mainFrame()->contentsSize() * targetZoomScale;
     QSizeF sz = size();
 
@@ -132,7 +160,7 @@ QPointF WebViewportItem::clipPointToViewport(const QPointF& p, qreal targetZoomS
 
 void WebViewportItem::stopPanGesture()
 {
-    m_interactionState = static_cast<InteractionState>(m_interactionState & ~PanInteraction);
+    m_interactionState = static_cast<InteractionState>(m_interactionState & ~(PanInteraction | VPanInteraction | HPanInteraction));
     stopInteraction();
 }
 
