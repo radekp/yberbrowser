@@ -155,6 +155,12 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
     if (m_consumer->isPanning()) {
         m_consumer->stopPanGesture();
+    } else if (m_delayedReleaseEvent) {
+        // sometimes double click is lost if small mouse move occurs
+        // inbetween
+        QGraphicsSceneMouseEvent dblClickEvent(QEvent::GraphicsSceneMouseDoubleClick);
+        copyMouseEvent(m_delayedPressEvent, &dblClickEvent);
+        mouseDoubleClickEvent(&dblClickEvent);
     }
 
     return true;
