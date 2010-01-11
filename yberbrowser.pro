@@ -65,6 +65,12 @@ contains(WEBKIT, system) {
   error(Specify WEBKIT build mode: WEBKIT=[system|custom|local])
 }
 
+maemo {
+    QT += maemo5 dbus
+    DEFINES+=ENABLE_MAEMO5=1
+}
+
+
 symbian {
     TARGET.UID3 = 0xA000E544
     TARGET.CAPABILITY = ReadUserData WriteUserData NetworkServices

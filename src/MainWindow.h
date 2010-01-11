@@ -97,12 +97,24 @@ public Q_SLOTS:
     void loadStarted();
     void loadFinished(bool);
 
+
 protected:
     void keyPressEvent(QKeyEvent* event);
+
+#if defined(ENABLE_MAEMO5)
+    bool event(QEvent *ev);
+protected Q_SLOTS:
+    void orientationChanged(const QString &newOrientation);
+#endif
 
 private:
     void buildUI();
     void setLoadInProgress(bool);
+
+#if defined(ENABLE_MAEMO5)
+    void setLandscape();
+    void setPortrait();
+#endif
 
 private:
     MainView* m_view;

@@ -52,6 +52,13 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
+#if defined(ENABLE_MAEMO5)
+#include <QtDBus>
+#include <QtMaemo5>
+#include <mce/mode-names.h>
+#include <mce/dbus-names.h>
+#endif
+
 
 #include "MainWindow.h"
 #include "MainView.h"
@@ -77,6 +84,13 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
     , m_settings(settings)
 {
     init();
+
+#if defined(ENABLE_MAEMO5)
+    QDBusConnection::systemBus().connect(QString(), MCE_SIGNAL_PATH, MCE_SIGNAL_IF,
+                                         MCE_DEVICE_ORIENTATION_SIG,
+                                         this,
+                                         SLOT(orientationChanged(QString)));
+#endif
 }
 
 MainWindow::~MainWindow()
@@ -100,7 +114,7 @@ void MainWindow::init()
     m_webViewItem->setPage(m_page);
     
     m_webViewItem->setResizesToContent(true);
-#if WEBKIT_SUPPORTS_TILE_CACHE
+#if defined(WEBKIT_SUPPORTS_TILE_CACHE)
     m_page->mainFrame()->setTileCacheEnabled(!m_settings.m_disableTiling);
 #endif
 
@@ -163,6 +177,7 @@ void MainWindow::disableHildonDesktopCompositing() {
                      (unsigned char *) &val,
                      1);
 }
+
 MainView* MainWindow::view() {
     return m_view;
 }
@@ -247,9 +262,58 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
                 event->accept();
                 return;
             }
+#if defined(ENABLE_MAEMO5)
+            else if (event->key() == Qt::Key_L) {
+                setLandscape();
+            } else if (event->key() == Qt::Key_P) {
+                setPortrait();
+            }
+#endif
         }
     }
 
     QMainWindow::keyPressEvent(event);
-
 }
+
+#if defined(ENABLE_MAEMO5)
+bool MainWindow::event(QEvent *ev)
+{
+    switch (ev->type()) {
+    case QEvent::WindowActivate:
+        QDBusConnection::systemBus().call(
+            QDBusMessage::createMethodCall(MCE_SERVICE, MCE_REQUEST_PATH,
+                                           MCE_REQUEST_IF,
+                                           MCE_ACCELEROMETER_ENABLE_REQ));
+        break;
+    case QEvent::WindowDeactivate:
+        QDBusConnection::systemBus().call(
+            QDBusMessage::createMethodCall(MCE_SERVICE, MCE_REQUEST_PATH,
+                                           MCE_REQUEST_IF,
+                                           MCE_ACCELEROMETER_DISABLE_REQ));
+        break;
+    default:
+        break;
+    }
+
+    return QWidget::event(ev);
+}
+
+void MainWindow::orientationChanged(const QString &newOrientation)
+{
+    if (newOrientation == QLatin1String(MCE_ORIENTATION_PORTRAIT))
+        setPortrait();
+    else
+        setLandscape();
+}
+
+void MainWindow::setLandscape()
+{
+        setAttribute(Qt::WA_Maemo5ForceLandscapeOrientation, true);
+}
+
+void MainWindow::setPortrait()
+{
+        setAttribute(Qt::WA_Maemo5ForcePortraitOrientation, true);
+}
+
+#endif
