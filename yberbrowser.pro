@@ -67,7 +67,6 @@ contains(WEBKIT, system) {
 
 maemo {
     QT += maemo5 dbus
-    DEFINES+=ENABLE_MAEMO5=1
 }
 
 

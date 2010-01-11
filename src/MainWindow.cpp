@@ -52,7 +52,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
-#if defined(ENABLE_MAEMO5)
+#if defined(Q_WS_MAEMO_5)
 #include <QtDBus>
 #include <QtMaemo5>
 #include <mce/mode-names.h>
@@ -85,7 +85,7 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
 {
     init();
 
-#if defined(ENABLE_MAEMO5)
+#if defined(Q_WS_MAEMO_5)
     QDBusConnection::systemBus().connect(QString(), MCE_SIGNAL_PATH, MCE_SIGNAL_IF,
                                          MCE_DEVICE_ORIENTATION_SIG,
                                          this,
@@ -262,7 +262,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
                 event->accept();
                 return;
             }
-#if defined(ENABLE_MAEMO5)
+#if defined(Q_WS_MAEMO_5)
             else if (event->key() == Qt::Key_L) {
                 setLandscape();
             } else if (event->key() == Qt::Key_P) {
@@ -275,7 +275,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
     QMainWindow::keyPressEvent(event);
 }
 
-#if defined(ENABLE_MAEMO5)
+#if defined(Q_WS_MAEMO_5)
 bool MainWindow::event(QEvent *ev)
 {
     switch (ev->type()) {
