@@ -85,6 +85,7 @@ HEADERS = \
   src/MainWindow.h \
   src/WebViewportItem.h \
   src/CommonGestureRecognizer.h \
+  src/EventHelpers.h \
   src/MainView.h
 
 SOURCES = \
@@ -93,4 +94,5 @@ SOURCES = \
   src/MainWindow.cpp \
   src/WebViewportItem.cpp \
   src/CommonGestureRecognizer.cpp \
+  src/EventHelpers.cpp \
   src/MainView.cpp

@@ -1,8 +1,16 @@
 #include <QtGui>
 
 #include "CommonGestureRecognizer.h"
+#include "EventHelpers.h"
+
+#define DEBUG_EVENTS 1
 
 static const int s_waitForClickTimeoutMS = 200;
+
+//QApplication::startDragDistance() is too little (12)
+// and causes clicks with finger to be interpreted as pans
+static const int s_startPanDistance = 50;
+
 /* TODO
 
     - This should go away
@@ -73,28 +81,16 @@ void CommonGestureRecognizer::captureDelayedPress(QGraphicsSceneMouseEvent *even
         return;
 
     QGraphicsSceneMouseEvent* delayedEvent = new QGraphicsSceneMouseEvent(event->type());
+    copyMouseEvent(event, delayedEvent);
     delayedEvent->setAccepted(false);
-    for (int i = 0x1; i <= 0x10; i <<= 1) {
-        if (event->buttons() & i) {
-            Qt::MouseButton button = Qt::MouseButton(i);
-            delayedEvent->setButtonDownPos(button, event->buttonDownPos(button));
-            delayedEvent->setButtonDownScenePos(button, event->buttonDownScenePos(button));
-            delayedEvent->setButtonDownScreenPos(button, event->buttonDownScreenPos(button));
-        }
-    }
-    delayedEvent->setButtons(event->buttons());
-    delayedEvent->setButton(event->button());
-    delayedEvent->setPos(event->pos());
-    delayedEvent->setScenePos(event->scenePos());
-    delayedEvent->setScreenPos(event->screenPos());
-    delayedEvent->setLastPos(event->lastPos());
-    delayedEvent->setLastScenePos(event->lastScenePos());
-    delayedEvent->setLastScreenPos(event->lastScreenPos());
-    delayedEvent->setModifiers(event->modifiers());
-    delayedEvent->setWidget(event->widget());
 
     if (wasRelease) {
         m_delayedReleaseEvent = delayedEvent;
+
+        // mouse press is more reliable than mouse release
+        // we must send release with same coords as press
+        copyMouseEventPositions(m_delayedPressEvent, m_delayedReleaseEvent);
+
         m_delayedPressTimer.start(m_pressDelay, this);
     } else {
         m_delayedPressEvent = delayedEvent;
@@ -125,6 +121,10 @@ void CommonGestureRecognizer::timerEvent(QTimerEvent *event)
 
 bool CommonGestureRecognizer::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
+#if DEBUG_EVENTS
+    qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
+#endif
+
     m_consumer->doubleTapGesture(event);
     return true;
 }
@@ -132,36 +132,48 @@ bool CommonGestureRecognizer::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* ev
 
 bool CommonGestureRecognizer::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
+#if DEBUG_EVENTS
+    qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
+#endif
+
     if (event->button() != Qt::LeftButton)
         return false;
 
     if (!m_delayedPressEvent)
         captureDelayedPress(event);
-
     return true;
 }
 
 bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
+#if DEBUG_EVENTS
+    qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
+#endif
+
     if (event->button() != Qt::LeftButton)
         return false;
 
-    if (m_consumer->isPanning())
+    if (m_consumer->isPanning()) {
         m_consumer->stopPanGesture();
+    }
 
     return true;
 }
 
 bool CommonGestureRecognizer::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
+#if DEBUG_EVENTS
+    qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
+#endif
+
     bool isPanning = m_consumer->isPanning();
 
     if (!isPanning) {
         // if the button is still pressed
         if (m_delayedPressEvent && !m_delayedReleaseEvent) {
             QPoint d = m_delayedPressEvent->screenPos() - event->screenPos();
-            if (qAbs(d.y()) > QApplication::startDragDistance()
-                || qAbs(d.x()) > QApplication::startDragDistance()
+            if (qAbs(d.y()) > s_startPanDistance
+                || qAbs(d.x()) > s_startPanDistance
                 || m_delayedPressMoment.elapsed() > s_waitForClickTimeoutMS) {
                 m_consumer->startPanGesture();
                 isPanning = m_consumer->isPanning();

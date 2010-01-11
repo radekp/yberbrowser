@@ -45,6 +45,7 @@
 
 #include "WebViewportItem.h"
 #include "MainView.h"
+#include "EventHelpers.h"
 
 static const int s_zoomAnimDurationMS = 300;
 static const int s_zoomCommitTimerDurationMS = 500;
