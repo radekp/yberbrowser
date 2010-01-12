@@ -171,7 +171,7 @@ void WebViewportItem::stopPanGesture()
     stopInteraction();
 }
 
-void WebViewportItem::flickGesture(qreal velocityX, qreal velocityY)
+void WebViewportItem::flickGesture(qreal /*velocityX*/, qreal velocityY)
 {
     m_flickAnim.start(velocityY);
 }
