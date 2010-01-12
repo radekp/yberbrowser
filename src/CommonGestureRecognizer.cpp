@@ -78,9 +78,6 @@ bool CommonGestureRecognizer::filterMouseEvent(QGraphicsSceneMouseEvent *event)
 
 void CommonGestureRecognizer::capturePressOrRelease(QGraphicsSceneMouseEvent *event, bool wasRelease)
 {
-    Q_ASSERT(!m_delayedPressEvent && !wasRelease);
-    Q_ASSERT(m_delayedPressEvent && !m_delayedReleaseEvent && wasRelease);
-
     if (m_pressDelay <= 0)
         return;
 
