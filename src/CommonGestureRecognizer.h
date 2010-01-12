@@ -54,7 +54,7 @@ protected:
 
 private:
     void clearDelayedPress();
-    void captureDelayedPress(QGraphicsSceneMouseEvent *event, bool wasRelease = false);
+    void capturePressOrRelease(QGraphicsSceneMouseEvent *event, bool wasRelease = false);
     void sendDelayedPress();
 
     bool mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event);

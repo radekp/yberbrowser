@@ -15,6 +15,8 @@ static const int s_startPanDistance = 50;
 // double tap that can happen
 static const int s_doubleClickFilterDurationMS = 300;
 
+static const int s_minTimeHoldForClick = 100;
+
 /* TODO
 
     - This should go away
@@ -66,8 +68,6 @@ bool CommonGestureRecognizer::filterMouseEvent(QGraphicsSceneMouseEvent *event)
 
     case QEvent::GraphicsSceneMouseRelease:
         accepted = mouseReleaseEvent(event);
-        if (m_delayedPressEvent && !m_delayedReleaseEvent && accepted)
-            captureDelayedPress(event, true);
         break;
     default:
         break;
@@ -76,7 +76,7 @@ bool CommonGestureRecognizer::filterMouseEvent(QGraphicsSceneMouseEvent *event)
     return accepted;
 }
 
-void CommonGestureRecognizer::captureDelayedPress(QGraphicsSceneMouseEvent *event, bool wasRelease)
+void CommonGestureRecognizer::capturePressOrRelease(QGraphicsSceneMouseEvent *event, bool wasRelease)
 {
     Q_ASSERT(!m_delayedPressEvent && !wasRelease);
     Q_ASSERT(m_delayedPressEvent && !m_delayedReleaseEvent && wasRelease);
@@ -144,7 +144,7 @@ bool CommonGestureRecognizer::mousePressEvent(QGraphicsSceneMouseEvent* event)
         return false;
 
     if (!m_delayedPressEvent)
-        captureDelayedPress(event);
+        capturePressOrRelease(event);
     return true;
 }
 
@@ -167,8 +167,12 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
         QGraphicsSceneMouseEvent dblClickEvent(QEvent::GraphicsSceneMouseDoubleClick);
         copyMouseEvent(m_delayedPressEvent, &dblClickEvent);
         mouseDoubleClickEvent(&dblClickEvent);
+    } else if (m_delayedPressEvent && !m_delayedReleaseEvent) {
+        if (m_delayedPressMoment.elapsed() > s_minTimeHoldForClick)
+            capturePressOrRelease(event, true);
+        else
+            clearDelayedPress();
     }
-
     return true;
 }
 
