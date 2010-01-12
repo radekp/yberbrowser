@@ -173,5 +173,5 @@ void MainView::updateZoomScaleToPageWidth()
     if (contentsSize.width()) {
         targetScale = static_cast<qreal>(m_interactionItem->size().width()) / contentsSize.width();
     }
-    m_interactionItem->setZoomScale(targetScale, true);
+    m_interactionItem->setZoomScale(targetScale);
 }
