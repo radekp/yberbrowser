@@ -135,12 +135,12 @@ void MainView::installSignalHandlers()
 
 void MainView::resetState()
 {
-    setUpdatesEnabled(true);
-
     m_state = InitialLoad;
     if (m_interactionItem) {
         m_interactionItem->resetState(true);
     }
+
+    setUpdatesEnabled(true);
 }
 
 void MainView::loadFinished(bool)
