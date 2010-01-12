@@ -123,6 +123,7 @@ void MainWindow::init()
 
     connect(m_webViewItem, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(m_webViewItem, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
+    connect(m_webViewItem, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
     connect(m_webViewItem, SIGNAL(titleChanged(const QString&)), this, SLOT(setWindowTitle(const QString&)));
     connect(m_webViewItem->page(), SIGNAL(windowCloseRequested()), this, SLOT(close()));
 
@@ -169,18 +170,12 @@ void MainWindow::changeLocation()
 void MainWindow::loadFinished(bool)
 {
     setLoadInProgress(false);
+    urlChanged(m_webViewItem->url());
+}
 
-    QUrl url = m_webViewItem->url();
+void MainWindow::urlChanged(const QUrl& url)
+{
     urlEdit->setText(url.toString());
-
-    QUrl::FormattingOptions opts;
-    opts |= QUrl::RemoveScheme;
-    opts |= QUrl::RemoveUserInfo;
-    opts |= QUrl::StripTrailingSlash;
-    QString s = url.toString(opts);
-    s = s.mid(2);
-    if (s.isEmpty())
-        return;
 }
 
 MainWindow* MainWindow::newWindow(const QString &url)

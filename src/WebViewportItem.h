@@ -58,7 +58,9 @@ public:
 
     void resetState(bool resetZoom);
     void moveItemBy(const QPointF& delta);
-    
+
+    void setGeometry(const QRectF& rect);
+
 protected:
     void wheelEvent(QGraphicsSceneWheelEvent * event);
 
@@ -104,6 +106,8 @@ private:
     void stopInteraction();
 
     QPointF clipPointToViewport(const QPointF& p, qreal targetScale);
+
+    void updatePreferredSize();
 
 private:
     QGraphicsWebView* m_webView;

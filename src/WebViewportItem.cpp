@@ -60,6 +60,8 @@ static const int s_minDoubleClickZoomTargetWidth = 100; // in document coords, a
 static const int s_panModeChangeDelta = 200; // pixels in doc coords
 
 
+static const int s_defaultPreferredWidth = 1024;
+static const int s_defaultPreferredHeight = 768;
 
 WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
@@ -206,10 +208,8 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
     } else {
         QPointF p = m_webView->mapFromScene(pressEventLike->scenePos());
 
-        
         // assume to find atleast something
         targetScale = zoomScale() + s_zoomScaleWheelStep;
-
 
         QWebHitTestResult r = m_webView->page()->mainFrame()->hitTestContent(p.toPoint());
         QWebElement e = r.enclosingBlockElement();
@@ -218,10 +218,9 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
             e = e.parent();
         }
         if (!e.isNull()) {
-            QRectF targetRect = e.geometry();
-            QSizeF targetSize = targetRect.size();
+            QSizeF targetSize = e.geometry().size();
 
-            targetScale = static_cast<qreal>(contentsSize.width()) / targetSize.width();
+            targetScale = static_cast<qreal>(viewportSize.width()) / targetSize.width();
         }
 
         targetPoint = clipPointToViewport(QPointF(viewportSize.width()/2, viewportSize.height()/2) - (p * targetScale), targetScale);
@@ -333,6 +332,7 @@ void WebViewportItem::setWebView(QGraphicsWebView* view)
     m_webView->setParentItem(this);
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
     m_zoomAnim.setItem(m_webView);
+    updatePreferredSize();
 }
 
 void WebViewportItem::resetState(bool resetZoom)
@@ -468,5 +468,19 @@ bool WebViewportItem::sceneEventFilter(QGraphicsItem *i, QEvent *e)
 QGraphicsWebView* WebViewportItem::webView()
 {
     return m_webView;
+}
+
+void WebViewportItem::setGeometry(const QRectF& rect)
+{
+    QGraphicsWidget::setGeometry(rect);
+}
+
+void WebViewportItem::updatePreferredSize()
+{
+    // FIXME: we have bug in QtWebKit API when tileCacheEnabled is true.
+    // this causes viewport not to reset between the page loads.
+    // Thus, we need to update viewport manually until we have fix for this.
+
+    m_webView->page()->setPreferredContentsSize(QSize(s_defaultPreferredWidth, s_defaultPreferredHeight));
 }
 

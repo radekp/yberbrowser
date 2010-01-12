@@ -135,12 +135,12 @@ void MainView::installSignalHandlers()
 
 void MainView::resetState()
 {
-    setUpdatesEnabled(true);
-
     m_state = InitialLoad;
     if (m_interactionItem) {
         m_interactionItem->resetState(true);
     }
+
+    setUpdatesEnabled(true);
 }
 
 void MainView::loadFinished(bool)
@@ -173,5 +173,5 @@ void MainView::updateZoomScaleToPageWidth()
     if (contentsSize.width()) {
         targetScale = static_cast<qreal>(m_interactionItem->size().width()) / contentsSize.width();
     }
-    m_interactionItem->setZoomScale(targetScale, true);
+    m_interactionItem->setZoomScale(targetScale);
 }

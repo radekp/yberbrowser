@@ -95,6 +95,7 @@ public Q_SLOTS:
     void loadStarted();
     void loadFinished(bool);
 
+    void urlChanged(const QUrl& url);
 
 protected:
     void keyPressEvent(QKeyEvent* event);
