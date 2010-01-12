@@ -60,6 +60,7 @@ protected Q_SLOTS:
     void resetState();
     void contentsSizeChanged(const QSize &size);
     void loadFinished(bool);
+    void loadStarted();
 
 private:
     void updateSize();

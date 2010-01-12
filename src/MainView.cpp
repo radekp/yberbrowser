@@ -108,6 +108,7 @@ void MainView::resizeEvent(QResizeEvent* event)
 
 void MainView::updateSize()
 {
+    setUpdatesEnabled(false);
     if (!m_interactionItem)
         return;
 
@@ -116,6 +117,7 @@ void MainView::updateSize()
 
     m_interactionItem->setGeometry(rect);
     updateZoomScaleToPageWidth();
+    setUpdatesEnabled(true);
 }
 
 QGraphicsWebView* MainView::webView()
@@ -128,10 +130,13 @@ void MainView::installSignalHandlers()
     connect(webView()->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), this, SLOT(resetState()));
     connect(webView()->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(contentsSizeChanged(const QSize&)));
     connect(webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
+    connect(webView(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
 }
 
 void MainView::resetState()
 {
+    setUpdatesEnabled(true);
+
     m_state = InitialLoad;
     if (m_interactionItem) {
         m_interactionItem->resetState(true);
@@ -142,6 +147,11 @@ void MainView::loadFinished(bool)
 {
     if (m_state == InitialLoad)
         m_state = Interaction;
+}
+
+void MainView::loadStarted()
+{
+    setUpdatesEnabled(false);
 }
 
 void MainView::contentsSizeChanged(const QSize& sz)
@@ -165,4 +175,3 @@ void MainView::updateZoomScaleToPageWidth()
     }
     m_interactionItem->setZoomScale(targetScale, true);
 }
-
