@@ -107,6 +107,8 @@ private:
 
     QPointF clipPointToViewport(const QPointF& p, qreal targetScale);
 
+    void updatePreferredSize();
+
 private:
     QGraphicsWebView* m_webView;
     InteractionState m_interactionState;
