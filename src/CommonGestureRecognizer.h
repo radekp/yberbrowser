@@ -64,6 +64,7 @@ private:
     QGraphicsSceneMouseEvent* m_delayedPressEvent;
     QGraphicsSceneMouseEvent* m_delayedReleaseEvent;
     QTime m_delayedPressMoment;
+    QTime m_doubleClickFilter;
     QBasicTimer m_delayedPressTimer;
     int m_pressDelay;
     QPointF m_dragStartPos;

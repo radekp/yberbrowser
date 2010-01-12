@@ -11,6 +11,10 @@ static const int s_waitForClickTimeoutMS = 200;
 // and causes clicks with finger to be interpreted as pans
 static const int s_startPanDistance = 50;
 
+// time between mouse release that was part of pan and
+// double tap that can happen
+static const int s_doubleClickFilterDurationMS = 300;
+
 /* TODO
 
     - This should go away
@@ -122,10 +126,13 @@ void CommonGestureRecognizer::timerEvent(QTimerEvent *event)
 bool CommonGestureRecognizer::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
 #if DEBUG_EVENTS
-    qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
+    qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos() << " filter: " <<m_doubleClickFilter.elapsed();
 #endif
 
-    m_consumer->doubleTapGesture(event);
+    if (m_doubleClickFilter.elapsed() > s_doubleClickFilterDurationMS)
+        m_consumer->doubleTapGesture(event);
+    else
+        mousePressEvent(event);
     return true;
 }
 
@@ -155,6 +162,7 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
     if (m_consumer->isPanning()) {
         m_consumer->stopPanGesture();
+        m_doubleClickFilter.restart();
     } else if (m_delayedReleaseEvent) {
         // sometimes double click is lost if small mouse move occurs
         // inbetween
