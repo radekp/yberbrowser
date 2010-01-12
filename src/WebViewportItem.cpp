@@ -259,7 +259,7 @@ void WebViewportItem::startZoomAnimTo(const QPointF& targetPoint, qreal targetSc
 
 void WebViewportItem::transferAnimStateToView()
 {
-    Q_ASSERT(m_zoomAnim.timeLine()->state == QTimeLine::NotRunning);
+    Q_ASSERT(m_zoomAnim.timeLine()->state() == QTimeLine::NotRunning);
 
     qreal step = m_zoomAnim.timeLine()->currentValue();
 

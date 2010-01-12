@@ -48,9 +48,6 @@
 #include <qwebsettings.h>
 #include <qwebview.h>
 #include <QGLWidget>
-#include <QX11Info>
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
 
 #if defined(Q_WS_MAEMO_5)
 #include <QtDBus>
@@ -158,24 +155,6 @@ void MainWindow::setLoadInProgress(bool /*flag*/)
 QWebPage* MainWindow::page() const
 {
     return m_webViewItem->page();
-}
-
-void MainWindow::disableHildonDesktopCompositing() {
-    // this should cause desktop compositing to be turned off for
-    // fullscreen apps. This should speed up drawing. Unclear if
-    // it does.
-    // see also: hildon-desktop/src/mb/hd-comp-mgr.c
-    unsigned long val = 1;
-    Atom atom;
-    atom = XInternAtom(QX11Info::display(), "_HILDON_NON_COMPOSITED_WINDOW", 0);
-    XChangeProperty (QX11Info::display(),
-                     winId(),
-                     atom,
-                     XA_INTEGER,
-                     32,
-                     PropModeReplace,
-                     (unsigned char *) &val,
-                     1);
 }
 
 MainView* MainWindow::view() {

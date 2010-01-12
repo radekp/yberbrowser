@@ -128,19 +128,15 @@ int main(int argc, char** argv)
     window->load(url);
     if (noFullscreen)
         window->show();
-    else {
+    else
         window->showFullScreen();
-        window->disableHildonDesktopCompositing();
-    }
 
     for (int i = 2; i < args.count(); i++) {
         window->newWindow(args.at(i));
         if (noFullscreen)
             window->show();
-        else {
+        else
             window->showFullScreen();
-            window->disableHildonDesktopCompositing();
-        }
     }
 
     int retval = app.exec();
