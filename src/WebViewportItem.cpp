@@ -60,6 +60,8 @@ static const int s_minDoubleClickZoomTargetWidth = 100; // in document coords, a
 static const int s_panModeChangeDelta = 200; // pixels in doc coords
 
 
+static const int s_defaultPreferredWidth = 1024;
+static const int s_defaultPreferredHeight = 768;
 
 WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
@@ -474,8 +476,6 @@ QGraphicsWebView* WebViewportItem::webView()
 void WebViewportItem::setGeometry(const QRectF& rect)
 {
     QGraphicsWidget::setGeometry(rect);
-
-    updatePreferredSize();
 }
 
 void WebViewportItem::updatePreferredSize()
@@ -483,6 +483,7 @@ void WebViewportItem::updatePreferredSize()
     // FIXME: we have bug in QtWebKit API when tileCacheEnabled is true.
     // this causes viewport not to reset between the page loads.
     // Thus, we need to update viewport manually until we have fix for this.
-    m_webView->page()->setPreferredContentsSize(geometry().size().toSize());
+
+    m_webView->page()->setPreferredContentsSize(QSize(s_defaultPreferredWidth, s_defaultPreferredHeight));
 }
 
