@@ -470,3 +470,12 @@ QGraphicsWebView* WebViewportItem::webView()
     return m_webView;
 }
 
+void WebViewportItem::setGeometry(const QRectF& rect)
+{
+    QGraphicsWidget::setGeometry(rect);
+
+    // FIXME: we have bug in QtWebKit API when tileCacheEnabled is true.
+    // this causes viewport not to reset between the page loads.
+    // Thus, we need to update viewport manually until we have fix for this.
+    m_webView->page()->setPreferredContentsSize(rect.size().toSize());
+}
