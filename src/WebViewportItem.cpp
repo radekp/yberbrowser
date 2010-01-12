@@ -208,10 +208,8 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
     } else {
         QPointF p = m_webView->mapFromScene(pressEventLike->scenePos());
 
-        
         // assume to find atleast something
         targetScale = zoomScale() + s_zoomScaleWheelStep;
-
 
         QWebHitTestResult r = m_webView->page()->mainFrame()->hitTestContent(p.toPoint());
         QWebElement e = r.enclosingBlockElement();
@@ -220,10 +218,9 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
             e = e.parent();
         }
         if (!e.isNull()) {
-            QRectF targetRect = e.geometry();
-            QSizeF targetSize = targetRect.size();
+            QSizeF targetSize = e.geometry().size();
 
-            targetScale = static_cast<qreal>(contentsSize.width()) / targetSize.width();
+            targetScale = static_cast<qreal>(viewportSize.width()) / targetSize.width();
         }
 
         targetPoint = clipPointToViewport(QPointF(viewportSize.width()/2, viewportSize.height()/2) - (p * targetScale), targetScale);
