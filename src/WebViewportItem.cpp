@@ -171,7 +171,7 @@ void WebViewportItem::stopPanGesture()
     stopInteraction();
 }
 
-void WebViewportItem::flickGesture(qreal velocityX, qreal velocityY)
+void WebViewportItem::flickGesture(qreal /*velocityX*/, qreal velocityY)
 {
     m_flickAnim.start(velocityY);
 }
@@ -284,9 +284,13 @@ qreal WebViewportItem::zoomScale() const
 void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
 {
     value = qBound(s_minZoomScale, value, s_maxZoomScale);
+    qreal curZoomScale = zoomScale();
 
-    if (value != zoomScale()) {
+    if (value != curZoomScale) {
+        QPointF p = m_webView->pos();
         m_webView->setScale(value);
+        p *= value / curZoomScale;
+        m_webView->setPos(clipPointToViewport(p, zoomScale()));
     }
 
     if (commitInstantly) {

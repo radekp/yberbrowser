@@ -61,7 +61,6 @@
 MainView::MainView(QWidget* parent, Settings settings)
     : QGraphicsView(parent)
     , m_interactionItem(0)
-    , m_zoomScaleAtLoadStart(1.)
     , m_state(InitialLoad)
 {
     if (settings.m_useGL)
@@ -109,6 +108,7 @@ void MainView::resizeEvent(QResizeEvent* event)
 
 void MainView::updateSize()
 {
+    setUpdatesEnabled(false);
     if (!m_interactionItem)
         return;
 
@@ -116,9 +116,8 @@ void MainView::updateSize()
     scene()->setSceneRect(rect);
 
     m_interactionItem->setGeometry(rect);
-
-    if (m_zoomScaleAtLoadStart == m_interactionItem->zoomScale())
-        updateZoomScaleToPageWidth();
+    updateZoomScaleToPageWidth();
+    setUpdatesEnabled(true);
 }
 
 QGraphicsWebView* MainView::webView()
@@ -131,14 +130,16 @@ void MainView::installSignalHandlers()
     connect(webView()->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), this, SLOT(resetState()));
     connect(webView()->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(contentsSizeChanged(const QSize&)));
     connect(webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
+    connect(webView(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
 }
 
 void MainView::resetState()
 {
+    setUpdatesEnabled(true);
+
     m_state = InitialLoad;
     if (m_interactionItem) {
         m_interactionItem->resetState(true);
-        m_zoomScaleAtLoadStart = m_interactionItem->zoomScale();
     }
 }
 
@@ -148,11 +149,16 @@ void MainView::loadFinished(bool)
         m_state = Interaction;
 }
 
-void MainView::contentsSizeChanged(const QSize&)
+void MainView::loadStarted()
+{
+    setUpdatesEnabled(false);
+}
+
+void MainView::contentsSizeChanged(const QSize& sz)
 {
     // FIXME: QSize& arg vs contentsSize(): these  report different sizes
     // probably scrollbar thing
-    if (m_state == InitialLoad && m_zoomScaleAtLoadStart == m_interactionItem->zoomScale()) {
+    if (m_state == InitialLoad) {
         updateZoomScaleToPageWidth();
     }
 }
@@ -168,7 +174,4 @@ void MainView::updateZoomScaleToPageWidth()
         targetScale = static_cast<qreal>(m_interactionItem->size().width()) / contentsSize.width();
     }
     m_interactionItem->setZoomScale(targetScale, true);
-    m_zoomScaleAtLoadStart = m_interactionItem->zoomScale();
-
 }
-

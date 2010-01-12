@@ -60,6 +60,7 @@ protected Q_SLOTS:
     void resetState();
     void contentsSizeChanged(const QSize &size);
     void loadFinished(bool);
+    void loadStarted();
 
 private:
     void updateSize();
@@ -73,7 +74,6 @@ private:
 
 private:
     WebViewportItem* m_interactionItem;
-    qreal m_zoomScaleAtLoadStart;
     State m_state;
 };
 

@@ -3,7 +3,7 @@
 #include "CommonGestureRecognizer.h"
 #include "EventHelpers.h"
 
-#define DEBUG_EVENTS 1
+//#define DEBUG_EVENTS 1
 
 static const int s_waitForClickTimeoutMS = 200;
 
