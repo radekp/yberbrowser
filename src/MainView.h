@@ -73,7 +73,6 @@ private:
 
 private:
     WebViewportItem* m_interactionItem;
-    qreal m_zoomScaleAtLoadStart;
     State m_state;
 };
 
