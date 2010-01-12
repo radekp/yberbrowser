@@ -83,8 +83,6 @@ public:
 
     QWebPage* page() const;
 
-    void disableHildonDesktopCompositing();
-
     MainView* view();
 
 
