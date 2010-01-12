@@ -3,7 +3,7 @@
 #include "CommonGestureRecognizer.h"
 #include "EventHelpers.h"
 
-//#define DEBUG_EVENTS 1
+#define DEBUG_EVENTS 1
 
 static const int s_waitForClickTimeoutMS = 200;
 
@@ -90,11 +90,9 @@ void CommonGestureRecognizer::captureDelayedPress(QGraphicsSceneMouseEvent *even
 
     if (wasRelease) {
         m_delayedReleaseEvent = delayedEvent;
-
         // mouse press is more reliable than mouse release
         // we must send release with same coords as press
         copyMouseEventPositions(m_delayedPressEvent, m_delayedReleaseEvent);
-
         m_delayedPressTimer.start(m_pressDelay, this);
     } else {
         m_delayedPressEvent = delayedEvent;
@@ -119,7 +117,6 @@ void CommonGestureRecognizer::timerEvent(QTimerEvent *event)
         m_delayedPressTimer.stop();
         m_consumer->tapGesture(m_delayedPressEvent, m_delayedReleaseEvent);
         clearDelayedPress();
-
     }
 }
 
@@ -161,8 +158,9 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
         return false;
 
     if (m_consumer->isPanning()) {
-        m_consumer->stopPanGesture();
         m_doubleClickFilter.restart();
+        m_consumer->stopPanGesture();
+        m_consumer->flickGesture(m_panVelocity.x(), m_panVelocity.y());
     } else if (m_delayedReleaseEvent) {
         // sometimes double click is lost if small mouse move occurs
         // inbetween
@@ -199,6 +197,8 @@ bool CommonGestureRecognizer::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
                 isPanning = m_consumer->isPanning();
 
                 // to avoid initial warping, don't use m_delayedPressEvent->screenPos()
+                m_panVelocity = QPointF(0, 0);
+                m_panVelocitySamplingTs.restart();
                 m_dragStartPos = event->screenPos();
                 clearDelayedPress();
             }
@@ -207,7 +207,16 @@ bool CommonGestureRecognizer::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 
     if (isPanning) {
         clearDelayedPress();
-        m_consumer->panBy(event->screenPos() - m_dragStartPos);
+        QPointF d = event->screenPos() - m_dragStartPos;
+        if (d.manhattanLength()) {
+            m_consumer->panBy(d);
+            int dt = m_panVelocitySamplingTs.restart();
+            if (dt) {
+                QPointF d_dt = d / dt;
+                m_panVelocity = (m_panVelocity + d_dt) / 2;
+            }
+        }
+
         m_dragStartPos = event->screenPos();
         return true;
     }

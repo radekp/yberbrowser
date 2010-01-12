@@ -67,6 +67,7 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_zoomAnim(this)
     , m_zoomCommitTimer(this)
     , m_recognizer(this)
+    , m_flickAnim(this)
 
 {
 #if !defined(ENABLE_PAINT_DEBUG)
@@ -124,7 +125,7 @@ void WebViewportItem::startPanGesture(CommonGestureConsumer::PanDirection direct
 
 void WebViewportItem::panBy(const QPointF& delta)
 {
-    QPointF p = m_webView->pos();
+    QPointF p;
     m_panModeResidue += delta;
 
     if (qAbs(m_panModeResidue.x()) > s_panModeChangeDelta) {
@@ -136,13 +137,19 @@ void WebViewportItem::panBy(const QPointF& delta)
     }
 
     if (m_interactionState & HPanInteraction) {
-        p += QPointF(delta.x(), 0.);
+        p.setX(delta.x());
     }
 
     if (m_interactionState & VPanInteraction) {
-        p += QPointF(0., delta.y());
+        p.setY(delta.y());
     }
 
+    moveItemBy(p);
+}
+
+void WebViewportItem::moveItemBy(const QPointF& delta)
+{
+    QPointF p = m_webView->pos() + delta;
     m_webView->setPos(clipPointToViewport(p, zoomScale()));
 }
 
@@ -163,6 +170,12 @@ void WebViewportItem::stopPanGesture()
     m_interactionState = static_cast<InteractionState>(m_interactionState & ~(PanInteraction | VPanInteraction | HPanInteraction));
     stopInteraction();
 }
+
+void WebViewportItem::flickGesture(qreal velocityX, qreal velocityY)
+{
+    m_flickAnim.start(velocityY);
+}
+
 
 void WebViewportItem::startInteraction()
 {

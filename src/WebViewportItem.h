@@ -36,6 +36,7 @@
 #include <QTimeLine>
 
 #include "CommonGestureRecognizer.h"
+#include "FlickAnimation.h"
 
 class QGraphicsWebView;
 
@@ -56,9 +57,11 @@ public:
     QGraphicsWebView* webView();
 
     void resetState(bool resetZoom);
-
+    void moveItemBy(const QPointF& delta);
+    
 protected:
     void wheelEvent(QGraphicsSceneWheelEvent * event);
+
 
 #if defined(ENABLE_PAINT_DEBUG)
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
@@ -95,6 +98,8 @@ private:
     void panBy(const QPointF& delta);
     void stopPanGesture();
 
+    void flickGesture(qreal velocityX, qreal velocityY);
+
     void startInteraction();
     void stopInteraction();
 
@@ -110,6 +115,7 @@ private:
 
     CommonGestureRecognizer m_recognizer;
     QPointF m_panModeResidue;
+    FlickAnimation m_flickAnim;
 };
 
 #endif

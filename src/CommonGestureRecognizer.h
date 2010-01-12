@@ -29,6 +29,11 @@ public:
     virtual void startPanGesture(CommonGestureConsumer::PanDirection) = 0;
     virtual void panBy(const QPointF& delta) = 0;
     virtual void stopPanGesture() = 0;
+
+public:
+    // interaface "FlickGestureConsumer"
+    virtual void flickGesture(qreal velocityX, qreal velocityY) = 0;
+
 };
 
 
@@ -65,8 +70,10 @@ private:
     QGraphicsSceneMouseEvent* m_delayedReleaseEvent;
     QTime m_delayedPressMoment;
     QTime m_doubleClickFilter;
+    QTime m_panVelocitySamplingTs;
     QBasicTimer m_delayedPressTimer;
     int m_pressDelay;
+    QPointF m_panVelocity;
     QPointF m_dragStartPos;
 };
 
