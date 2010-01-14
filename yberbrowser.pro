@@ -15,6 +15,11 @@ BINDIR = $$PREFIX/bin
 QT += network opengl
 macx:QT+=xml
 
+contains(QT_CONFIG, maemo) {
+    QT += maemo5 dbus
+}
+
+
 disable_tile_cache {
 
 } else {
@@ -81,9 +86,6 @@ contains(WEBKIT, system) {
   error(Specify WEBKIT build mode: WEBKIT=[system|custom|local])
 }
 
-maemo {
-    QT += maemo5 dbus
-}
 
 
 symbian {
