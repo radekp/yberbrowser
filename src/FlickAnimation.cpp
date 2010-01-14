@@ -3,7 +3,7 @@
 #include "WebViewportItem.h"
 
 // timer resolution in milliseconds
-static const int s_timerRes = 60. / 1000.;
+static const int s_timerRes = 1000. / 60.;
 
 // acceleration / deceleration in pixels per millisecond^2
 static const float s_acceleration = 1./500.;

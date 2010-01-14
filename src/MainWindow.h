@@ -55,21 +55,24 @@ struct Settings
     bool m_disableToolbar;
     bool m_disableTiling;
     bool m_useGL;
+    bool m_showFPS;
     bool m_disableAutoComplete;
+
     Settings()
         : m_disableToolbar(false)
         , m_disableTiling(false)
         , m_useGL(false)
+        , m_showFPS(false)
         , m_disableAutoComplete(false)
     {}
 
-    Settings(bool disableToolbar, bool disableTiling, bool useGL, bool disableAutoComplete)
+    Settings(bool disableToolbar, bool disableTiling, bool useGL, bool showFPS, bool disableAutoComplete)
         : m_disableToolbar(disableToolbar)
         , m_disableTiling(disableTiling)
         , m_useGL(useGL)
+        , m_showFPS(showFPS)
         , m_disableAutoComplete(disableAutoComplete)    
     {}
-
 };
 
 class MainWindow : public QMainWindow
@@ -143,8 +146,18 @@ class WebView : public QGraphicsWebView {
 public:
     WebView(QGraphicsItem* parent = 0)
         : QGraphicsWebView(parent)
+        , m_fpsTicks(0)
     {
     }
+    void paint(QPainter* p, const QStyleOptionGraphicsItem* i, QWidget* w= 0) {
+        m_fpsTicks++;
+        QGraphicsWebView::paint(p, i, w);
+    }
+
+    unsigned int fpsTicks() const { return m_fpsTicks; }
+
+private:
+    unsigned int m_fpsTicks;
 };
 
 class WebPage : public QWebPage {

@@ -35,6 +35,19 @@ qmake ../yberbrowser.pro WEBKIT=local WEBKIT_PATH=`pwd`/../webkit/
 
 
 
+Variables for qmake
+-------------------
+
+WEBKIT=[local|system|custom]
+
+If selecting WEBKIT=local
+
+WEBKIT_PATH= full path to webkit sources, where webkit is also built by default
+WEBKIT_BUILD_PATH= override the full path where the webkit has been built to
+WEBKIT_BUILD_MODE= override what mode the webkit has been built (used unless WEBKIT_BUILD_PATH has been defined)
+
+
+
 Day-to-day development
 ---------------------
 

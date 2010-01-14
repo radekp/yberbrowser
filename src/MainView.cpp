@@ -53,6 +53,7 @@
 #include "MainView.h"
 #include "WebViewportItem.h"
 
+static const int s_fpsTimerInterval = 1000;
 
 // TODO:
 // detect when user interaction has been done and do
@@ -62,9 +63,16 @@ MainView::MainView(QWidget* parent, Settings settings)
     : QGraphicsView(parent)
     , m_interactionItem(0)
     , m_state(InitialLoad)
+    , m_fpsTicks(0)
+    , m_fpsTimerId(0)
+    , m_fpsItem(0)
+    , m_fpsEnabled(settings.m_showFPS)
+    , m_webView(0)
 {
     if (settings.m_useGL)
         setViewport(new QGLWidget);
+
+    
 
     setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
     setOptimizationFlags(QGraphicsView::DontSavePainterState);
@@ -79,10 +87,14 @@ MainView::MainView(QWidget* parent, Settings settings)
 MainView::~MainView()
 {
     delete m_interactionItem;
+    hideFPS();
 }
 
-void MainView::setWebView(QGraphicsWebView* webViewItem)
+void MainView::setWebView(WebView* webViewItem)
 {
+    if (m_fpsEnabled)
+        hideFPS();
+
     if (webViewItem) {
         if (!m_interactionItem) {
             Q_ASSERT(scene());
@@ -90,9 +102,12 @@ void MainView::setWebView(QGraphicsWebView* webViewItem)
             scene()->addItem(m_interactionItem);
             scene()->setActiveWindow(m_interactionItem);
         }
-        m_interactionItem->setWebView(webViewItem);
+        
+        m_interactionItem->setWebView(m_webView = webViewItem);
         installSignalHandlers();
         updateSize();
+        if (m_fpsEnabled)
+            showFPS();
     } else {
         m_interactionItem->setParent(0);
         delete m_interactionItem;
@@ -120,9 +135,9 @@ void MainView::updateSize()
     setUpdatesEnabled(true);
 }
 
-QGraphicsWebView* MainView::webView()
+WebView* MainView::webView()
 {
-    return m_interactionItem->webView();
+    return m_webView;
 }
 
 void MainView::installSignalHandlers()
@@ -154,7 +169,7 @@ void MainView::loadStarted()
     setUpdatesEnabled(false);
 }
 
-void MainView::contentsSizeChanged(const QSize& sz)
+void MainView::contentsSizeChanged(const QSize&)
 {
     // FIXME: QSize& arg vs contentsSize(): these  report different sizes
     // probably scrollbar thing
@@ -175,3 +190,45 @@ void MainView::updateZoomScaleToPageWidth()
     }
     m_interactionItem->setZoomScale(targetScale);
 }
+
+
+void MainView::showFPS() 
+{
+    Q_ASSERT(!m_fpsItem);
+
+    m_fpsItem = new QGraphicsSimpleTextItem("FPS");
+    m_fpsItem->setParentItem(m_interactionItem);
+    QFont f = m_fpsItem->font();
+    f.setPointSize(14);
+    f.setBold(true);
+    m_fpsTimerId = startTimer(s_fpsTimerInterval);
+    m_fpsTicks = webView()->fpsTicks();
+    m_fpsTimestamp.start();
+}
+
+void MainView::timerEvent(QTimerEvent *)
+{
+    double dt = m_fpsTimestamp.restart();
+    double dticks = webView()->fpsTicks() - m_fpsTicks;
+    double d = 0;
+    if (dt)
+        d = (dticks *  1000.) / dt;
+    m_fpsItem->setText(QString("FPS: %1").arg(d, 0, 'f', 2));
+
+    m_fpsTicks = webView()->fpsTicks();
+}
+
+void MainView::hideFPS()
+{
+    if (m_fpsTimerId)
+        killTimer(m_fpsTimerId);
+    if (m_fpsItem) {
+        m_fpsItem->setParentItem(0);
+        delete m_fpsItem;
+        m_fpsItem = 0;
+    }
+}
+
+
+
+
