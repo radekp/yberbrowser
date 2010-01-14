@@ -60,6 +60,7 @@
 #include "MainWindow.h"
 #include "MainView.h"
 #include "WebViewportItem.h"
+#include "UrlStore.h"
 
 static const float s_zoomScaleKeyStep = .2;
 
@@ -81,6 +82,11 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
     , m_settings(settings)
 {
     init();
+    
+    m_urlStore = 0;
+    if (!m_settings.m_disableAutoComplete)
+        m_urlStore = new UrlStore;
+
 
 #if defined(Q_WS_MAEMO_5)
     QDBusConnection::systemBus().connect(QString(), MCE_SIGNAL_PATH, MCE_SIGNAL_IF,
@@ -92,6 +98,7 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
 
 MainWindow::~MainWindow()
 {
+    delete m_urlStore;
 }
 
 MainWindow* MainWindow::createWindow()
@@ -137,7 +144,7 @@ void MainWindow::load(const QString& url)
     if (!deducedUrl.isValid())
         deducedUrl = QUrl("http://" + url + "/");
 
-    urlEdit->setText(deducedUrl.toEncoded());
+    m_urlEdit->setText(deducedUrl.toEncoded());
     m_webViewItem->load(deducedUrl);
     m_webViewItem->setFocus(Qt::OtherFocusReason);
 }
@@ -164,18 +171,43 @@ MainView* MainWindow::view() {
 
 void MainWindow::changeLocation()
 {
-    load(urlEdit->text());
+    // nullify on hitting enter. end of editing.
+    m_lastEnteredText.resize(0);
+    load(m_urlEdit->text());
 }
 
-void MainWindow::loadFinished(bool)
+void MainWindow::urlTextEdited(const QString& newText)
+{
+    if (!m_urlStore)
+        return;
+
+    QString text = newText;
+    if (m_urlEdit->selectionStart() > -1)
+        text = newText.left(m_urlEdit->selectionStart());
+    // autocomplete only when adding text, not when deleting or backspacing
+    if (text.size() > m_lastEnteredText.size()) {
+        // todo: make it async
+        QString match = m_urlStore->match(text);
+        if (match.size()) {
+            m_urlEdit->setText(match);
+            m_urlEdit->setCursorPosition(text.size());
+            m_urlEdit->setSelection(text.size(), match.size() - text.size());
+        }
+    }
+    m_lastEnteredText = text;
+}
+
+void MainWindow::loadFinished(bool success)
 {
     setLoadInProgress(false);
     urlChanged(m_webViewItem->url());
+    if (success && m_urlStore)
+        m_urlStore->accessed(m_webViewItem->url());
 }
 
 void MainWindow::urlChanged(const QUrl& url)
 {
-    urlEdit->setText(url.toString());
+    m_urlEdit->setText(url.toString());
 }
 
 MainWindow* MainWindow::newWindow(const QString &url)
@@ -189,15 +221,17 @@ MainWindow* MainWindow::newWindow(const QString &url)
 void MainWindow::buildUI()
 {
     QWebPage* page = m_webViewItem->page();
-    urlEdit = new QLineEdit(this);
-    urlEdit->setSizePolicy(QSizePolicy::Expanding, urlEdit->sizePolicy().verticalPolicy());
-    connect(urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
+    m_urlEdit = new QLineEdit(this);
+    m_urlEdit->setSizePolicy(QSizePolicy::Expanding, m_urlEdit->sizePolicy().verticalPolicy());
+    connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
+    connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
 
     QToolBar* bar = addToolBar("Navigation");
     bar->addAction(page->action(QWebPage::Back));
+    bar->addAction(page->action(QWebPage::Forward));
     bar->addAction(m_reloadAction = page->action(QWebPage::Reload));
     bar->addAction(m_stopAction = page->action(QWebPage::Stop));
-    bar->addWidget(urlEdit);
+    bar->addWidget(m_urlEdit);
     if (m_settings.m_disableToolbar)
         bar->hide();
 
