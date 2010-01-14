@@ -96,6 +96,8 @@ int main(int argc, char** argv)
 
     bool noFullscreen = false;
     bool gotFlag = true;
+    bool showFPS = false;
+
     while (gotFlag) {
         if (args.count() > 1) {
             if (args.at(1) == "-w") {
@@ -109,6 +111,9 @@ int main(int argc, char** argv)
                 args.removeAt(1);
             } else if (args.at(1) == "-c") {
                 disableTiling = true;
+                args.removeAt(1);
+            } else if (args.at(1) == "-f") {
+                showFPS = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-?" || args.at(1) == "-h" || args.at(1) == "--help") {
                 usage(argv[0]);
@@ -124,7 +129,7 @@ int main(int argc, char** argv)
     if (args.count() > 1)
         url = args.at(1);
 
-    MainWindow* window = new MainWindow(g_globalProxy, Settings(disableToolbar, disableTiling, useGL));
+    MainWindow* window = new MainWindow(g_globalProxy, Settings(disableToolbar, disableTiling, useGL, showFPS));
     window->load(url);
     if (noFullscreen)
         window->show();
@@ -155,6 +160,7 @@ void usage(const char* name)
     s << " -t disable toolbar" << endl;
     s << " -g use glwidget as qgv viewport" << endl;
     s << " -c disable tile cache" << endl;
+    s << " -f show fps counter" << endl;
     s << " -h|-?|--help help" << endl;
     s << endl;
     s << " use http_proxy env var to set http proxy" << endl;

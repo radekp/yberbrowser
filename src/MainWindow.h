@@ -54,16 +54,20 @@ struct Settings
     bool m_disableToolbar;
     bool m_disableTiling;
     bool m_useGL;
+    bool m_showFPS;
+
     Settings()
         : m_disableToolbar(false)
         , m_disableTiling(false)
         , m_useGL(false)
+        , m_showFPS(false)
     {}
 
-    Settings(bool disableToolbar, bool disableTiling, bool useGL)
+    Settings(bool disableToolbar, bool disableTiling, bool useGL, bool showFPS)
         : m_disableToolbar(disableToolbar)
         , m_disableTiling(disableTiling)
         , m_useGL(useGL)
+        , m_showFPS(showFPS)
     {}
 
 };
@@ -136,8 +140,18 @@ class WebView : public QGraphicsWebView {
 public:
     WebView(QGraphicsItem* parent = 0)
         : QGraphicsWebView(parent)
+        , m_fpsTicks(0)
     {
     }
+    void paint(QPainter* p, const QStyleOptionGraphicsItem* i, QWidget* w= 0) {
+        m_fpsTicks++;
+        QGraphicsWebView::paint(p, i, w);
+    }
+
+    unsigned int fpsTicks() const { return m_fpsTicks; }
+
+private:
+    unsigned int m_fpsTicks;
 };
 
 class WebPage : public QWebPage {

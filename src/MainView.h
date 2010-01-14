@@ -35,12 +35,15 @@
 #ifndef MainView_h_
 #define MainView_h_
 
+#include <QTime>
 #include <QGraphicsView>
+
 #include "MainWindow.h"
 
 class QGraphicsWidget;
 class QResizeEvent;
 class WebViewportItem;
+class QGraphicsSimpleTextItem;
 
 class MainView : public QGraphicsView {
     Q_OBJECT
@@ -49,12 +52,15 @@ public:
     MainView(QWidget* parent, Settings);
     ~MainView();
 
-    void setWebView(QGraphicsWebView* widget);
-    QGraphicsWebView* webView();
+    void setWebView(WebView* widget);
+    WebView* webView();
 
     void resizeEvent(QResizeEvent* event);
 
     WebViewportItem* interactionItem() { return m_interactionItem; }
+
+protected:
+    void timerEvent(QTimerEvent *event);
 
 protected Q_SLOTS:
     void resetState();
@@ -66,7 +72,9 @@ private:
     void updateSize();
     void installSignalHandlers();
     void updateZoomScaleToPageWidth();
-
+    void showFPS();
+    void hideFPS();
+    
     enum State {
         InitialLoad,
         Interaction
@@ -75,6 +83,13 @@ private:
 private:
     WebViewportItem* m_interactionItem;
     State m_state;
+
+    QTime m_fpsTimestamp;
+    unsigned int m_fpsTicks;
+    int m_fpsTimerId;
+    QGraphicsSimpleTextItem* m_fpsItem;
+    bool m_fpsEnabled;
+    WebView* m_webView;
 };
 
 #endif
