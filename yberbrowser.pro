@@ -15,7 +15,7 @@ BINDIR = $$PREFIX/bin
 QT += network opengl
 macx:QT+=xml
 
-contains(QT_CONFIG, maemo) {
+contains(QT_CONFIG, maemo5)  {
     QT += maemo5 dbus
 }
 
