@@ -32,30 +32,46 @@ contains(WEBKIT, system) {
     isEmpty(WEBKIT_PATH) {
         error(Use WEBKIT_PATH=/path to specify where WebKit checkout is)
     }
-    !exists($$WEBKIT_PATH/WebKit.pro) {
+    !exists($$WEBKIT_PATH/WebKit.pri) {
         error(WebKit does not exist in path $$WEBKIT_PATH)
     }
+
+    # ideally we would like to include WebKit.pri this is not
+    # feasible, however, because it will cause build flags to be
+    # different. With WebKit.pri we cannot build yberbrowser with
+    # debug and webkit in release. This is in turn needed due to
+    # gdb segfaulting on debug webkit
+
     isEmpty(WEBKIT_BUILD_PATH) {
-        debug {
-           WEBKIT_BUILD_MODE=Debug
-        } else {
-           WEBKIT_BUILD_MODE=Release
-        }
-        WEBKIT_BUILD_PATH=$$WEBKIT_PATH/WebKitBuild/$$WEBKIT_BUILD_MODE
+       isEmpty(WEBKIT_BUILD_MODE) {
+           debug {
+               WEBKIT_BUILD_MODE=Debug
+           } else {
+               WEBKIT_BUILD_MODE=Release
+           }
+       }
+       WEBKIT_BUILD_PATH=$$WEBKIT_PATH/WebKitBuild/$$WEBKIT_BUILD_MODE
     }
 
-    WEBKIT_LIB_FILE=$$WEBKIT_BUILD_PATH/lib/libQtWebKit.so
+    mac:contains(QT_CONFIG, qt_framework):!CONFIG(webkit_no_framework) {
+        # copied unfortunately from WebKit.pri
+        WEBKIT_LIB_FILE=$$WEBKIT_BUILD_PATH/lib/QtWebKit.framework/QtWebKit
+        LIBS += -framework QtWebKit
+        QMAKE_FRAMEWORKPATH = $$WEBKIT_BUILD_PATH/lib $$QMAKE_FRAMEWORKPATH
+    } else {
+        WEBKIT_LIB_FILE=$$WEBKIT_BUILD_PATH/lib/libQtWebKit.so
+        LIBPATH += $$WEBKIT_BUILD_PATH/lib
+        LIBS += -lQtWebKit
+    }
 
     !exists($$WEBKIT_LIB_FILE) {
        error(WebKit has not been built to path '$$WEBKIT_BUILD_PATH' (lib $$WEBKIT_LIB_FILE does not exist). Build it or specify WEBKIT_BUILD_PATH)
     }
 
-    LIBPATH += $$WEBKIT_BUILD_PATH/lib
-    LIBS += -lQtWebKit
-
     INCLUDEPATH += $$WEBKIT_PATH/WebKit/qt/Api \
      $$WEBKIT_PATH/ \
      $$WEBKIT_PATH/JavaScriptCore/ForwardingHeaders
+
 
     # need to set rpath, so that app can be run during development from
     # the build dir.  after installing, we need to do run 'chrpath -d' on
