@@ -88,7 +88,6 @@ MainView::MainView(QWidget* parent, Settings settings)
 
 MainView::~MainView()
 {
-    delete m_interactionItem;
 }
 
 void MainView::setWebView(WebView* webViewItem)
