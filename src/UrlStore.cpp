@@ -3,7 +3,9 @@
 #include <QFile>
 #include <QDateTime>
 #include <iostream>
-#include <qdebug.h>
+#if defined(ENABLE_URLSTORE_DEBUG)
+#include <QDebug>
+#endif
 
 static uint currentVersion = 1;
 
@@ -43,7 +45,9 @@ void UrlStore::internalize()
     // version
     // number of items
     // url, refcount, lastaccess
+#if defined(ENABLE_URLSTORE_DEBUG)
     qDebug()<<"UrlStore: internalize urlstore.txt"<<endl;
+#endif
     QFile store("urlstore.txt");
     if (store.open(QFile::ReadWrite)) {
         QDataStream in(&store);
@@ -62,7 +66,9 @@ void UrlStore::internalize()
     } 
 
     if (!m_list.size()) {
+#if defined(ENABLE_URLSTORE_DEBUG)
         qDebug()<<"UrlStore: no url store, use default values";
+#endif
         // init urlstore with some popular urls. prefer non-www for to save space
         m_list.append(UrlItem("google.com"));
         m_list.append(UrlItem("cnn.com"));
@@ -75,7 +81,9 @@ void UrlStore::internalize()
 
 void UrlStore::externalize()
 {
+#if defined(ENABLE_URLSTORE_DEBUG)
     qDebug()<<"UrlStore: externalize urlstore.txt"<<endl;
+#endif
     // save url store
     // version
     // number of items
@@ -96,9 +104,9 @@ void UrlStore::accessed(const QUrl& prettyUrl)
 {
     QString host = prettyUrl.host();
     bool found = false;
-    
+#if defined(ENABLE_URLSTORE_DEBUG)
     qDebug()<<"UrlStore: accessed: "<<host;
-
+#endif
     for (int i = 0; i < m_list.size(); ++i) {
         UrlItem* item = &m_list[i];
         if (matchUrls(item->m_host, host)) {
@@ -122,9 +130,10 @@ void UrlStore::accessed(const QUrl& prettyUrl)
         while (--i >= 0 && m_list.at(i).m_refcount == 1);
         m_list.insert(++i, newItem);
     }
-
+#if defined(ENABLE_URLSTORE_DEBUG)
     for (int i = 0; i < m_list.size(); ++i)
         qDebug()<<m_list.at(i).m_host<<" "<<m_list.at(i).m_refcount;
+#endif
 }
 
 QString UrlStore::match(const QString& str)
