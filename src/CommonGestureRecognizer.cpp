@@ -137,11 +137,16 @@ bool CommonGestureRecognizer::mousePressEvent(QGraphicsSceneMouseEvent* event)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
 #endif
 
+    // long tap causes left button click, don't send it further
     if (event->button() != Qt::LeftButton)
-        return false;
+        return true;
 
     if (!m_delayedPressEvent)
         capturePressOrRelease(event);
+
+    if (m_consumer)
+        m_consumer->touchGestureBegin(event->screenPos());
+
     return true;
 }
 
@@ -153,6 +158,9 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
     if (event->button() != Qt::LeftButton)
         return false;
+
+    if (m_consumer)
+        m_consumer->touchGestureEnd();
 
     if (m_consumer->isPanning()) {
         m_doubleClickFilter.restart();

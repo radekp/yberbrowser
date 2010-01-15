@@ -20,7 +20,6 @@ FlickAnimation::~FlickAnimation()
     stopTimer();
 }
 
-
 void FlickAnimation::start(qreal velocity)
 {
     stopTimer();
@@ -31,6 +30,12 @@ void FlickAnimation::start(qreal velocity)
     m_timerId = startTimer(s_timerRes);
 
 }
+
+void FlickAnimation::stop()
+{
+    stopTimer();
+}
+
 
 void FlickAnimation::timerEvent(QTimerEvent */*event*/)
 {

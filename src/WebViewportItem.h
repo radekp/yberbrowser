@@ -102,6 +102,9 @@ private:
 
     void flickGesture(qreal velocityX, qreal velocityY);
 
+    void touchGestureBegin(const QPointF&);
+    void touchGestureEnd();
+
     void startInteraction();
     void stopInteraction();
 

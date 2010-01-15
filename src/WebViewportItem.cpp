@@ -179,6 +179,16 @@ void WebViewportItem::flickGesture(qreal /*velocityX*/, qreal velocityY)
 }
 
 
+void WebViewportItem::touchGestureBegin(const QPointF&)
+{
+    m_flickAnim.stop();
+}
+
+void WebViewportItem::touchGestureEnd()
+{
+}
+
+
 void WebViewportItem::startInteraction()
 {
 }
