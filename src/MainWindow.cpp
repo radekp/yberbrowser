@@ -48,6 +48,8 @@
 #include <qwebsettings.h>
 #include <qwebview.h>
 #include <QGLWidget>
+#include <QLabel>
+#include <QToolBar>
 
 #if defined(Q_WS_MAEMO_5)
 #include <QtDBus>
@@ -63,6 +65,7 @@
 #include "UrlStore.h"
 
 static const float s_zoomScaleKeyStep = .2;
+static const int s_fpsTimerInterval = 1000;
 
 QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
 {
@@ -80,6 +83,11 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
     , m_page(0)
     , m_proxy(proxy)
     , m_settings(settings)
+    , m_naviToolbar(0)
+    , m_urlEdit(0)
+    , m_fpsBox(0)
+    , m_fpsTicks(0)
+    , m_fpsTimerId(0)
 {
     init();
     
@@ -98,6 +106,7 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
 
 MainWindow::~MainWindow()
 {
+    killTimer(m_fpsTimerId);
     delete m_urlStore;
 }
 
@@ -136,6 +145,7 @@ void MainWindow::init()
 
     buildUI();
     setLoadInProgress(false);
+    setFPSCalculation(m_settings.m_showFPS);
 }
 
 void MainWindow::load(const QString& url)
@@ -210,6 +220,23 @@ void MainWindow::urlChanged(const QUrl& url)
     m_urlEdit->setText(url.toString());
 }
 
+void MainWindow::showFPSChanged(bool checked) 
+{
+    m_settings.m_showFPS = checked;
+    setFPSCalculation(m_settings.m_showFPS);
+    buildToolbar();
+}
+
+void MainWindow::setFPSCalculation(bool fpsOn)
+{
+    if (fpsOn) {
+        m_fpsTimerId = startTimer(s_fpsTimerInterval);
+        m_fpsTicks = m_webViewItem->fpsTicks();
+        m_fpsTimestamp.start();
+    } else
+        killTimer(m_fpsTimerId);
+}
+
 MainWindow* MainWindow::newWindow(const QString &url)
 {
     MainWindow* mw = new MainWindow();
@@ -217,24 +244,9 @@ MainWindow* MainWindow::newWindow(const QString &url)
     return mw;
 }
 
-
 void MainWindow::buildUI()
 {
     QWebPage* page = m_webViewItem->page();
-    m_urlEdit = new QLineEdit(this);
-    m_urlEdit->setSizePolicy(QSizePolicy::Expanding, m_urlEdit->sizePolicy().verticalPolicy());
-    connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
-    connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
-
-    QToolBar* bar = addToolBar("Navigation");
-    bar->addAction(page->action(QWebPage::Back));
-    bar->addAction(page->action(QWebPage::Forward));
-    bar->addAction(m_reloadAction = page->action(QWebPage::Reload));
-    bar->addAction(m_stopAction = page->action(QWebPage::Stop));
-    bar->addWidget(m_urlEdit);
-    if (m_settings.m_disableToolbar)
-        bar->hide();
-
     QMenu* fileMenu = menuBar()->addMenu("&File");
     fileMenu->addAction("New Window", this, SLOT(newWindow()));
     fileMenu->addAction("Close", this, SLOT(close()));
@@ -244,6 +256,47 @@ void MainWindow::buildUI()
     viewMenu->addAction(page->action(QWebPage::Forward));
     viewMenu->addAction(page->action(QWebPage::Stop));
     viewMenu->addAction(page->action(QWebPage::Reload));
+
+    QMenu* developerMenu = menuBar()->addMenu("&Developer");
+    QAction* fpsAction = new QAction("Show FPS", developerMenu);
+    fpsAction->setCheckable(true);
+    fpsAction->setChecked(m_settings.m_showFPS);
+    connect(fpsAction, SIGNAL(toggled(bool)), this, SLOT(showFPSChanged(bool)));
+    developerMenu->addAction(fpsAction);
+    
+    buildToolbar();
+}
+
+void MainWindow::buildToolbar()
+{
+    QWebPage* page = m_webViewItem->page();
+    if (!m_naviToolbar) {
+        m_naviToolbar = new QToolBar("Navigation", this);
+        addToolBar(m_naviToolbar);
+    }
+    // todo: find out if there is a way to remove widgets from toolbar, withouth trashing them all
+    m_naviToolbar->clear();
+
+    m_urlEdit = new QLineEdit(this);
+    m_urlEdit->setSizePolicy(QSizePolicy::Expanding, m_urlEdit->sizePolicy().verticalPolicy());
+    connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
+    connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
+
+    m_naviToolbar->addAction(page->action(QWebPage::Back));
+    m_naviToolbar->addAction(page->action(QWebPage::Forward));
+    m_naviToolbar->addAction(m_reloadAction = page->action(QWebPage::Reload));
+    m_naviToolbar->addAction(m_stopAction = page->action(QWebPage::Stop));
+    m_naviToolbar->addWidget(m_urlEdit);
+
+    if (m_settings.m_showFPS) {
+        m_fpsBox = new QLabel("fps:0.0", this);
+        m_fpsBox->setSizePolicy(QSizePolicy::Fixed, m_fpsBox->sizePolicy().verticalPolicy());
+        m_naviToolbar->addSeparator();
+        m_naviToolbar->addWidget(m_fpsBox);
+    }
+
+    if (m_settings.m_disableToolbar)
+        m_naviToolbar->hide();
 }
 
 QUrl MainWindow::urlFromUserInput(const QString& string)
@@ -281,6 +334,20 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
     }
 
     QMainWindow::keyPressEvent(event);
+}
+
+void MainWindow::timerEvent(QTimerEvent *)
+{
+    if (!m_settings.m_showFPS)
+        return;
+    double dt = m_fpsTimestamp.restart();
+    double dticks = m_webViewItem->fpsTicks() - m_fpsTicks;
+    double d = 0;
+    if (dt)
+        d = (dticks *  1000.) / dt;
+    m_fpsBox->setText(QString("FPS: %1").arg(d, 0, 'f', 1));
+
+    m_fpsTicks = m_webViewItem->fpsTicks();
 }
 
 #if defined(Q_WS_MAEMO_5)

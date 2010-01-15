@@ -39,6 +39,7 @@
 #include <QUrl>
 #include <qgraphicswebview.h>
 #include <qwebpage.h>
+#include <QTime>
 
 class QGraphicsScene;
 class QLineEdit;
@@ -47,8 +48,8 @@ class WebView;
 class MainView;
 class QNetworkProxy;
 class UrlStore;
-
-
+class QLabel;
+class QToolBar;
 
 struct Settings
 {
@@ -104,9 +105,11 @@ public Q_SLOTS:
     void loadFinished(bool);
 
     void urlChanged(const QUrl& url);
+    void showFPSChanged(bool);
 
 protected:
     void keyPressEvent(QKeyEvent* event);
+    void timerEvent(QTimerEvent *event);
 
 #if defined(Q_WS_MAEMO_5)
     bool event(QEvent *ev);
@@ -115,7 +118,9 @@ protected Q_SLOTS:
 #endif
 
 private:
+    void setFPSCalculation(bool);
     void buildUI();
+    void buildToolbar();
     void setLoadInProgress(bool);
 
 #if defined(Q_WS_MAEMO_5)
@@ -134,8 +139,14 @@ private:
     QAction* m_reloadAction;
     UrlStore* m_urlStore;
     
+    QToolBar* m_naviToolbar;
     QLineEdit* m_urlEdit;
+    QLabel* m_fpsBox;
     QString m_lastEnteredText;
+
+    QTime m_fpsTimestamp;
+    unsigned int m_fpsTicks;
+    int m_fpsTimerId;
 };
 
 

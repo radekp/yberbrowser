@@ -35,7 +35,6 @@
 #ifndef MainView_h_
 #define MainView_h_
 
-#include <QTime>
 #include <QGraphicsView>
 
 #include "MainWindow.h"
@@ -59,9 +58,6 @@ public:
 
     WebViewportItem* interactionItem() { return m_interactionItem; }
 
-protected:
-    void timerEvent(QTimerEvent *event);
-
 protected Q_SLOTS:
     void resetState();
     void contentsSizeChanged(const QSize &size);
@@ -72,8 +68,6 @@ private:
     void updateSize();
     void installSignalHandlers();
     void updateZoomScaleToPageWidth();
-    void showFPS();
-    void hideFPS();
     
     enum State {
         InitialLoad,
@@ -83,12 +77,6 @@ private:
 private:
     WebViewportItem* m_interactionItem;
     State m_state;
-
-    QTime m_fpsTimestamp;
-    unsigned int m_fpsTicks;
-    int m_fpsTimerId;
-    QGraphicsSimpleTextItem* m_fpsItem;
-    bool m_fpsEnabled;
     WebView* m_webView;
 };
 
