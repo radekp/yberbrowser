@@ -469,6 +469,9 @@ bool WebViewportItem::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneWheel:
         return sendWheelEventFromChild(static_cast<QGraphicsSceneWheelEvent*>(e));
 
+    case QEvent::GraphicsSceneContextMenu:
+        // filter out context menu, comes from long tap
+        return true;
     default:
         break;
     }
