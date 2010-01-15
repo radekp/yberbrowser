@@ -472,6 +472,14 @@ bool WebViewportItem::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneContextMenu:
         // filter out context menu, comes from long tap
         return true;
+
+    case QEvent::GraphicsSceneHoverMove:
+    case QEvent::GraphicsSceneHoverLeave:
+    case QEvent::GraphicsSceneHoverEnter:
+        // filter out hover, so that we don't get excess
+        // link highlights while panning
+        return true;
+
     default:
         break;
     }
