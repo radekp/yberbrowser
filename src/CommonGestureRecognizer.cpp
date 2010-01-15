@@ -155,7 +155,7 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 #endif
 
     if (event->button() != Qt::LeftButton)
-        return false;
+        return true;
 
     if (m_consumer)
         m_consumer->touchGestureEnd();
@@ -228,7 +228,8 @@ bool CommonGestureRecognizer::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
         return true;
     }
 
-    return false;
+    // filter anyway since we don't want excess link hovers when panning.
+    return true;
 }
 
 void CommonGestureRecognizer::reset()
