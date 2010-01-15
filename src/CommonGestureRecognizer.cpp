@@ -3,8 +3,6 @@
 #include "CommonGestureRecognizer.h"
 #include "EventHelpers.h"
 
-//#define DEBUG_EVENTS 1
-
 static const int s_waitForClickTimeoutMS = 200;
 
 //QApplication::startDragDistance() is too little (12)
@@ -119,7 +117,7 @@ void CommonGestureRecognizer::timerEvent(QTimerEvent *event)
 
 bool CommonGestureRecognizer::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
-#if DEBUG_EVENTS
+#if defined(ENABLE_EVENT_DEBUG)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos() << " filter: " <<m_doubleClickFilter.elapsed();
 #endif
 
@@ -133,26 +131,34 @@ bool CommonGestureRecognizer::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* ev
 
 bool CommonGestureRecognizer::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
-#if DEBUG_EVENTS
+#if defined(ENABLE_EVENT_DEBUG)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
 #endif
 
+    // long tap causes left button click, don't send it further
     if (event->button() != Qt::LeftButton)
-        return false;
+        return true;
 
     if (!m_delayedPressEvent)
         capturePressOrRelease(event);
+
+    if (m_consumer)
+        m_consumer->touchGestureBegin(event->screenPos());
+
     return true;
 }
 
 bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
-#if DEBUG_EVENTS
+#if defined(ENABLE_EVENT_DEBUG)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
 #endif
 
     if (event->button() != Qt::LeftButton)
-        return false;
+        return true;
+
+    if (m_consumer)
+        m_consumer->touchGestureEnd();
 
     if (m_consumer->isPanning()) {
         m_doubleClickFilter.restart();
@@ -175,7 +181,7 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
 bool CommonGestureRecognizer::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-#if DEBUG_EVENTS
+#if defined(ENABLE_EVENT_DEBUG)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
 #endif
 
@@ -222,7 +228,8 @@ bool CommonGestureRecognizer::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
         return true;
     }
 
-    return false;
+    // filter anyway since we don't want excess link hovers when panning.
+    return true;
 }
 
 void CommonGestureRecognizer::reset()

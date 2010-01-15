@@ -107,6 +107,9 @@ public Q_SLOTS:
     void urlChanged(const QUrl& url);
     void showFPSChanged(bool);
 
+    void zoomIn();
+    void zoomOut();
+
 protected:
     void keyPressEvent(QKeyEvent* event);
     void timerEvent(QTimerEvent *event);

@@ -179,6 +179,16 @@ void WebViewportItem::flickGesture(qreal /*velocityX*/, qreal velocityY)
 }
 
 
+void WebViewportItem::touchGestureBegin(const QPointF&)
+{
+    m_flickAnim.stop();
+}
+
+void WebViewportItem::touchGestureEnd()
+{
+}
+
+
 void WebViewportItem::startInteraction()
 {
 }
@@ -459,6 +469,17 @@ bool WebViewportItem::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneWheel:
         return sendWheelEventFromChild(static_cast<QGraphicsSceneWheelEvent*>(e));
 
+    case QEvent::GraphicsSceneContextMenu:
+        // filter out context menu, comes from long tap
+        return true;
+
+    case QEvent::GraphicsSceneHoverMove:
+    case QEvent::GraphicsSceneHoverLeave:
+    case QEvent::GraphicsSceneHoverEnter:
+        // filter out hover, so that we don't get excess
+        // link highlights while panning
+        return true;
+
     default:
         break;
     }
@@ -485,3 +506,12 @@ void WebViewportItem::updatePreferredSize()
     m_webView->page()->setPreferredContentsSize(QSize(s_defaultPreferredWidth, s_defaultPreferredHeight));
 }
 
+void WebViewportItem::setPanPos(const QPointF& pos)
+{
+    m_webView->setPos(clipPointToViewport(pos, zoomScale()));
+}
+
+QPointF WebViewportItem::panPos() const
+{
+    return m_webView->pos();
+}

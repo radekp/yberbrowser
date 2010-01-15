@@ -63,12 +63,14 @@ protected Q_SLOTS:
     void contentsSizeChanged(const QSize &size);
     void loadFinished(bool);
     void loadStarted();
+    void saveFrameState(QWebFrame* frame, QWebHistoryItem* item);
+    void restoreFrameState(QWebFrame* frame);
 
 private:
     void updateSize();
     void installSignalHandlers();
     void updateZoomScaleToPageWidth();
-    
+
     enum State {
         InitialLoad,
         Interaction
