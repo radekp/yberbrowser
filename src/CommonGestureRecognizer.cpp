@@ -3,8 +3,6 @@
 #include "CommonGestureRecognizer.h"
 #include "EventHelpers.h"
 
-//#define DEBUG_EVENTS 1
-
 static const int s_waitForClickTimeoutMS = 200;
 
 //QApplication::startDragDistance() is too little (12)
@@ -119,7 +117,7 @@ void CommonGestureRecognizer::timerEvent(QTimerEvent *event)
 
 bool CommonGestureRecognizer::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
-#if DEBUG_EVENTS
+#if defined(ENABLE_EVENT_DEBUG)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos() << " filter: " <<m_doubleClickFilter.elapsed();
 #endif
 
@@ -133,7 +131,7 @@ bool CommonGestureRecognizer::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* ev
 
 bool CommonGestureRecognizer::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
-#if DEBUG_EVENTS
+#if defined(ENABLE_EVENT_DEBUG)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
 #endif
 
@@ -152,7 +150,7 @@ bool CommonGestureRecognizer::mousePressEvent(QGraphicsSceneMouseEvent* event)
 
 bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
-#if DEBUG_EVENTS
+#if defined(ENABLE_EVENT_DEBUG)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
 #endif
 
@@ -183,7 +181,7 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
 bool CommonGestureRecognizer::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-#if DEBUG_EVENTS
+#if defined(ENABLE_EVENT_DEBUG)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
 #endif
 
