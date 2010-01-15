@@ -194,10 +194,10 @@ void MainWindow::buildUI()
     connect(urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
 
     QToolBar* bar = addToolBar("Navigation");
-    bar->addAction(page->action(QWebPage::Back));
     bar->addAction(m_reloadAction = page->action(QWebPage::Reload));
     bar->addAction(m_stopAction = page->action(QWebPage::Stop));
     bar->addWidget(urlEdit);
+    bar->addAction(page->action(QWebPage::Back));
     if (m_settings.m_disableToolbar)
         bar->hide();
 
