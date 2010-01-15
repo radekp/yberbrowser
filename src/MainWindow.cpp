@@ -154,10 +154,10 @@ void MainWindow::loadStarted()
     setLoadInProgress(true);
 }
 
-void MainWindow::setLoadInProgress(bool /*flag*/)
+void MainWindow::setLoadInProgress(bool flag)
 {
-/*  m_stopAction->setVisible(flag);
-    m_reloadAction->setVisible(!flag);*/
+    m_stopAction->setVisible(flag);
+    m_reloadAction->setVisible(!flag);
 }
 
 QWebPage* MainWindow::page() const
@@ -226,7 +226,17 @@ void MainWindow::buildUI()
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
 
+    QStyle *s = style();
+    
     QToolBar* bar = addToolBar("Navigation");
+    QAction* zoomInAction = new QAction(s->standardIcon(QStyle::SP_ArrowUp), "Zoom &in", bar);
+    connect(zoomInAction, SIGNAL(triggered(bool)), this, SLOT(zoomIn()));
+    bar->addAction(zoomInAction);
+
+    QAction* zoomOutAction = new QAction(s->standardIcon(QStyle::SP_ArrowDown), "Zoom &out", bar);
+    connect(zoomOutAction, SIGNAL(triggered(bool)), this, SLOT(zoomOut()));
+    bar->addAction(zoomOutAction);
+
     bar->addAction(m_reloadAction = page->action(QWebPage::Reload));
     bar->addAction(m_stopAction = page->action(QWebPage::Stop));
     bar->addWidget(m_urlEdit);
@@ -257,15 +267,13 @@ QUrl MainWindow::urlFromUserInput(const QString& string)
 
 void MainWindow::keyPressEvent(QKeyEvent* event) {
     if (m_view->interactionItem()) {
-        WebViewportItem *viewportItem = m_view->interactionItem();
-
         if (event->modifiers() & Qt::ControlModifier) {
             if (event->key() == Qt::Key_I) {
-                viewportItem->animateZoomScaleTo(viewportItem->zoomScale() + s_zoomScaleKeyStep);
+                zoomIn();
                 event->accept();
                 return;
             } else if (event->key() == Qt::Key_O) {
-                viewportItem->animateZoomScaleTo(viewportItem->zoomScale() - s_zoomScaleKeyStep);
+                zoomOut();
                 event->accept();
                 return;
             }
@@ -280,6 +288,23 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
     }
 
     QMainWindow::keyPressEvent(event);
+}
+
+void MainWindow::zoomIn()
+{
+    WebViewportItem *viewportItem = m_view->interactionItem();
+    qDebug() << __FUNCTION__ << viewportItem->zoomScale();
+    
+
+    viewportItem->animateZoomScaleTo(viewportItem->zoomScale() + s_zoomScaleKeyStep);
+    qDebug() << viewportItem->zoomScale();
+    
+}
+
+void MainWindow::zoomOut()
+{
+    WebViewportItem *viewportItem = m_view->interactionItem();
+    viewportItem->animateZoomScaleTo(viewportItem->zoomScale() - s_zoomScaleKeyStep);
 }
 
 #if defined(Q_WS_MAEMO_5)
