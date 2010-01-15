@@ -86,14 +86,12 @@ MainView::MainView(QWidget* parent, Settings settings)
 
 MainView::~MainView()
 {
-    delete m_interactionItem;
     hideFPS();
 }
 
 void MainView::setWebView(WebView* webViewItem)
 {
-    if (m_fpsEnabled)
-        hideFPS();
+    hideFPS();
 
     if (webViewItem) {
         if (!m_interactionItem) {
@@ -102,13 +100,13 @@ void MainView::setWebView(WebView* webViewItem)
             scene()->addItem(m_interactionItem);
             scene()->setActiveWindow(m_interactionItem);
         }
-        
         m_interactionItem->setWebView(m_webView = webViewItem);
         installSignalHandlers();
         updateSize();
         if (m_fpsEnabled)
             showFPS();
     } else {
+        hideFPS();
         m_interactionItem->setParent(0);
         delete m_interactionItem;
         m_interactionItem = 0;
