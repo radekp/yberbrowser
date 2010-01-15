@@ -95,6 +95,7 @@ int main(int argc, char** argv)
 #endif
 
     bool noFullscreen = false;
+    bool disableAutoComplete = false;
     bool gotFlag = true;
     bool showFPS = false;
 
@@ -111,6 +112,9 @@ int main(int argc, char** argv)
                 args.removeAt(1);
             } else if (args.at(1) == "-c") {
                 disableTiling = true;
+                args.removeAt(1);
+            } else if (args.at(1) == "-a") {
+                disableAutoComplete = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-f") {
                 showFPS = true;
@@ -129,7 +133,7 @@ int main(int argc, char** argv)
     if (args.count() > 1)
         url = args.at(1);
 
-    MainWindow* window = new MainWindow(g_globalProxy, Settings(disableToolbar, disableTiling, useGL, showFPS));
+    MainWindow* window = new MainWindow(g_globalProxy, Settings(disableToolbar, disableTiling, useGL, showFPS, disableAutoComplete));
     window->load(url);
     if (noFullscreen)
         window->show();
@@ -161,6 +165,7 @@ void usage(const char* name)
     s << " -g use glwidget as qgv viewport" << endl;
     s << " -c disable tile cache" << endl;
     s << " -f show fps counter" << endl;
+    s << " -a disable url autocomplete" << endl;
     s << " -h|-?|--help help" << endl;
     s << endl;
     s << " use http_proxy env var to set http proxy" << endl;

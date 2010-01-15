@@ -105,7 +105,8 @@ HEADERS = \
   src/CommonGestureRecognizer.h \
   src/EventHelpers.h \
   src/FlickAnimation.h \
-  src/MainView.h
+  src/MainView.h \
+  src/UrlStore.h
 
 SOURCES = \
   src/main.cpp \
@@ -115,4 +116,5 @@ SOURCES = \
   src/CommonGestureRecognizer.cpp \
   src/EventHelpers.cpp \
   src/FlickAnimation.cpp \
-  src/MainView.cpp
+  src/MainView.cpp \
+  src/UrlStore.cpp

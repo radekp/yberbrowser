@@ -46,6 +46,7 @@ class WebPage;
 class WebView;
 class MainView;
 class QNetworkProxy;
+class UrlStore;
 
 
 
@@ -55,21 +56,23 @@ struct Settings
     bool m_disableTiling;
     bool m_useGL;
     bool m_showFPS;
+    bool m_disableAutoComplete;
 
     Settings()
         : m_disableToolbar(false)
         , m_disableTiling(false)
         , m_useGL(false)
         , m_showFPS(false)
+        , m_disableAutoComplete(false)
     {}
 
-    Settings(bool disableToolbar, bool disableTiling, bool useGL, bool showFPS)
+    Settings(bool disableToolbar, bool disableTiling, bool useGL, bool showFPS, bool disableAutoComplete)
         : m_disableToolbar(disableToolbar)
         , m_disableTiling(disableTiling)
         , m_useGL(useGL)
         , m_showFPS(showFPS)
+        , m_disableAutoComplete(disableAutoComplete)    
     {}
-
 };
 
 class MainWindow : public QMainWindow
@@ -95,6 +98,7 @@ public:
 public Q_SLOTS:
     MainWindow* newWindow(const QString &url = QString());
     void changeLocation();
+    void urlTextEdited(const QString&);
 
     void loadStarted();
     void loadFinished(bool);
@@ -128,8 +132,10 @@ private:
     Settings m_settings;
     QAction* m_stopAction;
     QAction* m_reloadAction;
+    UrlStore* m_urlStore;
     
-    QLineEdit* urlEdit;
+    QLineEdit* m_urlEdit;
+    QString m_lastEnteredText;
 };
 
 
