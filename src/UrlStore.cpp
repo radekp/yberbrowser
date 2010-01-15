@@ -46,7 +46,7 @@ void UrlStore::internalize()
     // number of items
     // url, refcount, lastaccess
 #if defined(ENABLE_URLSTORE_DEBUG)
-    qDebug()<<"UrlStore: internalize urlstore.txt"<<endl;
+    qDebug() << "UrlStore:" << __FUNCTION__ << "urlstore.txt"<<endl;
 #endif
     QFile store("urlstore.txt");
     if (store.open(QFile::ReadWrite)) {
@@ -67,7 +67,7 @@ void UrlStore::internalize()
 
     if (!m_list.size()) {
 #if defined(ENABLE_URLSTORE_DEBUG)
-        qDebug()<<"UrlStore: no url store, use default values";
+        qDebug() << "UrlStore: no url store, use default values";
 #endif
         // init urlstore with some popular urls. prefer non-www for to save space
         m_list.append(UrlItem("google.com"));
@@ -82,7 +82,7 @@ void UrlStore::internalize()
 void UrlStore::externalize()
 {
 #if defined(ENABLE_URLSTORE_DEBUG)
-    qDebug()<<"UrlStore: externalize urlstore.txt"<<endl;
+    qDebug() << "UrlStore:" << __FUNCTION__ << "urlstore.txt"<<endl;
 #endif
     // save url store
     // version
@@ -105,7 +105,7 @@ void UrlStore::accessed(const QUrl& prettyUrl)
     QString host = prettyUrl.host();
     bool found = false;
 #if defined(ENABLE_URLSTORE_DEBUG)
-    qDebug()<<"UrlStore: accessed: "<<host;
+    qDebug() << "UrlStore:" << __FUNCTION__ << "host";
 #endif
     for (int i = 0; i < m_list.size(); ++i) {
         UrlItem* item = &m_list[i];

@@ -273,7 +273,7 @@ void MainWindow::buildToolbar()
         m_naviToolbar = new QToolBar("Navigation", this);
         addToolBar(m_naviToolbar);
     }
-    // todo: find out if there is a way to remove widgets from toolbar, withouth trashing them all
+    // todo: find out if there is a way to remove widgets from toolbar, without trashing them all
     m_naviToolbar->clear();
 
     m_urlEdit = new QLineEdit(this);
@@ -297,8 +297,9 @@ void MainWindow::buildToolbar()
     m_naviToolbar->addWidget(m_urlEdit);
 
     if (m_settings.m_showFPS) {
-        m_fpsBox = new QLabel("fps:0.0", this);
-        m_fpsBox->setSizePolicy(QSizePolicy::Fixed, m_fpsBox->sizePolicy().verticalPolicy());
+        m_fpsBox = new QLabel("fps:00.00", this);
+        m_fpsBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+        m_fpsBox->setFixedSize(m_fpsBox->width(), m_fpsBox->height());
         m_naviToolbar->addSeparator();
         m_naviToolbar->addWidget(m_fpsBox);
     }
@@ -351,7 +352,7 @@ void MainWindow::timerEvent(QTimerEvent *)
     double d = 0;
     if (dt)
         d = (dticks *  1000.) / dt;
-    m_fpsBox->setText(QString("FPS: %1").arg(d, 0, 'f', 1));
+    m_fpsBox->setText(QString("fps: %1").arg(d, 0, 'f', 2));
 
     m_fpsTicks = m_webViewItem->fpsTicks();
 }
