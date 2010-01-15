@@ -498,3 +498,12 @@ void WebViewportItem::updatePreferredSize()
     m_webView->page()->setPreferredContentsSize(QSize(s_defaultPreferredWidth, s_defaultPreferredHeight));
 }
 
+void WebViewportItem::setPanPos(const QPointF& pos)
+{
+    m_webView->setPos(clipPointToViewport(pos, zoomScale()));
+}
+
+QPointF WebViewportItem::panPos() const
+{
+    return m_webView->pos();
+}

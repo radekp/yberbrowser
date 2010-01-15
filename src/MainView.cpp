@@ -47,8 +47,11 @@
 #include <qwebpage.h>
 #include <qwebsettings.h>
 #include <qwebview.h>
+#include <qwebhistory.h>
+
 #include <QGLWidget>
 #include <QtGlobal>
+
 
 #include "MainView.h"
 #include "WebViewportItem.h"
@@ -58,6 +61,13 @@ static const int s_fpsTimerInterval = 1000;
 // TODO:
 // detect when user interaction has been done and do
 // m_state = Interaction;
+
+// to debug load events etc:
+// make DEFINES+=-DENABLE_LOADEVENT_DEBUG
+// this is needed in order to make load/back/forward etc
+// as fast as possible, doing as little zooming changes as possible
+// qt api is not very clear on the signal order. once the aspects
+// of load signal order have been cleared, remove these ifdefs
 
 MainView::MainView(QWidget* parent, Settings settings)
     : QGraphicsView(parent)
@@ -71,8 +81,6 @@ MainView::MainView(QWidget* parent, Settings settings)
 {
     if (settings.m_useGL)
         setViewport(new QGLWidget);
-
-    
 
     setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
     setOptimizationFlags(QGraphicsView::DontSavePainterState);
@@ -142,15 +150,21 @@ void MainView::installSignalHandlers()
 {
     connect(webView()->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), this, SLOT(resetState()));
     connect(webView()->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(contentsSizeChanged(const QSize&)));
+    connect(webView()->page(),SIGNAL(saveFrameStateRequested(QWebFrame*,QWebHistoryItem*)), SLOT(saveFrameState(QWebFrame*,QWebHistoryItem*)));
+    connect(webView()->page(),SIGNAL(restoreFrameStateRequested(QWebFrame*)), SLOT(restoreFrameState(QWebFrame*)));
     connect(webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(webView(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
 }
 
 void MainView::resetState()
 {
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__;
+#endif
     m_state = InitialLoad;
     if (m_interactionItem) {
-        m_interactionItem->resetState(true);
+        // zoom will be updated in contentsSizeChanged
+        m_interactionItem->resetState(false);
     }
 
     setUpdatesEnabled(true);
@@ -158,17 +172,27 @@ void MainView::resetState()
 
 void MainView::loadFinished(bool)
 {
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__;
+#endif
+
     if (m_state == InitialLoad)
         m_state = Interaction;
 }
 
 void MainView::loadStarted()
 {
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__;
+#endif
     setUpdatesEnabled(false);
 }
 
 void MainView::contentsSizeChanged(const QSize&)
 {
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__;
+#endif
     // FIXME: QSize& arg vs contentsSize(): these  report different sizes
     // probably scrollbar thing
     if (m_state == InitialLoad) {
@@ -190,7 +214,7 @@ void MainView::updateZoomScaleToPageWidth()
 }
 
 
-void MainView::showFPS() 
+void MainView::showFPS()
 {
     Q_ASSERT(!m_fpsItem);
 
@@ -227,6 +251,67 @@ void MainView::hideFPS()
     }
 }
 
+
+struct SavedViewState
+{
+    double zoomScale;
+    QPointF panPos;
+
+    SavedViewState(WebViewportItem* item)
+        : zoomScale(item->zoomScale())
+        , panPos(item->panPos())
+    {
+    }
+
+    SavedViewState()
+        : zoomScale(-1)
+    {
+    }
+
+    bool isValid() { return zoomScale >= 0; }
+
+    void imposeTo(WebViewportItem* item) const
+    {
+        item->setZoomScale(zoomScale);
+        item->setPanPos(panPos);
+    }
+};
+Q_DECLARE_METATYPE(SavedViewState);  // a bit heavy weight for what this is used for
+
+void MainView::saveFrameState(QWebFrame* frame, QWebHistoryItem* item)
+{
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__ << frame << item;
+#endif
+    if (frame == webView()->page()->mainFrame())
+        item->setUserData(QVariant::fromValue(SavedViewState(m_interactionItem)));
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    else
+        qDebug() << "Unknown frame at " << __PRETTY_FUNCTION__;
+#endif
+}
+
+void MainView::restoreFrameState(QWebFrame* frame)
+{
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__ << frame;
+#endif
+
+    if (frame == webView()->page()->mainFrame()) {
+        QWebHistoryItem item = webView()->page()->history()->currentItem();
+        QVariant value = item.userData();
+
+        if (value.canConvert<SavedViewState>()) {
+            SavedViewState s = value.value<SavedViewState>();
+            if (s.isValid())
+                s.imposeTo(m_interactionItem);
+        }
+    }
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    else
+        qDebug() << "Unknown frame at " << __PRETTY_FUNCTION__;
+#endif
+}
 
 
 
