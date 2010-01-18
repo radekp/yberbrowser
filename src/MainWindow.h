@@ -107,8 +107,10 @@ public Q_SLOTS:
     void urlChanged(const QUrl& url);
     void showFPSChanged(bool);
 
-    void zoomIn();
-    void zoomOut();
+    void zoomIn() { zoomInOrOut(true); }
+    void zoomOut() { zoomInOrOut(false); }
+    void zoomInOrOut(bool zoomIn);
+
 
 protected:
     void keyPressEvent(QKeyEvent* event);
@@ -151,6 +153,8 @@ private:
     QTime m_fpsTimestamp;
     unsigned int m_fpsTicks;
     int m_fpsTimerId;
+
+    QTime m_zoomInOutTimestamp;
 };
 
 

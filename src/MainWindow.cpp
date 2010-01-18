@@ -68,8 +68,13 @@
 #include "WebViewportItem.h"
 #include "UrlStore.h"
 
-static const float s_zoomScaleKeyStep = .2;
+static const float s_zoomScaleKeyStep = 1.4;
 static const int s_fpsTimerInterval = 1000;
+
+// time limit for the zoom in/out button in milliseconds.
+// This allows zoom in/out buttons to be held down and still
+// the view will be interactive
+static const int s_zoomInOutInterval = 100;
 
 QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
 {
@@ -93,6 +98,7 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
     , m_fpsTimerId(0)
 {
     init();
+    m_zoomInOutTimestamp.start();
 
     m_urlStore = 0;
     if (!m_settings.m_disableAutoComplete)
@@ -367,21 +373,30 @@ void MainWindow::timerEvent(QTimerEvent *)
     m_fpsTicks = m_webViewItem->fpsTicks();
 }
 
-void MainWindow::zoomIn()
+void MainWindow::zoomInOrOut(bool zoomIn)
 {
-    WebViewportItem *viewportItem = m_view->interactionItem();
-    qDebug() << __FUNCTION__ << viewportItem->zoomScale();
-    
+    if (m_zoomInOutTimestamp.elapsed() < s_zoomInOutInterval)
+        return;
+    m_zoomInOutTimestamp.restart();
 
-    viewportItem->animateZoomScaleTo(viewportItem->zoomScale() + s_zoomScaleKeyStep);
-    qDebug() << viewportItem->zoomScale();
-    
-}
-
-void MainWindow::zoomOut()
-{
     WebViewportItem *viewportItem = m_view->interactionItem();
-    viewportItem->animateZoomScaleTo(viewportItem->zoomScale() - s_zoomScaleKeyStep);
+    qreal curScale = viewportItem->zoomScale();
+    qreal newScale;
+
+    if (zoomIn)
+        newScale = curScale * s_zoomScaleKeyStep;
+    else
+        newScale = curScale / s_zoomScaleKeyStep;
+
+    newScale = qBound(static_cast<qreal>(0.5), newScale, static_cast<qreal>(10));
+
+    QSizeF viewportSize = viewportItem->size();
+
+    QPointF vc(viewportSize.width()/2, viewportSize.height()/2);
+    QPointF dc = m_webViewItem->mapFromScene(vc) * (newScale);
+    QPointF p = viewportItem->clipPointToViewport(vc - dc, newScale);
+
+    viewportItem->startZoomAnimTo(p, newScale);
 }
 
 #if defined(Q_WS_MAEMO_5)

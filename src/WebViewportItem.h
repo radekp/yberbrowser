@@ -56,7 +56,9 @@ public:
     void setPanPos(const QPointF& pos);
     QPointF panPos() const;
 
-    void animateZoomScaleTo(qreal targetZoomScale);
+    QPointF clipPointToViewport(const QPointF& p, qreal targetScale);
+    void startZoomAnimTo(const QPointF& targetPoint, qreal targetScale);
+
     void setWebView(QGraphicsWebView* view);
     QGraphicsWebView* webView();
 
@@ -92,7 +94,6 @@ private:
     bool sendMouseEventFromChild(QGraphicsSceneMouseEvent *event);
     void transferAnimStateToView();
     void resetZoomAnim();
-    void startZoomAnimTo(const QPointF& targetPoint, qreal targetScale);
 
     bool isZoomedIn() const;
 
@@ -111,8 +112,6 @@ private:
 
     void startInteraction();
     void stopInteraction();
-
-    QPointF clipPointToViewport(const QPointF& p, qreal targetScale);
 
     void updatePreferredSize();
 

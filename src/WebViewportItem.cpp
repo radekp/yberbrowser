@@ -314,14 +314,12 @@ void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
 void WebViewportItem::wheelEvent(QGraphicsSceneWheelEvent *event)
 {
     int adv = event->delta() / (15*8);
-    animateZoomScaleTo(zoomScale() + adv * s_zoomScaleWheelStep);
-    event->accept();
-}
+    qreal newScale = zoomScale() + adv * s_zoomScaleWheelStep;
 
-void WebViewportItem::animateZoomScaleTo(qreal targetZoomScale)
-{
-    targetZoomScale = qBound(s_minZoomScale, targetZoomScale, s_maxZoomScale);
-    startZoomAnimTo(m_webView->pos(), targetZoomScale);
+    QPointF p = clipPointToViewport(m_webView->mapFromScene(event->scenePos()), newScale);
+
+    startZoomAnimTo(p, newScale);
+    event->accept();
 }
 
 void WebViewportItem::commitZoom()
