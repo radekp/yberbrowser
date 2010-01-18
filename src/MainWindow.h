@@ -129,6 +129,7 @@ private:
 #if defined(Q_WS_MAEMO_5)
     void setLandscape();
     void setPortrait();
+    void grabIncreaseDecreaseKeys(QWidget* window, bool grab);
 #endif
 
 private:

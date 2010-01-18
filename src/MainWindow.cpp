@@ -56,6 +56,10 @@
 #include <QtMaemo5>
 #include <mce/mode-names.h>
 #include <mce/dbus-names.h>
+
+#include <X11/Xlib.h>
+#include <QX11Info>
+#include <X11/Xatom.h>
 #endif
 
 
@@ -89,7 +93,7 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
     , m_fpsTimerId(0)
 {
     init();
-    
+
     m_urlStore = 0;
     if (!m_settings.m_disableAutoComplete)
         m_urlStore = new UrlStore;
@@ -100,6 +104,7 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
                                          MCE_DEVICE_ORIENTATION_SIG,
                                          this,
                                          SLOT(orientationChanged(QString)));
+    grabIncreaseDecreaseKeys(this, true);
 #endif
 }
 
@@ -278,17 +283,6 @@ void MainWindow::buildToolbar()
 
     m_urlEdit = new QLineEdit(this);
     m_urlEdit->setSizePolicy(QSizePolicy::Expanding, m_urlEdit->sizePolicy().verticalPolicy());
-    connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
-    connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
-
-    QStyle *s = style();
-    QAction* zoomInAction = new QAction(s->standardIcon(QStyle::SP_ArrowUp), "Zoom &in", m_naviToolbar);
-    connect(zoomInAction, SIGNAL(triggered(bool)), this, SLOT(zoomIn()));
-    m_naviToolbar->addAction(zoomInAction);
-
-    QAction* zoomOutAction = new QAction(s->standardIcon(QStyle::SP_ArrowDown), "Zoom &out", m_naviToolbar);
-    connect(zoomOutAction, SIGNAL(triggered(bool)), this, SLOT(zoomOut()));
-    m_naviToolbar->addAction(zoomOutAction);
 
     m_naviToolbar->addAction(page->action(QWebPage::Back));
     m_naviToolbar->addAction(page->action(QWebPage::Forward));
@@ -297,7 +291,7 @@ void MainWindow::buildToolbar()
     m_naviToolbar->addWidget(m_urlEdit);
 
     if (m_settings.m_showFPS) {
-        m_fpsBox = new QLabel("fps:00.00", this);
+        m_fpsBox = new QLabel("FPS:00.00", this);
         m_fpsBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
         m_fpsBox->setFixedSize(m_fpsBox->width(), m_fpsBox->height());
         m_naviToolbar->addSeparator();
@@ -319,25 +313,45 @@ QUrl MainWindow::urlFromUserInput(const QString& string)
 }
 
 void MainWindow::keyPressEvent(QKeyEvent* event) {
+    qDebug() << event << event->key() << Qt::Key_F8 << Qt::Key_F7;
+    
     if (m_view->interactionItem()) {
         if (event->modifiers() & Qt::ControlModifier) {
-            if (event->key() == Qt::Key_I) {
+            switch (event->key()) {
+            case Qt::Key_I:
                 zoomIn();
                 event->accept();
                 return;
-            } else if (event->key() == Qt::Key_O) {
+            case Qt::Key_O:
+                zoomOut();
+                event->accept();
+                return;
+#if defined(Q_WS_MAEMO_5)
+            case Qt::Key_L:
+                setLandscape();
+                event->accept();
+                return;
+            case Qt::Key_P:
+                setPortrait();
+                event->accept();
+                return;
+#endif
+            }
+        }
+#if defined(Q_WS_MAEMO_5)
+        else {
+            switch (event->key()) {
+            case Qt::Key_F7:
+                zoomIn();
+                event->accept();
+                return;
+            case Qt::Key_F8:
                 zoomOut();
                 event->accept();
                 return;
             }
-#if defined(Q_WS_MAEMO_5)
-            else if (event->key() == Qt::Key_L) {
-                setLandscape();
-            } else if (event->key() == Qt::Key_P) {
-                setPortrait();
-            }
-#endif
         }
+#endif
     }
 
     QMainWindow::keyPressEvent(event);
@@ -352,7 +366,7 @@ void MainWindow::timerEvent(QTimerEvent *)
     double d = 0;
     if (dt)
         d = (dticks *  1000.) / dt;
-    m_fpsBox->setText(QString("fps: %1").arg(d, 0, 'f', 2));
+    m_fpsBox->setText(QString("FPS: %1").arg(d, 0, 'f', 2));
 
     m_fpsTicks = m_webViewItem->fpsTicks();
 }
@@ -413,6 +427,22 @@ void MainWindow::setLandscape()
 void MainWindow::setPortrait()
 {
         setAttribute(Qt::WA_Maemo5ForcePortraitOrientation, true);
+}
+
+void MainWindow::grabIncreaseDecreaseKeys(QWidget* window, bool grab)
+{
+    // Tell maemo-status-volume to grab/ungrab increase/decrease keys
+    unsigned long val = (grab==true)?1:0;
+    Atom atom;
+    atom = XInternAtom( QX11Info::display(), "_HILDON_ZOOM_KEY_ATOM", 0);
+    XChangeProperty (QX11Info::display(),
+                     window->winId(),
+                     atom,
+                     XA_INTEGER,
+                     32,
+                     PropModeReplace,
+                     (unsigned char *) &val,
+                     1);
 }
 
 #endif
