@@ -284,12 +284,6 @@ void MainWindow::buildToolbar()
     m_urlEdit = new QLineEdit(this);
     m_urlEdit->setSizePolicy(QSizePolicy::Expanding, m_urlEdit->sizePolicy().verticalPolicy());
 
-    m_naviToolbar->addAction(page->action(QWebPage::Back));
-    m_naviToolbar->addAction(page->action(QWebPage::Forward));
-    m_naviToolbar->addAction(m_reloadAction = page->action(QWebPage::Reload));
-    m_naviToolbar->addAction(m_stopAction = page->action(QWebPage::Stop));
-    m_naviToolbar->addWidget(m_urlEdit);
-
     if (m_settings.m_showFPS) {
         m_fpsBox = new QLabel("FPS:00.00", this);
         m_fpsBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -298,6 +292,10 @@ void MainWindow::buildToolbar()
         m_naviToolbar->addWidget(m_fpsBox);
     }
 
+    m_naviToolbar->addAction(m_reloadAction = page->action(QWebPage::Reload));
+    m_naviToolbar->addAction(m_stopAction = page->action(QWebPage::Stop));
+    m_naviToolbar->addWidget(m_urlEdit);
+    m_naviToolbar->addAction(page->action(QWebPage::Back));
     if (m_settings.m_disableToolbar)
         m_naviToolbar->hide();
 }
@@ -313,8 +311,6 @@ QUrl MainWindow::urlFromUserInput(const QString& string)
 }
 
 void MainWindow::keyPressEvent(QKeyEvent* event) {
-    qDebug() << event << event->key() << Qt::Key_F8 << Qt::Key_F7;
-    
     if (m_view->interactionItem()) {
         if (event->modifiers() & Qt::ControlModifier) {
             switch (event->key()) {
