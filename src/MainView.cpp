@@ -127,6 +127,7 @@ void MainView::updateSize()
     m_interactionItem->setGeometry(rect);
     updateZoomScaleToPageWidth();
     setUpdatesEnabled(true);
+    update();
 }
 
 WebView* MainView::webView()
@@ -156,6 +157,7 @@ void MainView::resetState()
     }
 
     setUpdatesEnabled(true);
+    update();
 }
 
 void MainView::loadFinished(bool)
