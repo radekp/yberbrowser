@@ -65,11 +65,14 @@ protected Q_SLOTS:
     void loadStarted();
     void saveFrameState(QWebFrame* frame, QWebHistoryItem* item);
     void restoreFrameState(QWebFrame* frame);
+    void tileCacheCreated(unsigned hPos, unsigned vPos);
+    void tileCacheRemoved(unsigned hPos, unsigned vPos);
 
 private:
     void updateSize();
     void installSignalHandlers();
     void updateZoomScaleToPageWidth();
+
 
     enum State {
         InitialLoad,

@@ -143,6 +143,8 @@ void MainView::installSignalHandlers()
     connect(webView()->page(),SIGNAL(restoreFrameStateRequested(QWebFrame*)), SLOT(restoreFrameState(QWebFrame*)));
     connect(webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(webView(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
+    connect(webView()->page(),SIGNAL(tileCacheCreated(unsigned, unsigned)), SLOT(tileCacheCreated(unsigned, unsigned)));
+    connect(webView()->page(),SIGNAL(tileCacheRemoved(unsigned, unsigned)), SLOT(tileCacheRemoved(unsigned, unsigned)));
 }
 
 void MainView::resetState()
@@ -262,5 +264,15 @@ void MainView::restoreFrameState(QWebFrame* frame)
     else
         qDebug() << "Unknown frame at " << __PRETTY_FUNCTION__;
 #endif
+}
+
+void MainView::tileCacheCreated(unsigned hPos, unsigned vPos)
+{
+    qDebug() << "tileCacheCreated: " << hPos << " " <<  vPos;
+}
+
+void MainView::tileCacheRemoved(unsigned hPos, unsigned vPos)
+{
+    qDebug() << "tileCacheRemoved: " << hPos << " " <<  vPos;
 }
 
