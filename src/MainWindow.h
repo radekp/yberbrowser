@@ -58,6 +58,7 @@ struct Settings
     bool m_useGL;
     bool m_showFPS;
     bool m_disableAutoComplete;
+    bool m_showTiles;
 
     Settings()
         : m_disableToolbar(false)
@@ -65,14 +66,16 @@ struct Settings
         , m_useGL(false)
         , m_showFPS(false)
         , m_disableAutoComplete(false)
+        , m_showTiles(false)
     {}
 
-    Settings(bool disableToolbar, bool disableTiling, bool useGL, bool showFPS, bool disableAutoComplete)
+    Settings(bool disableToolbar, bool disableTiling, bool useGL, bool showFPS, bool disableAutoComplete, bool showTiles)
         : m_disableToolbar(disableToolbar)
         , m_disableTiling(disableTiling)
         , m_useGL(useGL)
         , m_showFPS(showFPS)
         , m_disableAutoComplete(disableAutoComplete)    
+        , m_showTiles(showTiles)
     {}
 };
 
@@ -106,12 +109,12 @@ public Q_SLOTS:
 
     void urlChanged(const QUrl& url);
     void showFPSChanged(bool);
+    void showTilesChanged(bool);
 
     void zoomIn() { zoomInOrOut(true); }
     void zoomOut() { zoomInOrOut(false); }
     void zoomInOrOut(bool zoomIn);
-
-
+    
 protected:
     void keyPressEvent(QKeyEvent* event);
     void timerEvent(QTimerEvent *event);

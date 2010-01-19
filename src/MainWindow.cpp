@@ -156,6 +156,7 @@ void MainWindow::init()
     buildUI();
     setLoadInProgress(false);
     setFPSCalculation(m_settings.m_showFPS);
+    m_view->showTiles(m_settings.m_showTiles);
 }
 
 void MainWindow::load(const QString& url)
@@ -247,6 +248,12 @@ void MainWindow::setFPSCalculation(bool fpsOn)
         killTimer(m_fpsTimerId);
 }
 
+void MainWindow::showTilesChanged(bool checked)
+{
+    m_settings.m_showTiles = checked;
+    m_view->showTiles(m_settings.m_showTiles);
+}
+
 MainWindow* MainWindow::newWindow(const QString &url)
 {
     MainWindow* mw = new MainWindow();
@@ -268,12 +275,19 @@ void MainWindow::buildUI()
     viewMenu->addAction(page->action(QWebPage::Reload));
 
     QMenu* developerMenu = menuBar()->addMenu("&Developer");
+    // fps
     QAction* fpsAction = new QAction("Show FPS", developerMenu);
     fpsAction->setCheckable(true);
     fpsAction->setChecked(m_settings.m_showFPS);
     connect(fpsAction, SIGNAL(toggled(bool)), this, SLOT(showFPSChanged(bool)));
     developerMenu->addAction(fpsAction);
-    
+    // tiling visualization
+    QAction* tileAction = new QAction("Show tiles", developerMenu);
+    tileAction->setCheckable(true);
+    tileAction->setChecked(m_settings.m_showTiles);
+    connect(tileAction, SIGNAL(toggled(bool)), this, SLOT(showTilesChanged(bool)));
+    developerMenu->addAction(tileAction);
+
     buildToolbar();
 }
 

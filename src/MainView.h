@@ -42,7 +42,7 @@
 class QGraphicsWidget;
 class QResizeEvent;
 class WebViewportItem;
-class QGraphicsSimpleTextItem;
+class QGraphicsRectItem;
 
 class MainView : public QGraphicsView {
     Q_OBJECT
@@ -57,6 +57,8 @@ public:
     void resizeEvent(QResizeEvent* event);
 
     WebViewportItem* interactionItem() { return m_interactionItem; }
+
+    void showTiles(bool tilesOn);
 
 protected Q_SLOTS:
     void resetState();
@@ -83,6 +85,8 @@ private:
     WebViewportItem* m_interactionItem;
     State m_state;
     WebView* m_webView;
+    bool m_tilesOn;
+    QMap<int, QGraphicsRectItem*> m_tileMap;  
 };
 
 #endif

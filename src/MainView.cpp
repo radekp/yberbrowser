@@ -56,6 +56,8 @@
 #include "MainView.h"
 #include "WebViewportItem.h"
 
+static const unsigned s_tileSize = 35;
+
 // TODO:
 // detect when user interaction has been done and do
 // m_state = Interaction;
@@ -72,6 +74,7 @@ MainView::MainView(QWidget* parent, Settings settings)
     , m_interactionItem(0)
     , m_state(InitialLoad)
     , m_webView(0)
+    , m_tilesOn(false)
 {
     if (settings.m_useGL)
         setViewport(new QGLWidget);
@@ -266,13 +269,40 @@ void MainView::restoreFrameState(QWebFrame* frame)
 #endif
 }
 
+void MainView::showTiles(bool tilesOn) 
+{
+    m_tilesOn = tilesOn;
+}
+
 void MainView::tileCacheCreated(unsigned hPos, unsigned vPos)
 {
-    qDebug() << "tileCacheCreated: " << hPos << " " <<  vPos;
+    if (!m_tilesOn)
+        return;
+    // todo: it seems that tiles get stuck when navigating
+    // from page A to B. filter duplicates out just for the sake of proper
+    // visulazition, until the duplication is fixed
+    if (m_tileMap.contains(hPos*10 + vPos)) {
+        qDebug() << "duplicate tile at:" << hPos << " " <<  vPos;
+        return;
+    }
+    QGraphicsRectItem* item = scene()->addRect(hPos*s_tileSize, vPos*s_tileSize, s_tileSize, s_tileSize);
+
+    item->setBrush(QBrush(Qt::cyan));
+    item->setOpacity(0.4);
+
+    m_tileMap.insert(hPos*10 + vPos, item);
 }
 
 void MainView::tileCacheRemoved(unsigned hPos, unsigned vPos)
 {
-    qDebug() << "tileCacheRemoved: " << hPos << " " <<  vPos;
+    if (!m_tilesOn)
+        return;
+    
+    QGraphicsRectItem* item = m_tileMap.value(hPos*10 + vPos);
+    if (item)
+        scene()->removeItem(item);
+    else 
+        qDebug() << "didn't find tile at:" << hPos << " " <<  vPos;
+    m_tileMap.remove(hPos*10 + vPos);
 }
 
