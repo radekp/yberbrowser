@@ -26,6 +26,12 @@ disable_tile_cache {
     DEFINES+=WEBKIT_SUPPORTS_TILE_CACHE=1
 }
 
+enable_engine_thread {
+    DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=1
+} else {
+    DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=0
+}
+
 contains(WEBKIT, system) {
     QT += webkit
 } else: contains(WEBKIT, custom): {

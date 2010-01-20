@@ -133,6 +133,11 @@ int main(int argc, char** argv)
 
     if (args.count() > 1)
         url = args.at(1);
+    
+#if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
+    if (settings.m_enableEngineThread)
+        QWebSettings::enableEngineThread();
+#endif
 
     MainWindow* window = new MainWindow(g_globalProxy, settings);
     window->load(url);
@@ -167,7 +172,9 @@ void usage(const char* name)
     s << " -f show fps counter" << endl;
     s << " -a disable url autocomplete" << endl;
     s << " -v enable tile visualization" << endl;
+#if WEBKIT_SUPPORTS_ENGINE_THREAD
     s << " -e enable engine thread" << endl;
+#endif
     s << " -h|-?|--help help" << endl;
     s << endl;
     s << " use http_proxy env var to set http proxy" << endl;
