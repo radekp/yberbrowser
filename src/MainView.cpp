@@ -47,21 +47,68 @@
 #include <qwebpage.h>
 #include <qwebsettings.h>
 #include <qwebview.h>
+#include <qwebhistory.h>
+
 #include <QGLWidget>
 #include <QtGlobal>
+
 
 #include "MainView.h"
 #include "WebViewportItem.h"
 
+static const unsigned s_tileSize = 35;
+
+class TileItem {
+public:
+    TileItem(unsigned hPos, unsigned vPos, bool visible, QGraphicsView* parent) {
+        m_vPos = vPos;
+        m_hPos = hPos;
+        m_active = false;
+        m_rectItem = parent->scene()->addRect(hPos*s_tileSize, vPos*s_tileSize, s_tileSize, s_tileSize);
+        setVisible(visible);
+        setActive(true);
+    }
+    bool isActive() const { return m_active; }
+    void setActive(bool active) {
+        Q_ASSERT(!(active && m_active));
+        // todo: it seems that tiles get stuck when navigating
+        // from page A to B. filter duplicates out just for the sake of proper
+        // visulazition, until the duplication is fixed
+        if (active && m_active)
+            qDebug() << "duplicate tile at:" << m_hPos << " " <<  m_vPos;
+        
+        m_active = active;
+        m_rectItem->setBrush(QBrush(active?Qt::cyan:Qt::gray));
+        m_rectItem->setOpacity(0.4);
+    }
+    void setVisible(bool visible) {
+        m_rectItem->setVisible(visible);
+    }
+
+private:    
+    QGraphicsRectItem* m_rectItem;
+    bool               m_active;
+    unsigned           m_hPos;
+    unsigned           m_vPos;
+};
 
 // TODO:
 // detect when user interaction has been done and do
 // m_state = Interaction;
 
+// to debug load events etc:
+// make DEFINES+=-DENABLE_LOADEVENT_DEBUG
+// this is needed in order to make load/back/forward etc
+// as fast as possible, doing as little zooming changes as possible
+// qt api is not very clear on the signal order. once the aspects
+// of load signal order have been cleared, remove these ifdefs
+
 MainView::MainView(QWidget* parent, Settings settings)
     : QGraphicsView(parent)
     , m_interactionItem(0)
     , m_state(InitialLoad)
+    , m_webView(0)
+    , m_tilesOn(false)
 {
     if (settings.m_useGL)  {
 	QGLFormat format = QGLFormat::defaultFormat();
@@ -86,10 +133,9 @@ MainView::MainView(QWidget* parent, Settings settings)
 
 MainView::~MainView()
 {
-    delete m_interactionItem;
 }
 
-void MainView::setWebView(QGraphicsWebView* webViewItem)
+void MainView::setWebView(WebView* webViewItem)
 {
     if (webViewItem) {
         if (!m_interactionItem) {
@@ -98,7 +144,7 @@ void MainView::setWebView(QGraphicsWebView* webViewItem)
             scene()->addItem(m_interactionItem);
             scene()->setActiveWindow(m_interactionItem);
         }
-        m_interactionItem->setWebView(webViewItem);
+        m_interactionItem->setWebView(m_webView = webViewItem);
         installSignalHandlers();
         updateSize();
     } else {
@@ -126,44 +172,64 @@ void MainView::updateSize()
     m_interactionItem->setGeometry(rect);
     updateZoomScaleToPageWidth();
     setUpdatesEnabled(true);
+    update();
 }
 
-QGraphicsWebView* MainView::webView()
+WebView* MainView::webView()
 {
-    return m_interactionItem->webView();
+    return m_webView;
 }
 
 void MainView::installSignalHandlers()
 {
     connect(webView()->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), this, SLOT(resetState()));
     connect(webView()->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(contentsSizeChanged(const QSize&)));
+    connect(webView()->page(),SIGNAL(saveFrameStateRequested(QWebFrame*,QWebHistoryItem*)), SLOT(saveFrameState(QWebFrame*,QWebHistoryItem*)));
+    connect(webView()->page(),SIGNAL(restoreFrameStateRequested(QWebFrame*)), SLOT(restoreFrameState(QWebFrame*)));
     connect(webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(webView(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
+    connect(webView()->page(),SIGNAL(tileCacheCreated(unsigned, unsigned)), SLOT(tileCacheCreated(unsigned, unsigned)));
+    connect(webView()->page(),SIGNAL(tileCacheRemoved(unsigned, unsigned)), SLOT(tileCacheRemoved(unsigned, unsigned)));
 }
 
 void MainView::resetState()
 {
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__;
+#endif
     m_state = InitialLoad;
     if (m_interactionItem) {
-        m_interactionItem->resetState(true);
+        // zoom will be updated in contentsSizeChanged
+        m_interactionItem->resetState(false);
     }
 
     setUpdatesEnabled(true);
+    update();
 }
 
 void MainView::loadFinished(bool)
 {
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__;
+#endif
+
     if (m_state == InitialLoad)
         m_state = Interaction;
 }
 
 void MainView::loadStarted()
 {
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__;
+#endif
     setUpdatesEnabled(false);
 }
 
-void MainView::contentsSizeChanged(const QSize& sz)
+void MainView::contentsSizeChanged(const QSize&)
 {
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__;
+#endif
     // FIXME: QSize& arg vs contentsSize(): these  report different sizes
     // probably scrollbar thing
     if (m_state == InitialLoad) {
@@ -183,3 +249,94 @@ void MainView::updateZoomScaleToPageWidth()
     }
     m_interactionItem->setZoomScale(targetScale);
 }
+
+struct SavedViewState
+{
+    double zoomScale;
+    QPointF panPos;
+
+    SavedViewState(WebViewportItem* item)
+        : zoomScale(item->zoomScale())
+        , panPos(item->panPos())
+    {
+    }
+
+    SavedViewState()
+        : zoomScale(-1)
+    {
+    }
+
+    bool isValid() { return zoomScale >= 0; }
+
+    void imposeTo(WebViewportItem* item) const
+    {
+        item->setZoomScale(zoomScale);
+        item->setPanPos(panPos);
+    }
+};
+Q_DECLARE_METATYPE(SavedViewState);  // a bit heavy weight for what this is used for
+
+void MainView::saveFrameState(QWebFrame* frame, QWebHistoryItem* item)
+{
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__ << frame << item;
+#endif
+    if (frame == webView()->page()->mainFrame())
+        item->setUserData(QVariant::fromValue(SavedViewState(m_interactionItem)));
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    else
+        qDebug() << "Unknown frame at " << __PRETTY_FUNCTION__;
+#endif
+}
+
+void MainView::restoreFrameState(QWebFrame* frame)
+{
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__ << frame;
+#endif
+
+    if (frame == webView()->page()->mainFrame()) {
+        QWebHistoryItem item = webView()->page()->history()->currentItem();
+        QVariant value = item.userData();
+
+        if (value.canConvert<SavedViewState>()) {
+            SavedViewState s = value.value<SavedViewState>();
+            if (s.isValid())
+                s.imposeTo(m_interactionItem);
+        }
+    }
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    else
+        qDebug() << "Unknown frame at " << __PRETTY_FUNCTION__;
+#endif
+}
+
+void MainView::showTiles(bool tilesOn) 
+{
+    m_tilesOn = tilesOn;
+    QMapIterator<int, TileItem*> i(m_tileMap);
+    while (i.hasNext()) {
+        i.next();
+        i.value()->setVisible(tilesOn);
+    }
+}
+
+void MainView::tileCacheCreated(unsigned hPos, unsigned vPos)
+{
+    // new tile or just inactive?
+    if (!m_tileMap.contains(hPos*10 + vPos))
+        m_tileMap.insert(hPos*10 + vPos, new TileItem(hPos, vPos, m_tilesOn, this));
+    else
+        m_tileMap.value(hPos*10 + vPos)->setActive(true);
+}
+
+void MainView::tileCacheRemoved(unsigned hPos, unsigned vPos)
+{
+    Q_ASSERT(m_tileMap.contains(hPos*10 + vPos));    
+    if (!m_tileMap.contains(hPos*10 + vPos)) {
+        qDebug() << "didn't find tile at:" << hPos << " " <<  vPos;
+        return;
+    }
+    m_tileMap.value(hPos*10 + vPos)->setActive(false);
+}
+

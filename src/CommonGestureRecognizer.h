@@ -34,6 +34,11 @@ public:
     // interaface "FlickGestureConsumer"
     virtual void flickGesture(qreal velocityX, qreal velocityY) = 0;
 
+    //interface "TouchGestureConsumer"
+public:
+    virtual void touchGestureBegin(const QPointF&) = 0;
+    virtual void touchGestureEnd() = 0;
+
 };
 
 

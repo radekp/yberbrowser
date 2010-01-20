@@ -3,7 +3,7 @@
 #include "WebViewportItem.h"
 
 // timer resolution in milliseconds
-static const int s_timerRes = 60. / 1000.;
+static const int s_timerRes = 1000. / 60.;
 
 // acceleration / deceleration in pixels per millisecond^2
 static const float s_acceleration = 1./500.;
@@ -20,7 +20,6 @@ FlickAnimation::~FlickAnimation()
     stopTimer();
 }
 
-
 void FlickAnimation::start(qreal velocity)
 {
     stopTimer();
@@ -31,6 +30,12 @@ void FlickAnimation::start(qreal velocity)
     m_timerId = startTimer(s_timerRes);
 
 }
+
+void FlickAnimation::stop()
+{
+    stopTimer();
+}
+
 
 void FlickAnimation::timerEvent(QTimerEvent */*event*/)
 {

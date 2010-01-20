@@ -179,6 +179,16 @@ void WebViewportItem::flickGesture(qreal /*velocityX*/, qreal velocityY)
 }
 
 
+void WebViewportItem::touchGestureBegin(const QPointF&)
+{
+    m_flickAnim.stop();
+}
+
+void WebViewportItem::touchGestureEnd()
+{
+}
+
+
 void WebViewportItem::startInteraction()
 {
 }
@@ -219,7 +229,8 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
         }
         if (!e.isNull()) {
             QSizeF targetSize = e.geometry().size();
-
+            QRectF er = e.geometry();
+            p.setX(er.x() + er.size().width() / 2);
             targetScale = static_cast<qreal>(viewportSize.width()) / targetSize.width();
         }
 
@@ -303,14 +314,12 @@ void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
 void WebViewportItem::wheelEvent(QGraphicsSceneWheelEvent *event)
 {
     int adv = event->delta() / (15*8);
-    animateZoomScaleTo(zoomScale() + adv * s_zoomScaleWheelStep);
-    event->accept();
-}
+    qreal newScale = zoomScale() + adv * s_zoomScaleWheelStep;
 
-void WebViewportItem::animateZoomScaleTo(qreal targetZoomScale)
-{
-    targetZoomScale = qBound(s_minZoomScale, targetZoomScale, s_maxZoomScale);
-    startZoomAnimTo(m_webView->pos(), targetZoomScale);
+    QPointF p = clipPointToViewport(m_webView->mapFromScene(event->scenePos()), newScale);
+
+    startZoomAnimTo(p, newScale);
+    event->accept();
 }
 
 void WebViewportItem::commitZoom()
@@ -458,6 +467,17 @@ bool WebViewportItem::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneWheel:
         return sendWheelEventFromChild(static_cast<QGraphicsSceneWheelEvent*>(e));
 
+    case QEvent::GraphicsSceneContextMenu:
+        // filter out context menu, comes from long tap
+        return true;
+
+    case QEvent::GraphicsSceneHoverMove:
+    case QEvent::GraphicsSceneHoverLeave:
+    case QEvent::GraphicsSceneHoverEnter:
+        // filter out hover, so that we don't get excess
+        // link highlights while panning
+        return true;
+
     default:
         break;
     }
@@ -484,3 +504,12 @@ void WebViewportItem::updatePreferredSize()
     m_webView->page()->setPreferredContentsSize(QSize(s_defaultPreferredWidth, s_defaultPreferredHeight));
 }
 
+void WebViewportItem::setPanPos(const QPointF& pos)
+{
+    m_webView->setPos(clipPointToViewport(pos, zoomScale()));
+}
+
+QPointF WebViewportItem::panPos() const
+{
+    return m_webView->pos();
+}

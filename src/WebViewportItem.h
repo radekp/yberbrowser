@@ -44,6 +44,7 @@ class WebViewportItem : public QGraphicsWidget, private CommonGestureConsumer
 {
     Q_OBJECT
     Q_PROPERTY(qreal zoomScale READ zoomScale WRITE setZoomScale)
+    Q_PROPERTY(QPointF panPos READ panPos WRITE setPanPos)
 
 public:
     WebViewportItem(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
@@ -52,7 +53,12 @@ public:
     qreal zoomScale() const;
     void setZoomScale(qreal value, bool commitInstantly = false);
 
-    void animateZoomScaleTo(qreal targetZoomScale);
+    void setPanPos(const QPointF& pos);
+    QPointF panPos() const;
+
+    QPointF clipPointToViewport(const QPointF& p, qreal targetScale);
+    void startZoomAnimTo(const QPointF& targetPoint, qreal targetScale);
+
     void setWebView(QGraphicsWebView* view);
     QGraphicsWebView* webView();
 
@@ -88,7 +94,6 @@ private:
     bool sendMouseEventFromChild(QGraphicsSceneMouseEvent *event);
     void transferAnimStateToView();
     void resetZoomAnim();
-    void startZoomAnimTo(const QPointF& targetPoint, qreal targetScale);
 
     bool isZoomedIn() const;
 
@@ -102,10 +107,11 @@ private:
 
     void flickGesture(qreal velocityX, qreal velocityY);
 
+    void touchGestureBegin(const QPointF&);
+    void touchGestureEnd();
+
     void startInteraction();
     void stopInteraction();
-
-    QPointF clipPointToViewport(const QPointF& p, qreal targetScale);
 
     void updatePreferredSize();
 

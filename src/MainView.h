@@ -36,11 +36,13 @@
 #define MainView_h_
 
 #include <QGraphicsView>
+
 #include "MainWindow.h"
 
 class QGraphicsWidget;
 class QResizeEvent;
 class WebViewportItem;
+class TileItem;
 
 class MainView : public QGraphicsView {
     Q_OBJECT
@@ -49,23 +51,30 @@ public:
     MainView(QWidget* parent, Settings);
     ~MainView();
 
-    void setWebView(QGraphicsWebView* widget);
-    QGraphicsWebView* webView();
+    void setWebView(WebView* widget);
+    WebView* webView();
 
     void resizeEvent(QResizeEvent* event);
 
     WebViewportItem* interactionItem() { return m_interactionItem; }
+
+    void showTiles(bool tilesOn);
 
 protected Q_SLOTS:
     void resetState();
     void contentsSizeChanged(const QSize &size);
     void loadFinished(bool);
     void loadStarted();
+    void saveFrameState(QWebFrame* frame, QWebHistoryItem* item);
+    void restoreFrameState(QWebFrame* frame);
+    void tileCacheCreated(unsigned hPos, unsigned vPos);
+    void tileCacheRemoved(unsigned hPos, unsigned vPos);
 
 private:
     void updateSize();
     void installSignalHandlers();
     void updateZoomScaleToPageWidth();
+
 
     enum State {
         InitialLoad,
@@ -75,6 +84,9 @@ private:
 private:
     WebViewportItem* m_interactionItem;
     State m_state;
+    WebView* m_webView;
+    bool m_tilesOn;
+    QMap<int, TileItem*> m_tileMap;  
 };
 
 #endif

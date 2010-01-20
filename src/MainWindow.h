@@ -39,6 +39,7 @@
 #include <QUrl>
 #include <qgraphicswebview.h>
 #include <qwebpage.h>
+#include <QTime>
 
 class QGraphicsScene;
 class QLineEdit;
@@ -46,26 +47,29 @@ class WebPage;
 class WebView;
 class MainView;
 class QNetworkProxy;
-
-
+class UrlStore;
+class QLabel;
+class QToolBar;
 
 struct Settings
 {
     bool m_disableToolbar;
     bool m_disableTiling;
     bool m_useGL;
+    bool m_showFPS;
+    bool m_disableAutoComplete;
+    bool m_showTiles;
+    bool m_enableEngineThread;
+
     Settings()
         : m_disableToolbar(false)
         , m_disableTiling(false)
         , m_useGL(false)
+        , m_showFPS(false)
+        , m_disableAutoComplete(false)
+        , m_showTiles(false)
+        , m_enableEngineThread(false)
     {}
-
-    Settings(bool disableToolbar, bool disableTiling, bool useGL)
-        : m_disableToolbar(disableToolbar)
-        , m_disableTiling(disableTiling)
-        , m_useGL(useGL)
-    {}
-
 };
 
 class MainWindow : public QMainWindow
@@ -91,14 +95,22 @@ public:
 public Q_SLOTS:
     MainWindow* newWindow(const QString &url = QString());
     void changeLocation();
+    void urlTextEdited(const QString&);
 
     void loadStarted();
     void loadFinished(bool);
 
     void urlChanged(const QUrl& url);
+    void showFPSChanged(bool);
+    void showTilesChanged(bool);
 
+    void zoomIn() { zoomInOrOut(true); }
+    void zoomOut() { zoomInOrOut(false); }
+    void zoomInOrOut(bool zoomIn);
+    
 protected:
     void keyPressEvent(QKeyEvent* event);
+    void timerEvent(QTimerEvent *event);
 
 #if defined(Q_WS_MAEMO_5)
     bool event(QEvent *ev);
@@ -107,12 +119,15 @@ protected Q_SLOTS:
 #endif
 
 private:
+    void setFPSCalculation(bool);
     void buildUI();
+    void buildToolbar();
     void setLoadInProgress(bool);
 
 #if defined(Q_WS_MAEMO_5)
     void setLandscape();
     void setPortrait();
+    void grabIncreaseDecreaseKeys(QWidget* window, bool grab);
 #endif
 
 private:
@@ -124,8 +139,18 @@ private:
     Settings m_settings;
     QAction* m_stopAction;
     QAction* m_reloadAction;
+    UrlStore* m_urlStore;
     
-    QLineEdit* urlEdit;
+    QToolBar* m_naviToolbar;
+    QLineEdit* m_urlEdit;
+    QLabel* m_fpsBox;
+    QString m_lastEnteredText;
+
+    QTime m_fpsTimestamp;
+    unsigned int m_fpsTicks;
+    int m_fpsTimerId;
+
+    QTime m_zoomInOutTimestamp;
 };
 
 
@@ -136,8 +161,18 @@ class WebView : public QGraphicsWebView {
 public:
     WebView(QGraphicsItem* parent = 0)
         : QGraphicsWebView(parent)
+        , m_fpsTicks(0)
     {
     }
+    void paint(QPainter* p, const QStyleOptionGraphicsItem* i, QWidget* w= 0) {
+        m_fpsTicks++;
+        QGraphicsWebView::paint(p, i, w);
+    }
+
+    unsigned int fpsTicks() const { return m_fpsTicks; }
+
+private:
+    unsigned int m_fpsTicks;
 };
 
 class WebPage : public QWebPage {

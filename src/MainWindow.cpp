@@ -48,20 +48,33 @@
 #include <qwebsettings.h>
 #include <qwebview.h>
 #include <QGLWidget>
+#include <QLabel>
+#include <QToolBar>
 
 #if defined(Q_WS_MAEMO_5)
 #include <QtDBus>
 #include <QtMaemo5>
 #include <mce/mode-names.h>
 #include <mce/dbus-names.h>
+
+#include <X11/Xlib.h>
+#include <QX11Info>
+#include <X11/Xatom.h>
 #endif
 
 
 #include "MainWindow.h"
 #include "MainView.h"
 #include "WebViewportItem.h"
+#include "UrlStore.h"
 
-static const float s_zoomScaleKeyStep = .2;
+static const float s_zoomScaleKeyStep = 1.4;
+static const int s_fpsTimerInterval = 1000;
+
+// time limit for the zoom in/out button in milliseconds.
+// This allows zoom in/out buttons to be held down and still
+// the view will be interactive
+static const int s_zoomInOutInterval = 100;
 
 QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
 {
@@ -69,7 +82,6 @@ QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
     mw->show();
     return mw->page();
 }
-
 
 MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
     : QMainWindow()
@@ -79,19 +91,33 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
     , m_page(0)
     , m_proxy(proxy)
     , m_settings(settings)
+    , m_naviToolbar(0)
+    , m_urlEdit(0)
+    , m_fpsBox(0)
+    , m_fpsTicks(0)
+    , m_fpsTimerId(0)
 {
     init();
+    m_zoomInOutTimestamp.start();
+
+    m_urlStore = 0;
+    if (!m_settings.m_disableAutoComplete)
+        m_urlStore = new UrlStore;
+
 
 #if defined(Q_WS_MAEMO_5)
     QDBusConnection::systemBus().connect(QString(), MCE_SIGNAL_PATH, MCE_SIGNAL_IF,
                                          MCE_DEVICE_ORIENTATION_SIG,
                                          this,
                                          SLOT(orientationChanged(QString)));
+    grabIncreaseDecreaseKeys(this, true);
 #endif
 }
 
 MainWindow::~MainWindow()
 {
+    killTimer(m_fpsTimerId);
+    delete m_urlStore;
 }
 
 MainWindow* MainWindow::createWindow()
@@ -129,6 +155,8 @@ void MainWindow::init()
 
     buildUI();
     setLoadInProgress(false);
+    setFPSCalculation(m_settings.m_showFPS);
+    m_view->showTiles(m_settings.m_showTiles);
 }
 
 void MainWindow::load(const QString& url)
@@ -137,7 +165,7 @@ void MainWindow::load(const QString& url)
     if (!deducedUrl.isValid())
         deducedUrl = QUrl("http://" + url + "/");
 
-    urlEdit->setText(deducedUrl.toEncoded());
+    m_urlEdit->setText(deducedUrl.toEncoded());
     m_webViewItem->load(deducedUrl);
     m_webViewItem->setFocus(Qt::OtherFocusReason);
 }
@@ -147,10 +175,10 @@ void MainWindow::loadStarted()
     setLoadInProgress(true);
 }
 
-void MainWindow::setLoadInProgress(bool /*flag*/)
+void MainWindow::setLoadInProgress(bool flag)
 {
-/*  m_stopAction->setVisible(flag);
-    m_reloadAction->setVisible(!flag);*/
+    m_stopAction->setVisible(flag);
+    m_reloadAction->setVisible(!flag);
 }
 
 QWebPage* MainWindow::page() const
@@ -164,18 +192,66 @@ MainView* MainWindow::view() {
 
 void MainWindow::changeLocation()
 {
-    load(urlEdit->text());
+    // nullify on hitting enter. end of editing.
+    m_lastEnteredText.resize(0);
+    load(m_urlEdit->text());
 }
 
-void MainWindow::loadFinished(bool)
+void MainWindow::urlTextEdited(const QString& newText)
+{
+    if (!m_urlStore)
+        return;
+
+    QString text = newText;
+    if (m_urlEdit->selectionStart() > -1)
+        text = newText.left(m_urlEdit->selectionStart());
+    // autocomplete only when adding text, not when deleting or backspacing
+    if (text.size() > m_lastEnteredText.size()) {
+        // todo: make it async
+        QString match = m_urlStore->match(text);
+        if (match.size()) {
+            m_urlEdit->setText(match);
+            m_urlEdit->setCursorPosition(text.size());
+            m_urlEdit->setSelection(text.size(), match.size() - text.size());
+        }
+    }
+    m_lastEnteredText = text;
+}
+
+void MainWindow::loadFinished(bool success)
 {
     setLoadInProgress(false);
     urlChanged(m_webViewItem->url());
+    if (success && m_urlStore)
+        m_urlStore->accessed(m_webViewItem->url());
 }
 
 void MainWindow::urlChanged(const QUrl& url)
 {
-    urlEdit->setText(url.toString());
+    m_urlEdit->setText(url.toString());
+}
+
+void MainWindow::showFPSChanged(bool checked) 
+{
+    m_settings.m_showFPS = checked;
+    setFPSCalculation(m_settings.m_showFPS);
+    buildToolbar();
+}
+
+void MainWindow::setFPSCalculation(bool fpsOn)
+{
+    if (fpsOn) {
+        m_fpsTimerId = startTimer(s_fpsTimerInterval);
+        m_fpsTicks = m_webViewItem->fpsTicks();
+        m_fpsTimestamp.start();
+    } else
+        killTimer(m_fpsTimerId);
+}
+
+void MainWindow::showTilesChanged(bool checked)
+{
+    m_settings.m_showTiles = checked;
+    m_view->showTiles(m_settings.m_showTiles);
 }
 
 MainWindow* MainWindow::newWindow(const QString &url)
@@ -185,22 +261,9 @@ MainWindow* MainWindow::newWindow(const QString &url)
     return mw;
 }
 
-
 void MainWindow::buildUI()
 {
     QWebPage* page = m_webViewItem->page();
-    urlEdit = new QLineEdit(this);
-    urlEdit->setSizePolicy(QSizePolicy::Expanding, urlEdit->sizePolicy().verticalPolicy());
-    connect(urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
-
-    QToolBar* bar = addToolBar("Navigation");
-    bar->addAction(page->action(QWebPage::Back));
-    bar->addAction(m_reloadAction = page->action(QWebPage::Reload));
-    bar->addAction(m_stopAction = page->action(QWebPage::Stop));
-    bar->addWidget(urlEdit);
-    if (m_settings.m_disableToolbar)
-        bar->hide();
-
     QMenu* fileMenu = menuBar()->addMenu("&File");
     fileMenu->addAction("New Window", this, SLOT(newWindow()));
     fileMenu->addAction("Close", this, SLOT(close()));
@@ -210,6 +273,51 @@ void MainWindow::buildUI()
     viewMenu->addAction(page->action(QWebPage::Forward));
     viewMenu->addAction(page->action(QWebPage::Stop));
     viewMenu->addAction(page->action(QWebPage::Reload));
+
+    QMenu* developerMenu = menuBar()->addMenu("&Developer");
+    // fps
+    QAction* fpsAction = new QAction("Show FPS", developerMenu);
+    fpsAction->setCheckable(true);
+    fpsAction->setChecked(m_settings.m_showFPS);
+    connect(fpsAction, SIGNAL(toggled(bool)), this, SLOT(showFPSChanged(bool)));
+    developerMenu->addAction(fpsAction);
+    // tiling visualization
+    QAction* tileAction = new QAction("Show tiles", developerMenu);
+    tileAction->setCheckable(true);
+    tileAction->setChecked(m_settings.m_showTiles);
+    connect(tileAction, SIGNAL(toggled(bool)), this, SLOT(showTilesChanged(bool)));
+    developerMenu->addAction(tileAction);
+
+    buildToolbar();
+}
+
+void MainWindow::buildToolbar()
+{
+    QWebPage* page = m_webViewItem->page();
+    if (!m_naviToolbar) {
+        m_naviToolbar = new QToolBar("Navigation", this);
+        addToolBar(m_naviToolbar);
+    }
+    // todo: find out if there is a way to remove widgets from toolbar, without trashing them all
+    m_naviToolbar->clear();
+
+    m_urlEdit = new QLineEdit(this);
+    m_urlEdit->setSizePolicy(QSizePolicy::Expanding, m_urlEdit->sizePolicy().verticalPolicy());
+
+    if (m_settings.m_showFPS) {
+        m_fpsBox = new QLabel("FPS:00.00", this);
+        m_fpsBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+        m_fpsBox->setFixedSize(m_fpsBox->width(), m_fpsBox->height());
+        m_naviToolbar->addSeparator();
+        m_naviToolbar->addWidget(m_fpsBox);
+    }
+
+    m_naviToolbar->addAction(m_reloadAction = page->action(QWebPage::Reload));
+    m_naviToolbar->addAction(m_stopAction = page->action(QWebPage::Stop));
+    m_naviToolbar->addWidget(m_urlEdit);
+    m_naviToolbar->addAction(page->action(QWebPage::Back));
+    if (m_settings.m_disableToolbar)
+        m_naviToolbar->hide();
 }
 
 QUrl MainWindow::urlFromUserInput(const QString& string)
@@ -224,29 +332,85 @@ QUrl MainWindow::urlFromUserInput(const QString& string)
 
 void MainWindow::keyPressEvent(QKeyEvent* event) {
     if (m_view->interactionItem()) {
-        WebViewportItem *viewportItem = m_view->interactionItem();
-
         if (event->modifiers() & Qt::ControlModifier) {
-            if (event->key() == Qt::Key_I) {
-                viewportItem->animateZoomScaleTo(viewportItem->zoomScale() + s_zoomScaleKeyStep);
+            switch (event->key()) {
+            case Qt::Key_I:
+                zoomIn();
                 event->accept();
                 return;
-            } else if (event->key() == Qt::Key_O) {
-                viewportItem->animateZoomScaleTo(viewportItem->zoomScale() - s_zoomScaleKeyStep);
+            case Qt::Key_O:
+                zoomOut();
                 event->accept();
                 return;
-            }
 #if defined(Q_WS_MAEMO_5)
-            else if (event->key() == Qt::Key_L) {
+            case Qt::Key_L:
                 setLandscape();
-            } else if (event->key() == Qt::Key_P) {
+                event->accept();
+                return;
+            case Qt::Key_P:
                 setPortrait();
-            }
+                event->accept();
+                return;
 #endif
+            }
         }
+#if defined(Q_WS_MAEMO_5)
+        else {
+            switch (event->key()) {
+            case Qt::Key_F7:
+                zoomIn();
+                event->accept();
+                return;
+            case Qt::Key_F8:
+                zoomOut();
+                event->accept();
+                return;
+            }
+        }
+#endif
     }
 
     QMainWindow::keyPressEvent(event);
+}
+
+void MainWindow::timerEvent(QTimerEvent *)
+{
+    if (!m_settings.m_showFPS)
+        return;
+    double dt = m_fpsTimestamp.restart();
+    double dticks = m_webViewItem->fpsTicks() - m_fpsTicks;
+    double d = 0;
+    if (dt)
+        d = (dticks *  1000.) / dt;
+    m_fpsBox->setText(QString("FPS: %1").arg(d, 0, 'f', 2));
+
+    m_fpsTicks = m_webViewItem->fpsTicks();
+}
+
+void MainWindow::zoomInOrOut(bool zoomIn)
+{
+    if (m_zoomInOutTimestamp.elapsed() < s_zoomInOutInterval)
+        return;
+    m_zoomInOutTimestamp.restart();
+
+    WebViewportItem *viewportItem = m_view->interactionItem();
+    qreal curScale = viewportItem->zoomScale();
+    qreal newScale;
+
+    if (zoomIn)
+        newScale = curScale * s_zoomScaleKeyStep;
+    else
+        newScale = curScale / s_zoomScaleKeyStep;
+
+    newScale = qBound(static_cast<qreal>(0.5), newScale, static_cast<qreal>(10));
+
+    QSizeF viewportSize = viewportItem->size();
+
+    QPointF vc(viewportSize.width()/2, viewportSize.height()/2);
+    QPointF dc = m_webViewItem->mapFromScene(vc) * (newScale);
+    QPointF p = viewportItem->clipPointToViewport(vc - dc, newScale);
+
+    viewportItem->startZoomAnimTo(p, newScale);
 }
 
 #if defined(Q_WS_MAEMO_5)
@@ -288,6 +452,22 @@ void MainWindow::setLandscape()
 void MainWindow::setPortrait()
 {
         setAttribute(Qt::WA_Maemo5ForcePortraitOrientation, true);
+}
+
+void MainWindow::grabIncreaseDecreaseKeys(QWidget* window, bool grab)
+{
+    // Tell maemo-status-volume to grab/ungrab increase/decrease keys
+    unsigned long val = (grab==true)?1:0;
+    Atom atom;
+    atom = XInternAtom( QX11Info::display(), "_HILDON_ZOOM_KEY_ATOM", 0);
+    XChangeProperty (QX11Info::display(),
+                     window->winId(),
+                     atom,
+                     XA_INTEGER,
+                     32,
+                     PropModeReplace,
+                     (unsigned char *) &val,
+                     1);
 }
 
 #endif

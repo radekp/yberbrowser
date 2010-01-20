@@ -14,8 +14,9 @@ public:
 
     FlickAnimation(WebViewportItem* item);
     ~FlickAnimation();
-    
+
     void start(qreal velocity);
+    void stop();
 
 protected:
     void timerEvent(QTimerEvent *event);
