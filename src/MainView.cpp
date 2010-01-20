@@ -63,8 +63,16 @@ MainView::MainView(QWidget* parent, Settings settings)
     , m_interactionItem(0)
     , m_state(InitialLoad)
 {
-    if (settings.m_useGL)
-        setViewport(new QGLWidget);
+    if (settings.m_useGL)  {
+	QGLFormat format = QGLFormat::defaultFormat();
+        format.setSampleBuffers(false);
+
+        QGLWidget *glWidget = new QGLWidget(format);    
+        glWidget->setAutoFillBackground(false);
+
+	setViewport(glWidget);
+
+    }
 
     setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
     setOptimizationFlags(QGraphicsView::DontSavePainterState);
