@@ -42,7 +42,7 @@
 class QGraphicsWidget;
 class QResizeEvent;
 class WebViewportItem;
-class QGraphicsRectItem;
+class TileItem;
 
 class MainView : public QGraphicsView {
     Q_OBJECT
@@ -86,7 +86,7 @@ private:
     State m_state;
     WebView* m_webView;
     bool m_tilesOn;
-    QMap<int, QGraphicsRectItem*> m_tileMap;  
+    QMap<int, TileItem*> m_tileMap;  
 };
 
 #endif

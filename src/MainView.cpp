@@ -58,6 +58,40 @@
 
 static const unsigned s_tileSize = 35;
 
+class TileItem {
+public:
+    TileItem(unsigned hPos, unsigned vPos, bool visible, QGraphicsView* parent) {
+        m_vPos = vPos;
+        m_hPos = hPos;
+        m_active = false;
+        m_rectItem = parent->scene()->addRect(hPos*s_tileSize, vPos*s_tileSize, s_tileSize, s_tileSize);
+        setVisible(visible);
+        setActive(true);
+    }
+    bool isActive() const { return m_active; }
+    void setActive(bool active) {
+        Q_ASSERT(!(active && m_active));
+        // todo: it seems that tiles get stuck when navigating
+        // from page A to B. filter duplicates out just for the sake of proper
+        // visulazition, until the duplication is fixed
+        if (active && m_active)
+            qDebug() << "duplicate tile at:" << m_hPos << " " <<  m_vPos;
+        
+        m_active = active;
+        m_rectItem->setBrush(QBrush(active?Qt::cyan:Qt::gray));
+        m_rectItem->setOpacity(0.4);
+    }
+    void setVisible(bool visible) {
+        m_rectItem->setVisible(visible);
+    }
+
+private:    
+    QGraphicsRectItem* m_rectItem;
+    bool               m_active;
+    unsigned           m_hPos;
+    unsigned           m_vPos;
+};
+
 // TODO:
 // detect when user interaction has been done and do
 // m_state = Interaction;
@@ -272,37 +306,29 @@ void MainView::restoreFrameState(QWebFrame* frame)
 void MainView::showTiles(bool tilesOn) 
 {
     m_tilesOn = tilesOn;
+    QMapIterator<int, TileItem*> i(m_tileMap);
+    while (i.hasNext()) {
+        i.next();
+        i.value()->setVisible(tilesOn);
+    }
 }
 
 void MainView::tileCacheCreated(unsigned hPos, unsigned vPos)
 {
-    if (!m_tilesOn)
-        return;
-    // todo: it seems that tiles get stuck when navigating
-    // from page A to B. filter duplicates out just for the sake of proper
-    // visulazition, until the duplication is fixed
-    if (m_tileMap.contains(hPos*10 + vPos)) {
-        qDebug() << "duplicate tile at:" << hPos << " " <<  vPos;
-        return;
-    }
-    QGraphicsRectItem* item = scene()->addRect(hPos*s_tileSize, vPos*s_tileSize, s_tileSize, s_tileSize);
-
-    item->setBrush(QBrush(Qt::cyan));
-    item->setOpacity(0.4);
-
-    m_tileMap.insert(hPos*10 + vPos, item);
+    // new tile or just inactive?
+    if (!m_tileMap.contains(hPos*10 + vPos))
+        m_tileMap.insert(hPos*10 + vPos, new TileItem(hPos, vPos, m_tilesOn, this));
+    else
+        m_tileMap.value(hPos*10 + vPos)->setActive(true);
 }
 
 void MainView::tileCacheRemoved(unsigned hPos, unsigned vPos)
 {
-    if (!m_tilesOn)
-        return;
-    
-    QGraphicsRectItem* item = m_tileMap.value(hPos*10 + vPos);
-    if (item)
-        scene()->removeItem(item);
-    else 
+    Q_ASSERT(m_tileMap.contains(hPos*10 + vPos));    
+    if (!m_tileMap.contains(hPos*10 + vPos)) {
         qDebug() << "didn't find tile at:" << hPos << " " <<  vPos;
-    m_tileMap.remove(hPos*10 + vPos);
+        return;
+    }
+    m_tileMap.value(hPos*10 + vPos)->setActive(false);
 }
 
