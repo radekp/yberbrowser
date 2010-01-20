@@ -137,7 +137,7 @@ void MainWindow::init()
     m_webViewItem->setPage(m_page);
     
     m_webViewItem->setResizesToContent(true);
-#if defined(WEBKIT_SUPPORTS_TILE_CACHE)
+#if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
     m_page->mainFrame()->setTileCacheEnabled(!m_settings.m_disableTiling);
 #endif
 
@@ -303,6 +303,8 @@ void MainWindow::buildToolbar()
 
     m_urlEdit = new QLineEdit(this);
     m_urlEdit->setSizePolicy(QSizePolicy::Expanding, m_urlEdit->sizePolicy().verticalPolicy());
+    connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
+    connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
 
     if (m_settings.m_showFPS) {
         m_fpsBox = new QLabel("FPS:00.00", this);

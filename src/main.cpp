@@ -85,43 +85,40 @@ int main(int argc, char** argv)
 
     QStringList args = app.arguments();
 
-    bool disableToolbar = false;
-    bool useGL = false;
-
-#if WEBKIT_SUPPORTS_TILE_CACHE
-    bool disableTiling = false;
+    Settings settings;
+#if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
+    settings.m_disableTiling = false;
 #else
-    bool disableTiling = true;
+    settings.m_disableTiling = true;
 #endif
-
     bool noFullscreen = false;
-    bool disableAutoComplete = false;
+    
     bool gotFlag = true;
-    bool showFPS = false;
-    bool showTiles = false;
-
     while (gotFlag) {
         if (args.count() > 1) {
             if (args.at(1) == "-w") {
                 noFullscreen = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-t") {
-                disableToolbar = true;
+                settings.m_disableToolbar = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-g") {
-                useGL = true;
+                settings.m_useGL = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-c") {
-                disableTiling = true;
+                settings.m_disableTiling = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-a") {
-                disableAutoComplete = true;
+                settings.m_disableAutoComplete = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-f") {
-                showFPS = true;
+                settings.m_showFPS = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-v") {
-                showTiles = true;
+                settings.m_showTiles = true;
+                args.removeAt(1);
+            } else if (args.at(1) == "-e") {
+                settings.m_enableEngineThread = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-?" || args.at(1) == "-h" || args.at(1) == "--help") {
                 usage(argv[0]);
@@ -136,8 +133,13 @@ int main(int argc, char** argv)
 
     if (args.count() > 1)
         url = args.at(1);
+    
+#if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
+    if (settings.m_enableEngineThread)
+        QWebSettings::enableEngineThread();
+#endif
 
-    MainWindow* window = new MainWindow(g_globalProxy, Settings(disableToolbar, disableTiling, useGL, showFPS, disableAutoComplete, showTiles));
+    MainWindow* window = new MainWindow(g_globalProxy, settings);
     window->load(url);
     if (noFullscreen)
         window->show();
@@ -153,7 +155,6 @@ int main(int argc, char** argv)
     }
 
     int retval = app.exec();
-
 
     delete g_globalProxy;
     return retval;
@@ -171,6 +172,9 @@ void usage(const char* name)
     s << " -f show fps counter" << endl;
     s << " -a disable url autocomplete" << endl;
     s << " -v enable tile visualization" << endl;
+#if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
+    s << " -e enable engine thread" << endl;
+#endif
     s << " -h|-?|--help help" << endl;
     s << endl;
     s << " use http_proxy env var to set http proxy" << endl;

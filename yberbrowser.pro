@@ -19,11 +19,16 @@ contains(QT_CONFIG, maemo5)  {
     QT += maemo5 dbus
 }
 
-
 disable_tile_cache {
-
+    DEFINES+=WEBKIT_SUPPORTS_TILE_CACHE=0
 } else {
     DEFINES+=WEBKIT_SUPPORTS_TILE_CACHE=1
+}
+
+enable_engine_thread {
+    DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=1
+} else {
+    DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=0
 }
 
 contains(WEBKIT, system) {
