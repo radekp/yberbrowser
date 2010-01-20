@@ -57,6 +57,9 @@
 #include "WebViewportItem.h"
 
 static const unsigned s_tileSize = 35;
+static const unsigned s_progressBckgColor = 0xA0C6F3;
+static const unsigned s_progressTextColor = 0x185488;
+static QString s_initialProgressText("Loading...");
 
 class TileItem {
 public:
@@ -109,6 +112,7 @@ MainView::MainView(QWidget* parent, Settings settings)
     , m_state(InitialLoad)
     , m_webView(0)
     , m_tilesOn(false)
+    , m_progressBox(0)
 {
     if (settings.m_useGL)
         setViewport(new QGLWidget);
@@ -125,6 +129,8 @@ MainView::MainView(QWidget* parent, Settings settings)
 
 MainView::~MainView()
 {
+    // todo: figure out ownership
+    delete m_progressBox;
 }
 
 void MainView::setWebView(WebView* webViewItem)
@@ -180,6 +186,7 @@ void MainView::installSignalHandlers()
     connect(webView()->page(),SIGNAL(restoreFrameStateRequested(QWebFrame*)), SLOT(restoreFrameState(QWebFrame*)));
     connect(webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(webView(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
+    connect(webView(), SIGNAL(loadProgress(int)), this, SLOT(loadProgress(int)));
     connect(webView()->page(),SIGNAL(tileCacheCreated(unsigned, unsigned)), SLOT(tileCacheCreated(unsigned, unsigned)));
     connect(webView()->page(),SIGNAL(tileCacheRemoved(unsigned, unsigned)), SLOT(tileCacheRemoved(unsigned, unsigned)));
 }
@@ -199,22 +206,56 @@ void MainView::resetState()
     update();
 }
 
-void MainView::loadFinished(bool)
-{
-#if defined(ENABLE_LOADEVENT_DEBUG)
-    qDebug() << __FUNCTION__;
-#endif
-
-    if (m_state == InitialLoad)
-        m_state = Interaction;
-}
-
 void MainView::loadStarted()
 {
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__;
 #endif
-    setUpdatesEnabled(false);
+    // progress indicator
+    connect(scene(), SIGNAL(sceneRectChanged(const QRectF&)), this, SLOT(sceneRectChanged(const QRectF&)));
+    // probably need to be changed this to something else, but not qprogress
+    if (!m_progressBox) {
+        m_progressBox = new QLabel();
+        m_progressBox->setFrameStyle(QFrame::Panel);
+        m_progressBox->setAlignment(Qt::AlignHCenter|Qt::AlignVCenter);
+
+        const QPalette& p = m_progressBox->palette();
+        QPalette m(p);
+        m.setBrush(QPalette::Window, QBrush(QColor(s_progressBckgColor)));
+        m.setColor(QPalette::WindowText, QColor(s_progressTextColor));
+        m_progressBox->setPalette(m);
+        scene()->addWidget(m_progressBox);
+    }
+    m_progressBox->setText(s_initialProgressText);
+    m_progressBox->setGeometry(progressRect());
+    m_progressBox->show();
+
+    //setUpdatesEnabled(false);
+}
+
+void MainView::loadProgress(int progress)
+{
+    // todo: find out this magic 10% thing
+    if (progress <= 10)
+        return;
+    m_progressBox->setText(QString::number(progress) + "%");
+}
+
+void MainView::loadFinished(bool)
+{
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__;
+#endif
+    m_progressBox->hide();
+    disconnect(scene(), SIGNAL(sceneRectChanged(const QRectF&)), this, SLOT(sceneRectChanged(const QRectF&)));
+
+    if (m_state == InitialLoad)
+        m_state = Interaction;
+}
+
+void MainView::sceneRectChanged(const QRectF& /*rect*/)
+{
+    m_progressBox->setGeometry(progressRect());
 }
 
 void MainView::contentsSizeChanged(const QSize&)
@@ -331,4 +372,12 @@ void MainView::tileCacheRemoved(unsigned hPos, unsigned vPos)
     }
     m_tileMap.value(hPos*10 + vPos)->setActive(false);
 }
+
+QRect MainView::progressRect()
+{
+    int height = m_progressBox->fontMetrics().height();
+    int width = qMin(m_progressBox->fontMetrics().size(Qt::TextSingleLine, s_initialProgressText).width() + 30, 100);
+    return QRect(0, scene()->sceneRect().bottomLeft().y() - (height + 3), width, height + 3);
+}
+
 
