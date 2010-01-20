@@ -137,7 +137,7 @@ void MainWindow::init()
     m_webViewItem->setPage(m_page);
     
     m_webViewItem->setResizesToContent(true);
-#if defined(WEBKIT_SUPPORTS_TILE_CACHE)
+#if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
     m_page->mainFrame()->setTileCacheEnabled(!m_settings.m_disableTiling);
 #endif
 

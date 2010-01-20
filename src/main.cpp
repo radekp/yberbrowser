@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     QStringList args = app.arguments();
 
     Settings settings;
-#if WEBKIT_SUPPORTS_TILE_CACHE
+#if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
     settings.m_disableTiling = false;
 #else
     settings.m_disableTiling = true;
@@ -172,7 +172,7 @@ void usage(const char* name)
     s << " -f show fps counter" << endl;
     s << " -a disable url autocomplete" << endl;
     s << " -v enable tile visualization" << endl;
-#if WEBKIT_SUPPORTS_ENGINE_THREAD
+#if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
     s << " -e enable engine thread" << endl;
 #endif
     s << " -h|-?|--help help" << endl;
