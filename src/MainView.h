@@ -43,6 +43,7 @@ class QGraphicsWidget;
 class QResizeEvent;
 class WebViewportItem;
 class TileItem;
+class QLabel;
 
 class MainView : public QGraphicsView {
     Q_OBJECT
@@ -65,6 +66,8 @@ protected Q_SLOTS:
     void contentsSizeChanged(const QSize &size);
     void loadFinished(bool);
     void loadStarted();
+    void loadProgress(int);
+    void sceneRectChanged(const QRectF&);
     void saveFrameState(QWebFrame* frame, QWebHistoryItem* item);
     void restoreFrameState(QWebFrame* frame);
     void tileCacheCreated(unsigned hPos, unsigned vPos);
@@ -74,7 +77,7 @@ private:
     void updateSize();
     void installSignalHandlers();
     void updateZoomScaleToPageWidth();
-
+    QRect progressRect();
 
     enum State {
         InitialLoad,
@@ -87,6 +90,7 @@ private:
     WebView* m_webView;
     bool m_tilesOn;
     QMap<int, TileItem*> m_tileMap;  
+    QLabel* m_progressBox;
 };
 
 #endif
