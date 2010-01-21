@@ -70,8 +70,9 @@ protected Q_SLOTS:
     void sceneRectChanged(const QRectF&);
     void saveFrameState(QWebFrame* frame, QWebHistoryItem* item);
     void restoreFrameState(QWebFrame* frame);
-    void tileCacheCreated(unsigned hPos, unsigned vPos);
-    void tileCacheRemoved(unsigned hPos, unsigned vPos);
+    void tileCreated(unsigned hPos, unsigned vPos);
+    void tileRemoved(unsigned hPos, unsigned vPos);
+    void tilePainted(unsigned hPos, unsigned vPos);
 
 private:
     void updateSize();
