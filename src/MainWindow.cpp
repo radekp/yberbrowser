@@ -76,6 +76,10 @@ static const int s_fpsTimerInterval = 1000;
 // the view will be interactive
 static const int s_zoomInOutInterval = 100;
 
+// timeout between clicking url bar and marking the url selected
+static const int s_urlTapSelectAllTimeout = 200;
+
+
 QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
 {
     MainWindow* mw = m_ownerWindow->createWindow();
@@ -83,14 +87,37 @@ QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
     return mw->page();
 }
 
+AutoSelectLineEdit::AutoSelectLineEdit(QWidget* parent)
+        : QLineEdit(parent)
+        , m_selectURLTimer(this)
+{
+    m_selectURLTimer.setSingleShot(true);
+    m_selectURLTimer.setInterval(s_urlTapSelectAllTimeout);
+    connect(&m_selectURLTimer, SIGNAL(timeout()), this, SLOT(selectAll()));
+}
+
+void AutoSelectLineEdit::focusInEvent(QFocusEvent*e)
+{
+    QLineEdit::focusInEvent(e);
+    m_selectURLTimer.start();
+}
+
+void AutoSelectLineEdit::focusOutEvent(QFocusEvent*e)
+{
+    QLineEdit::focusOutEvent(e);
+    m_selectURLTimer.stop();
+    emit editCancelled();
+    deselect();
+}
+
 MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
     : QMainWindow()
-    , m_view(new MainView(this, settings))
+    , m_settings(settings)
+    , m_view(new MainView(this))
     , m_scene(new QGraphicsScene(this))
     , m_webViewItem(new WebView)
     , m_page(0)
     , m_proxy(proxy)
-    , m_settings(settings)
     , m_naviToolbar(0)
     , m_urlEdit(0)
     , m_fpsBox(0)
@@ -192,7 +219,7 @@ MainView* MainWindow::view() {
 
 void MainWindow::changeLocation()
 {
-    // nullify on hitting enter. end of editing.
+    // nullify on hitting enter. end  of editing.
     m_lastEnteredText.resize(0);
     load(m_urlEdit->text());
 }
@@ -221,7 +248,7 @@ void MainWindow::urlTextEdited(const QString& newText)
 void MainWindow::loadFinished(bool success)
 {
     setLoadInProgress(false);
-    urlChanged(m_webViewItem->url());
+    updateURL();
     if (success && m_urlStore)
         m_urlStore->accessed(m_webViewItem->url());
 }
@@ -230,6 +257,12 @@ void MainWindow::urlChanged(const QUrl& url)
 {
     m_urlEdit->setText(url.toString());
 }
+
+void MainWindow::updateURL()
+{
+    urlChanged(m_webViewItem->url());
+}
+
 
 void MainWindow::showFPSChanged(bool checked) 
 {
@@ -301,9 +334,10 @@ void MainWindow::buildToolbar()
     // todo: find out if there is a way to remove widgets from toolbar, without trashing them all
     m_naviToolbar->clear();
 
-    m_urlEdit = new QLineEdit(this);
+    m_urlEdit = new AutoSelectLineEdit(this);
     m_urlEdit->setSizePolicy(QSizePolicy::Expanding, m_urlEdit->sizePolicy().verticalPolicy());
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
+    connect(m_urlEdit, SIGNAL(editCancelled()), SLOT(updateURL()));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
 
     if (m_settings.m_showFPS) {

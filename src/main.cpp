@@ -78,7 +78,7 @@ int main(int argc, char** argv)
     QWebSettings::setObjectCacheCapacities((16 * 1024 * 1024) / 8, (16 * 1024 * 1024) / 8, 16 * 1024 * 1024);
     QWebSettings::setMaximumPagesInCache(4);
 
-    QWebSettings::globalSettings()->setAttribute(QWebSettings::PluginsEnabled, true);
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::PluginsEnabled, false);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalStorageEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::ZoomTextOnly, false);

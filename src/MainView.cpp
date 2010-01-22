@@ -52,8 +52,8 @@
 #include <QGLWidget>
 #include <QtGlobal>
 
-
 #include "MainView.h"
+#include "MainWindow.h"
 #include "WebViewportItem.h"
 
 static const unsigned s_tileSize = 35;
@@ -160,16 +160,24 @@ void TileItem::paintBlinkEnd()
 // qt api is not very clear on the signal order. once the aspects
 // of load signal order have been cleared, remove these ifdefs
 
-MainView::MainView(QWidget* parent, Settings settings)
-    : QGraphicsView(parent)
+MainView::MainView(MainWindow* window)
+    : QGraphicsView(window)
+    , m_mainWindow(window)
     , m_interactionItem(0)
     , m_state(InitialLoad)
     , m_webView(0)
     , m_tilesOn(false)
     , m_progressBox(0)
 {
-    if (settings.m_useGL)
-        setViewport(new QGLWidget);
+    if (window->settings().m_useGL)  {
+	QGLFormat format = QGLFormat::defaultFormat();
+        format.setSampleBuffers(false);
+
+        QGLWidget *glWidget = new QGLWidget(format);    
+        glWidget->setAutoFillBackground(false);
+
+	setViewport(glWidget);
+    }
 
     setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
     setOptimizationFlags(QGraphicsView::DontSavePainterState);
@@ -370,6 +378,10 @@ void MainView::saveFrameState(QWebFrame* frame, QWebHistoryItem* item)
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__ << frame << item;
 #endif
+
+    // FIXME: this crashes with threading for some reason
+    if (m_mainWindow->settings().m_enableEngineThread)
+        return;
     if (frame == webView()->page()->mainFrame())
         item->setUserData(QVariant::fromValue(SavedViewState(m_interactionItem)));
 #if defined(ENABLE_LOADEVENT_DEBUG)

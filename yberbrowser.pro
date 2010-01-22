@@ -12,7 +12,7 @@ DATADIR = $$PREFIX/share
 BINDIR = $$PREFIX/bin
 
 
-QT += network opengl
+QT += network opengl maemo5 dbus
 macx:QT+=xml
 
 contains(QT_CONFIG, maemo5)  {
