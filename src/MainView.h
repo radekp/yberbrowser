@@ -41,6 +41,7 @@
 
 class QGraphicsWidget;
 class QResizeEvent;
+class MainWindow;
 class WebViewportItem;
 class TileItem;
 class QLabel;
@@ -49,7 +50,7 @@ class MainView : public QGraphicsView {
     Q_OBJECT
 
 public:
-    MainView(QWidget* parent, Settings);
+    MainView(MainWindow* parent);
     ~MainView();
 
     void setWebView(WebView* widget);
@@ -86,6 +87,7 @@ private:
     };
 
 private:
+    MainWindow* m_mainWindow;
     WebViewportItem* m_interactionItem;
     State m_state;
     WebView* m_webView;

@@ -89,6 +89,7 @@ public:
 
     MainView* view();
 
+    const Settings& settings() const { return m_settings; }
 
     static QUrl urlFromUserInput(const QString& string);
 
@@ -131,12 +132,12 @@ private:
 #endif
 
 private:
+    Settings m_settings;
     MainView* m_view;
     QGraphicsScene* m_scene;
     WebView* m_webViewItem;
     WebPage* m_page;
     QNetworkProxy* m_proxy;     // not owned (FIXME)
-    Settings m_settings;
     QAction* m_stopAction;
     QAction* m_reloadAction;
     UrlStore* m_urlStore;
