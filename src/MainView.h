@@ -73,6 +73,7 @@ protected Q_SLOTS:
     void tileCreated(unsigned hPos, unsigned vPos);
     void tileRemoved(unsigned hPos, unsigned vPos);
     void tilePainted(unsigned hPos, unsigned vPos);
+    void tileCacheViewportScaleChanged();
 
 private:
     void updateSize();

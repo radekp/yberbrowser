@@ -61,10 +61,13 @@ static const unsigned s_progressBckgColor = 0xA0C6F3;
 static const unsigned s_progressTextColor = 0x185488;
 static QString s_initialProgressText("Loading...");
 
+#define TILE_KEY(x,y) (x << 16 | y)
+
 class TileItem : public QObject {
     Q_OBJECT
 public:
     TileItem(unsigned hPos, unsigned vPos, bool visible, QGraphicsView* parent);
+    ~TileItem();
 
     bool isActive() const;
     void setActive(bool active);
@@ -80,6 +83,7 @@ private:
     bool               m_active;
     unsigned           m_beingPainted;
     QGraphicsRectItem* m_rectItem;
+    QGraphicsView*     m_parent;
 };
 
 TileItem::TileItem(unsigned hPos, unsigned vPos, bool visible, QGraphicsView* parent) 
@@ -88,9 +92,16 @@ TileItem::TileItem(unsigned hPos, unsigned vPos, bool visible, QGraphicsView* pa
     , m_active(false)
     , m_beingPainted(0)
     , m_rectItem(parent->scene()->addRect(hPos*s_tileSize, vPos*s_tileSize, s_tileSize, s_tileSize))
+    , m_parent(parent)
 {
     setVisible(visible);
     setActive(true);
+}
+
+TileItem::~TileItem()
+{
+    m_parent->scene()->removeItem(m_rectItem);
+    delete m_rectItem;
 }
 
 bool TileItem::isActive() const 
@@ -233,6 +244,7 @@ void MainView::installSignalHandlers()
     connect(webView()->page(),SIGNAL(tileCreated(unsigned, unsigned)), SLOT(tileCreated(unsigned, unsigned)));
     connect(webView()->page(),SIGNAL(tileRemoved(unsigned, unsigned)), SLOT(tileRemoved(unsigned, unsigned)));
     connect(webView()->page(),SIGNAL(tilePainted(unsigned, unsigned)), SLOT(tilePainted(unsigned, unsigned)));
+    connect(webView()->page(),SIGNAL(tileCacheViewportScaleChanged()), SLOT(tileCacheViewportScaleChanged()));
 }
 
 void MainView::resetState()
@@ -401,30 +413,39 @@ void MainView::showTiles(bool tilesOn)
 void MainView::tileCreated(unsigned hPos, unsigned vPos)
 {
     // new tile or just inactive?
-    if (!m_tileMap.contains(hPos*10 + vPos))
-        m_tileMap.insert(hPos*10 + vPos, new TileItem(hPos, vPos, m_tilesOn, this));
+    if (!m_tileMap.contains(TILE_KEY(hPos, vPos)))
+        m_tileMap.insert(TILE_KEY(hPos, vPos), new TileItem(hPos, vPos, m_tilesOn, this));
     else
-        m_tileMap.value(hPos*10 + vPos)->setActive(true);
+        m_tileMap.value(TILE_KEY(hPos, vPos))->setActive(true);
 }
 
 void MainView::tileRemoved(unsigned hPos, unsigned vPos)
 {
-    Q_ASSERT(m_tileMap.contains(hPos*10 + vPos));    
-    if (!m_tileMap.contains(hPos*10 + vPos)) {
-        qDebug() << "didn't find tile at:" << hPos << " " <<  vPos;
+    Q_ASSERT(m_tileMap.contains(TILE_KEY(hPos, vPos)));    
+    if (!m_tileMap.contains(TILE_KEY(hPos, vPos))) {
+        qDebug() << __FUNCTION__ << " didn't find tile at:" << hPos << " " <<  vPos;
         return;
     }
-    m_tileMap.value(hPos*10 + vPos)->setActive(false);
+    m_tileMap.value(TILE_KEY(hPos, vPos))->setActive(false);
 }
 
 void MainView::tilePainted(unsigned hPos, unsigned vPos)
 {
-    Q_ASSERT(m_tileMap.contains(hPos*10 + vPos));    
-    if (!m_tileMap.contains(hPos*10 + vPos)) {
-        qDebug() << "didn't find tile at:" << hPos << " " <<  vPos;
+    Q_ASSERT(m_tileMap.contains(TILE_KEY(hPos, vPos)));    
+    if (!m_tileMap.contains(TILE_KEY(hPos, vPos))) {
+        qDebug() << __FUNCTION__ << " didn't find tile at:" << hPos << " " <<  vPos;
         return;
     }
-    m_tileMap.value(hPos*10 + vPos)->painted();
+    m_tileMap.value(TILE_KEY(hPos, vPos))->painted();
+}
+
+void MainView::tileCacheViewportScaleChanged()
+{
+    QMapIterator<int, TileItem*> i(m_tileMap);
+    while (i.hasNext()) {
+        i.next();
+        delete m_tileMap.take(i.key());
+    }
 }
 
 QRect MainView::progressRect()
