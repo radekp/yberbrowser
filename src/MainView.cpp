@@ -61,39 +61,82 @@ static const unsigned s_progressBckgColor = 0xA0C6F3;
 static const unsigned s_progressTextColor = 0x185488;
 static QString s_initialProgressText("Loading...");
 
-class TileItem {
+class TileItem : public QObject {
+    Q_OBJECT
 public:
-    TileItem(unsigned hPos, unsigned vPos, bool visible, QGraphicsView* parent) {
-        m_vPos = vPos;
-        m_hPos = hPos;
-        m_active = false;
-        m_rectItem = parent->scene()->addRect(hPos*s_tileSize, vPos*s_tileSize, s_tileSize, s_tileSize);
-        setVisible(visible);
-        setActive(true);
-    }
-    bool isActive() const { return m_active; }
-    void setActive(bool active) {
-        Q_ASSERT(!(active && m_active));
-        // todo: it seems that tiles get stuck when navigating
-        // from page A to B. filter duplicates out just for the sake of proper
-        // visulazition, until the duplication is fixed
-        if (active && m_active)
-            qDebug() << "duplicate tile at:" << m_hPos << " " <<  m_vPos;
-        
-        m_active = active;
-        m_rectItem->setBrush(QBrush(active?Qt::cyan:Qt::gray));
-        m_rectItem->setOpacity(0.4);
-    }
-    void setVisible(bool visible) {
-        m_rectItem->setVisible(visible);
-    }
+    TileItem(unsigned hPos, unsigned vPos, bool visible, QGraphicsView* parent);
+
+    bool isActive() const;
+    void setActive(bool active);
+    void setVisible(bool visible);
+    void painted();
+
+private Q_SLOTS:
+    void paintBlinkEnd();
 
 private:    
-    QGraphicsRectItem* m_rectItem;
-    bool               m_active;
-    unsigned           m_hPos;
     unsigned           m_vPos;
+    unsigned           m_hPos;
+    bool               m_active;
+    unsigned           m_beingPainted;
+    QGraphicsRectItem* m_rectItem;
 };
+
+TileItem::TileItem(unsigned hPos, unsigned vPos, bool visible, QGraphicsView* parent) 
+    : m_vPos(vPos)
+    , m_hPos(hPos)
+    , m_active(false)
+    , m_beingPainted(0)
+    , m_rectItem(parent->scene()->addRect(hPos*s_tileSize, vPos*s_tileSize, s_tileSize, s_tileSize))
+{
+    setVisible(visible);
+    setActive(true);
+}
+
+bool TileItem::isActive() const 
+{ 
+    return m_active; 
+}
+
+void TileItem::setActive(bool active) 
+{
+    Q_ASSERT(!(active && m_active));
+    // todo: it seems that tiles get stuck when navigating
+    // from page A to B. filter duplicates out just for the sake of proper
+    // visulazition, until the duplication is fixed
+    if (active && m_active)
+        qDebug() << "duplicate tile at:" << m_hPos << " " <<  m_vPos;
+    
+    m_active = active;
+    m_rectItem->setBrush(QBrush(active?Qt::cyan:Qt::gray));
+    m_rectItem->setOpacity(0.4);
+}
+
+void TileItem::setVisible(bool visible) 
+{
+    m_rectItem->setVisible(visible);
+}
+
+void TileItem::painted() 
+{
+    if (!m_rectItem->isVisible() || !m_active || m_beingPainted)
+        return;
+    m_beingPainted = 1;
+    m_rectItem->setBrush(QBrush(Qt::red));
+    QTimer::singleShot(1000, this, SLOT(paintBlinkEnd()));
+}
+
+void TileItem::paintBlinkEnd() 
+{
+    // dont keep getting reinvalidated 
+    if (m_beingPainted == 1) {
+        m_rectItem->setBrush(QBrush(m_active?Qt::cyan:Qt::gray));
+        QTimer::singleShot(1000, this, SLOT(paintBlinkEnd()));
+        m_beingPainted = 2;
+        return;
+    }
+    m_beingPainted = 0;
+}
 
 // TODO:
 // detect when user interaction has been done and do
@@ -195,8 +238,9 @@ void MainView::installSignalHandlers()
     connect(webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(webView(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
     connect(webView(), SIGNAL(loadProgress(int)), this, SLOT(loadProgress(int)));
-    connect(webView()->page(),SIGNAL(tileCacheCreated(unsigned, unsigned)), SLOT(tileCacheCreated(unsigned, unsigned)));
-    connect(webView()->page(),SIGNAL(tileCacheRemoved(unsigned, unsigned)), SLOT(tileCacheRemoved(unsigned, unsigned)));
+    connect(webView()->page(),SIGNAL(tileCreated(unsigned, unsigned)), SLOT(tileCreated(unsigned, unsigned)));
+    connect(webView()->page(),SIGNAL(tileRemoved(unsigned, unsigned)), SLOT(tileRemoved(unsigned, unsigned)));
+    connect(webView()->page(),SIGNAL(tilePainted(unsigned, unsigned)), SLOT(tilePainted(unsigned, unsigned)));
 }
 
 void MainView::resetState()
@@ -362,7 +406,7 @@ void MainView::showTiles(bool tilesOn)
     }
 }
 
-void MainView::tileCacheCreated(unsigned hPos, unsigned vPos)
+void MainView::tileCreated(unsigned hPos, unsigned vPos)
 {
     // new tile or just inactive?
     if (!m_tileMap.contains(hPos*10 + vPos))
@@ -371,7 +415,7 @@ void MainView::tileCacheCreated(unsigned hPos, unsigned vPos)
         m_tileMap.value(hPos*10 + vPos)->setActive(true);
 }
 
-void MainView::tileCacheRemoved(unsigned hPos, unsigned vPos)
+void MainView::tileRemoved(unsigned hPos, unsigned vPos)
 {
     Q_ASSERT(m_tileMap.contains(hPos*10 + vPos));    
     if (!m_tileMap.contains(hPos*10 + vPos)) {
@@ -381,6 +425,16 @@ void MainView::tileCacheRemoved(unsigned hPos, unsigned vPos)
     m_tileMap.value(hPos*10 + vPos)->setActive(false);
 }
 
+void MainView::tilePainted(unsigned hPos, unsigned vPos)
+{
+    Q_ASSERT(m_tileMap.contains(hPos*10 + vPos));    
+    if (!m_tileMap.contains(hPos*10 + vPos)) {
+        qDebug() << "didn't find tile at:" << hPos << " " <<  vPos;
+        return;
+    }
+    m_tileMap.value(hPos*10 + vPos)->painted();
+}
+
 QRect MainView::progressRect()
 {
     int height = m_progressBox->fontMetrics().height();
@@ -388,4 +442,4 @@ QRect MainView::progressRect()
     return QRect(0, scene()->sceneRect().bottomLeft().y() - (height + 3), width, height + 3);
 }
 
-
+#include "MainView.moc"
