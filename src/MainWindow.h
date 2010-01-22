@@ -37,9 +37,11 @@
 
 #include <QMainWindow>
 #include <QUrl>
+#include <QTime>
+#include <QTimer>
+#include <QLineEdit>
 #include <qgraphicswebview.h>
 #include <qwebpage.h>
-#include <QTime>
 
 class QGraphicsScene;
 class QLineEdit;
@@ -71,6 +73,7 @@ struct Settings
         , m_enableEngineThread(false)
     {}
 };
+class AutoSelectLineEdit;
 
 class MainWindow : public QMainWindow
 {
@@ -101,6 +104,7 @@ public Q_SLOTS:
     void loadStarted();
     void loadFinished(bool);
 
+    void updateURL();
     void urlChanged(const QUrl& url);
     void showFPSChanged(bool);
     void showTilesChanged(bool);
@@ -143,7 +147,7 @@ private:
     UrlStore* m_urlStore;
     
     QToolBar* m_naviToolbar;
-    QLineEdit* m_urlEdit;
+    AutoSelectLineEdit* m_urlEdit;
     QLabel* m_fpsBox;
     QString m_lastEnteredText;
 
@@ -191,6 +195,23 @@ private:
     MainWindow* m_ownerWindow;
 };
 
+
+class AutoSelectLineEdit : public QLineEdit
+{
+    Q_OBJECT
+public:
+    AutoSelectLineEdit(QWidget* parent);
+
+Q_SIGNALS:
+    void editCancelled();
+
+protected:
+    void focusInEvent(QFocusEvent*e);
+    void focusOutEvent(QFocusEvent*e);
+
+private:
+    QTimer m_selectURLTimer;
+};
 
 
 #endif
