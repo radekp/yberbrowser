@@ -435,7 +435,7 @@ void MainView::tileRemoved(unsigned hPos, unsigned vPos)
 {
     Q_ASSERT(m_tileMap.contains(TILE_KEY(hPos, vPos)));    
     if (!m_tileMap.contains(TILE_KEY(hPos, vPos))) {
-        qDebug() << __FUNCTION__ << " didn't find tile at:" << hPos << " " <<  vPos;
+        // qDebug() << __FUNCTION__ << " didn't find tile at:" << hPos << " " <<  vPos;
         return;
     }
     m_tileMap.value(TILE_KEY(hPos, vPos))->setActive(false);
@@ -445,13 +445,18 @@ void MainView::tilePainted(unsigned hPos, unsigned vPos)
 {
     Q_ASSERT(m_tileMap.contains(TILE_KEY(hPos, vPos)));    
     if (!m_tileMap.contains(TILE_KEY(hPos, vPos))) {
-        qDebug() << __FUNCTION__ << " didn't find tile at:" << hPos << " " <<  vPos;
+        // qDebug() << __FUNCTION__ << " didn't find tile at:" << hPos << " " <<  vPos;
         return;
     }
     m_tileMap.value(TILE_KEY(hPos, vPos))->painted();
 }
 
 void MainView::tileCacheViewportScaleChanged()
+{
+    QTimer::singleShot(0, this, SLOT(resetCacheTiles()));
+}
+
+void MainView::resetCacheTiles()
 {
     QMapIterator<int, TileItem*> i(m_tileMap);
     while (i.hasNext()) {
