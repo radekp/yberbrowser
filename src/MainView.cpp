@@ -433,7 +433,6 @@ void MainView::tileCreated(unsigned hPos, unsigned vPos)
 
 void MainView::tileRemoved(unsigned hPos, unsigned vPos)
 {
-    Q_ASSERT(m_tileMap.contains(TILE_KEY(hPos, vPos)));    
     if (!m_tileMap.contains(TILE_KEY(hPos, vPos))) {
         // qDebug() << __FUNCTION__ << " didn't find tile at:" << hPos << " " <<  vPos;
         return;
@@ -443,7 +442,6 @@ void MainView::tileRemoved(unsigned hPos, unsigned vPos)
 
 void MainView::tilePainted(unsigned hPos, unsigned vPos)
 {
-    Q_ASSERT(m_tileMap.contains(TILE_KEY(hPos, vPos)));    
     if (!m_tileMap.contains(TILE_KEY(hPos, vPos))) {
         // qDebug() << __FUNCTION__ << " didn't find tile at:" << hPos << " " <<  vPos;
         return;
