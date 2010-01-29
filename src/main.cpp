@@ -82,6 +82,9 @@ int main(int argc, char** argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalStorageEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::ZoomTextOnly, false);
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, true);
+    QWebSettings::enablePersistentStorage();
+
 
     QStringList args = app.arguments();
 
