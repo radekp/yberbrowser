@@ -94,6 +94,12 @@ int main(int argc, char** argv)
 #else
     settings.m_disableTiling = true;
 #endif
+#if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
+    settings.m_enableEngineThread = true;
+#else
+    settings.m_enableEngineThread = false;
+#endif
+
     bool noFullscreen = false;
     
     bool gotFlag = true;
@@ -121,7 +127,7 @@ int main(int argc, char** argv)
                 settings.m_showTiles = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-e") {
-                settings.m_enableEngineThread = true;
+                settings.m_enableEngineThread = false;
                 args.removeAt(1);
             } else if (args.at(1) == "-?" || args.at(1) == "-h" || args.at(1) == "--help") {
                 usage(argv[0]);
@@ -176,7 +182,7 @@ void usage(const char* name)
     s << " -a disable url autocomplete" << endl;
     s << " -v enable tile visualization" << endl;
 #if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
-    s << " -e enable engine thread" << endl;
+    s << " -e disable engine thread" << endl;
 #endif
     s << " -h|-?|--help help" << endl;
     s << endl;
