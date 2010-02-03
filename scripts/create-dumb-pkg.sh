@@ -82,6 +82,7 @@ cp $builddir/yberbrowser pkg/$pkgname/opt/yberbrowser/
 chrpath -d pkg/$pkgname/opt/yberbrowser/yberbrowser
 
 cp -L  $webkit_builddir/lib/libQtWebKit.so.4 pkg/$pkgname/opt/yberbrowser/lib
+strip pkg/$pkgname/opt/yberbrowser/lib/*
 
 cp data/{y.sh,yogl.sh,yg.sh,yd.sh} pkg/$pkgname/opt/yberbrowser/
 cd pkg
