@@ -44,7 +44,6 @@ class QResizeEvent;
 class MainWindow;
 class WebViewportItem;
 class HistoryViewportItem;
-class TileItem;
 class QLabel;
 class HistoryItem;
 
@@ -65,8 +64,6 @@ public:
 
     MainWindow* mainWindow() const { return m_mainWindow; }
 
-    void showTiles(bool tilesOn);
-
 public Q_SLOTS:
     void toggleHistory();
 
@@ -79,11 +76,6 @@ protected Q_SLOTS:
     void sceneRectChanged(const QRectF&);
     void saveFrameState(QWebFrame* frame, QWebHistoryItem* item);
     void restoreFrameState(QWebFrame* frame);
-    void tileCreated(unsigned hPos, unsigned vPos);
-    void tileRemoved(unsigned hPos, unsigned vPos);
-    void tilePainted(unsigned hPos, unsigned vPos);
-    void tileCacheViewportScaleChanged();
-    void resetCacheTiles();
     void disableHistoryView();
 
 private:
@@ -103,8 +95,6 @@ private:
     HistoryViewportItem* m_historyViewportItem;
     State m_state;
     WebView* m_webView;
-    bool m_tilesOn;
-    QMap<int, TileItem*> m_tileMap;  
     QLabel* m_progressBox;
 };
 

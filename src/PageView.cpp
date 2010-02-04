@@ -58,99 +58,9 @@
 #include "HistoryViewportItem.h"
 #include "UrlStore.h"
 
-static const unsigned s_tileSize = 35;
 static const unsigned s_progressBckgColor = 0xA0C6F3;
 static const unsigned s_progressTextColor = 0x185488;
 static QString s_initialProgressText("Loading...");
-
-#define TILE_KEY(x,y) (x << 16 | y)
-
-class TileItem : public QObject {
-    Q_OBJECT
-public:
-    TileItem(unsigned hPos, unsigned vPos, bool visible, QGraphicsView* parent);
-    ~TileItem();
-
-    bool isActive() const;
-    void setActive(bool active);
-    void setVisible(bool visible);
-    void painted();
-
-private Q_SLOTS:
-    void paintBlinkEnd();
-
-private:    
-    unsigned           m_vPos;
-    unsigned           m_hPos;
-    bool               m_active;
-    unsigned           m_beingPainted;
-    QGraphicsRectItem* m_rectItem;
-    QGraphicsView*     m_parent;
-};
-
-TileItem::TileItem(unsigned hPos, unsigned vPos, bool visible, QGraphicsView* parent) 
-    : m_vPos(vPos)
-    , m_hPos(hPos)
-    , m_active(false)
-    , m_beingPainted(0)
-    , m_rectItem(parent->scene()->addRect(hPos*s_tileSize, vPos*s_tileSize, s_tileSize, s_tileSize))
-    , m_parent(parent)
-{
-    setVisible(visible);
-    setActive(true);
-}
-
-TileItem::~TileItem()
-{
-    m_parent->scene()->removeItem(m_rectItem);
-    delete m_rectItem;
-}
-
-bool TileItem::isActive() const 
-{ 
-    return m_active; 
-}
-
-void TileItem::setActive(bool active) 
-{
-    // fixme: remove or reactivate after fixing
-    //Q_ASSERT(!(active && m_active));
-    // todo: it seems that tiles get stuck when navigating
-    // from page A to B. filter duplicates out just for the sake of proper
-    // visulazition, until the duplication is fixed
-    if (active && m_active)
-        qDebug() << "duplicate tile at:" << m_hPos << " " <<  m_vPos;
-    
-    m_active = active;
-    m_rectItem->setBrush(QBrush(active?Qt::cyan:Qt::gray));
-    m_rectItem->setOpacity(0.4);
-}
-
-void TileItem::setVisible(bool visible) 
-{
-    m_rectItem->setVisible(visible);
-}
-
-void TileItem::painted() 
-{
-    if (!m_rectItem->isVisible() || !m_active || m_beingPainted)
-        return;
-    m_beingPainted = 1;
-    m_rectItem->setBrush(QBrush(Qt::red));
-    QTimer::singleShot(1000, this, SLOT(paintBlinkEnd()));
-}
-
-void TileItem::paintBlinkEnd() 
-{
-    // dont keep getting reinvalidated 
-    if (m_beingPainted == 1) {
-        m_rectItem->setBrush(QBrush(m_active?Qt::cyan:Qt::gray));
-        QTimer::singleShot(1000, this, SLOT(paintBlinkEnd()));
-        m_beingPainted = 2;
-        return;
-    }
-    m_beingPainted = 0;
-}
 
 // TODO:
 // detect when user interaction has been done and do
@@ -170,7 +80,6 @@ PageView::PageView(MainWindow* window)
     , m_historyViewportItem(0)
     , m_state(InitialLoad)
     , m_webView(0)
-    , m_tilesOn(false)
     , m_progressBox(0)
 {
     if (window->settings().m_useGL)  {
@@ -269,10 +178,6 @@ void PageView::installSignalHandlers()
     connect(webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(webView(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
     connect(webView(), SIGNAL(loadProgress(int)), this, SLOT(loadProgress(int)));
-    connect(webView()->page(),SIGNAL(tileCreated(unsigned, unsigned)), SLOT(tileCreated(unsigned, unsigned)));
-    connect(webView()->page(),SIGNAL(tileRemoved(unsigned, unsigned)), SLOT(tileRemoved(unsigned, unsigned)));
-    connect(webView()->page(),SIGNAL(tilePainted(unsigned, unsigned)), SLOT(tilePainted(unsigned, unsigned)));
-    connect(webView()->page(),SIGNAL(tileCacheViewportScaleChanged()), SLOT(tileCacheViewportScaleChanged()));
 }
 
 void PageView::resetState()
@@ -434,53 +339,6 @@ void PageView::restoreFrameState(QWebFrame* frame)
 #endif
 }
 
-void PageView::showTiles(bool tilesOn) 
-{
-    m_tilesOn = tilesOn;
-    QMapIterator<int, TileItem*> i(m_tileMap);
-    while (i.hasNext()) {
-        i.next();
-        i.value()->setVisible(tilesOn);
-    }
-}
-
-void PageView::tileCreated(unsigned hPos, unsigned vPos)
-{
-    // new tile or just inactive?
-    if (!m_tileMap.contains(TILE_KEY(hPos, vPos)))
-        m_tileMap.insert(TILE_KEY(hPos, vPos), new TileItem(hPos, vPos, m_tilesOn, this));
-    else
-        m_tileMap.value(TILE_KEY(hPos, vPos))->setActive(true);
-}
-
-void PageView::tileRemoved(unsigned hPos, unsigned vPos)
-{
-    if (!m_tileMap.contains(TILE_KEY(hPos, vPos)))
-        return;
-    m_tileMap.value(TILE_KEY(hPos, vPos))->setActive(false);
-}
-
-void PageView::tilePainted(unsigned hPos, unsigned vPos)
-{
-    if (!m_tileMap.contains(TILE_KEY(hPos, vPos)))
-        return;
-    m_tileMap.value(TILE_KEY(hPos, vPos))->painted();
-}
-
-void PageView::tileCacheViewportScaleChanged()
-{
-    QTimer::singleShot(0, this, SLOT(resetCacheTiles()));
-}
-
-void PageView::resetCacheTiles()
-{
-    QMapIterator<int, TileItem*> i(m_tileMap);
-    while (i.hasNext()) {
-        i.next();
-        delete m_tileMap.take(i.key());
-    }
-}
-
 QRect PageView::progressRect()
 {
     int height = m_progressBox->fontMetrics().height();
@@ -507,4 +365,3 @@ void PageView::disableHistoryView()
     scene()->setActiveWindow(m_pageViewportItem);
 }
 
-#include "PageView.moc"

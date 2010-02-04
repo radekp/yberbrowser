@@ -39,6 +39,7 @@
 #include "FlickAnimation.h"
 
 class QGraphicsWebView;
+class TileItem;
 
 class WebViewportItem : public QGraphicsWidget, private CommonGestureConsumer
 {
@@ -67,6 +68,8 @@ public:
 
     void setGeometry(const QRectF& rect);
 
+    void showTiles(bool tilesOn);
+
 protected:
     void wheelEvent(QGraphicsSceneWheelEvent * event);
 
@@ -79,6 +82,11 @@ protected:
 protected Q_SLOTS:
     void commitZoom();
     void panAnimStateChanged(QTimeLine::State newState);
+    void tileCreated(unsigned hPos, unsigned vPos);
+    void tileRemoved(unsigned hPos, unsigned vPos);
+    void tilePainted(unsigned hPos, unsigned vPos);
+    void tileCacheViewportScaleChanged();
+    void resetCacheTiles();
 
 private:
     enum InteractionState {
@@ -126,6 +134,7 @@ private:
     CommonGestureRecognizer m_recognizer;
     QPointF m_panModeResidue;
     FlickAnimation m_flickAnim;
+    QMap<int, TileItem*> m_tileMap;  
 };
 
 #endif

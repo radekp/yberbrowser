@@ -181,7 +181,7 @@ void MainWindow::init()
     buildUI();
     setLoadInProgress(false);
     setFPSCalculation(m_settings.m_showFPS);
-    m_pageView->showTiles(m_settings.m_showTiles);
+    m_pageView->interactionItem()->showTiles(m_settings.m_showTiles);
 }
 
 void MainWindow::load(const QString& url)
@@ -297,7 +297,7 @@ void MainWindow::setFPSCalculation(bool fpsOn)
 void MainWindow::showTilesChanged(bool checked)
 {
     m_settings.m_showTiles = checked;
-    m_pageView->showTiles(m_settings.m_showTiles);
+    m_pageView->interactionItem()->showTiles(m_settings.m_showTiles);
 }
 
 MainWindow* MainWindow::newWindow(const QString &url)
