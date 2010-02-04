@@ -639,8 +639,9 @@ void WebViewportItem::resetCacheTiles()
     QMapIterator<int, TileItem*> i(m_tileMap);
     while (i.hasNext()) {
         i.next();
-        delete m_tileMap.take(i.key());
+        delete i.value();
     }    
+    m_tileMap.clear();
 }
 
 #include "WebViewportItem.moc"
