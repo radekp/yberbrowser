@@ -6,11 +6,16 @@
 #include <QImage>
 #include <QTimer>
 
+//#define ENABLE_URLSTORE_DEBUG 1
+
 #if defined(ENABLE_URLSTORE_DEBUG)
 #include <QDebug>
 #endif
 
+// FIXME: remove privPath
+
 static uint currentVersion = 2;
+QString UrlStore::s_thumbnailDir = QString();
 
 UrlStore::UrlStore()
     : m_needsPersisting(false)
@@ -34,7 +39,8 @@ void UrlStore::internalize()
 #if defined(ENABLE_URLSTORE_DEBUG)
     qDebug() << "UrlStore:" << __FUNCTION__ << "urlstore.txt"<<endl;
 #endif
-    QFile store("urlstore.txt");
+    QFile store(thumbnailDir() + "urlstore.txt");
+
     if (store.open(QFile::ReadWrite)) {
         QDataStream in(&store);
         uint version;
@@ -84,18 +90,18 @@ void UrlStore::externalize()
              item->m_thumbnailChanged = false;
              // first time?
              if (!item->m_thumbnailPath.size())
-                item->m_thumbnailPath = QString::number(item->m_lastAccess) + ".png";
+                 item->m_thumbnailPath = QString::number(item->m_lastAccess) + ".png";
 #if defined(ENABLE_URLSTORE_DEBUG)
             qDebug() << item->m_thumbnailPath;
 #endif
-            item->thumbnail()->save(item->m_thumbnailPath);
+            item->thumbnail()->save(thumbnailDir() + item->m_thumbnailPath);
         }
     }
     // save url store
     // version
     // number of items
     // url, refcount, lastaccess
-    QFile store("urlstore.txt");
+    QFile store(thumbnailDir() + "urlstore.txt");
     if (store.open(QFile::WriteOnly | QIODevice::Truncate)) {
         QDataStream out(&store);
         out<<currentVersion<<m_list.size();

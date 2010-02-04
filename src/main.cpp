@@ -55,6 +55,7 @@
 #include <X11/Xatom.h>
 
 #include "MainWindow.h"
+#include "UrlStore.h"
 
 QNetworkProxy* g_globalProxy;
 
@@ -63,6 +64,7 @@ void usage(const char* name);
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
+    app.setApplicationName("yberbrowser");
 
     QUrl proxyUrl = MainWindow::urlFromUserInput(qgetenv("http_proxy"));
     if (proxyUrl.isValid() && !proxyUrl.host().isEmpty()) {
@@ -72,7 +74,12 @@ int main(int argc, char** argv)
 
     QString url; //QString("file://%1/%2").arg(QDir::homePath()).arg(QLatin1String("index.html"));
 
-    app.setApplicationName("yberbrowser");
+    QString privPath = QString("%1/.%2/").arg(QDir::homePath()).arg(QCoreApplication::applicationName());
+    QDir privDir(privPath);
+    if (!privDir.exists()) {
+        privDir.mkpath(privPath);
+    }
+    UrlStore::setThumbnailDir(privPath);
 
     QWebSettings::setObjectCacheCapacities((16 * 1024 * 1024) / 8, (16 * 1024 * 1024) / 8, 16 * 1024 * 1024);
     QWebSettings::setMaximumPagesInCache(4);
@@ -88,6 +95,7 @@ int main(int argc, char** argv)
     QStringList args = app.arguments();
 
     Settings settings;
+
 #if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
     settings.m_disableTiling = false;
 #else

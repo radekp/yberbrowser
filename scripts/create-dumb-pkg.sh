@@ -65,6 +65,14 @@ Maemo-Icon-26:
  gJBZgKTwAAAAAElFTkSuQmCC
 EOF
 
+cat > pkg/$pkgname/DEBIAN/postinst <<EOF
+#!/bin/sh
+set -e
+gtk-update-icon-cache -f /usr/share/icons/hicolor
+chown -R user:users /home/user/.yberbrowser
+exit 0
+EOF
+chmod +x pkg/$pkgname/DEBIAN/postinst
 
 mkdir -p pkg/$pkgname/usr/share/applications/hildon
 cp data/yberbrowser*.desktop pkg/$pkgname/usr/share/applications/hildon
@@ -85,6 +93,10 @@ cp -L  $webkit_builddir/lib/libQtWebKit.so.4 pkg/$pkgname/opt/yberbrowser/lib
 strip pkg/$pkgname/opt/yberbrowser/lib/*
 
 cp data/{y.sh,yogl.sh,yg.sh,yd.sh} pkg/$pkgname/opt/yberbrowser/
+
+mkdir -p pkg/$pkgname/home/user/.yberbrowser
+cp -r data/_yberbrowser/* pkg/$pkgname/home/user/.yberbrowser
+
 cd pkg
 dpkg-deb --build $pkgname
 

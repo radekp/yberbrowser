@@ -1,4 +1,5 @@
 #include "UrlItem.h"
+#include "UrlStore.h"
 #include <QDateTime>
 #include <QImage>
 
@@ -39,7 +40,7 @@ QImage* UrlItem::thumbnail()
     if (!m_thumbnailPath.size())
         return 0;
     // load thumbnail
-    m_thumbnail = new QImage(m_thumbnailPath);
+    m_thumbnail = new QImage(UrlStore::thumbnailDir() + m_thumbnailPath);
     return m_thumbnail;
 }
 

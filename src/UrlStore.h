@@ -19,6 +19,14 @@ public:
     QString match(const QString& url);
     UrlList& list() { return m_list; }
 
+    static QString thumbnailDir() {
+        return s_thumbnailDir;
+    }
+
+    static void setThumbnailDir(const QString& dir) {
+        s_thumbnailDir = dir;
+    }
+
 private:
     void internalize();
     bool matchUrls(const QString& url1, const QString& url2);
@@ -29,6 +37,8 @@ private Q_SLOTS:
 private:
     UrlList m_list;
     bool m_needsPersisting;
+
+    static QString s_thumbnailDir;
 };
 
 #endif
