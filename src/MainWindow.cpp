@@ -69,7 +69,7 @@
 #include "UrlStore.h"
 
 static const float s_zoomScaleKeyStep = 1.4;
-static const int s_fpsTimerInterval = 1000;
+static const int s_fpsTimerInterval = 250;
 
 // time limit for the zoom in/out button in milliseconds.
 // This allows zoom in/out buttons to be held down and still
