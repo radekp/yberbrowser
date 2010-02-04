@@ -47,11 +47,12 @@ class QGraphicsScene;
 class QLineEdit;
 class WebPage;
 class WebView;
-class MainView;
+class PageView;
 class QNetworkProxy;
 class UrlStore;
 class QLabel;
 class QToolBar;
+class QGraphicsView;
 
 struct Settings
 {
@@ -84,19 +85,20 @@ public:
     ~MainWindow();
     void init();
 
-    void load(const QString& url);
-
     MainWindow* createWindow();
 
     QWebPage* page() const;
 
-    MainView* view();
+    PageView* pageView();
+
+    UrlStore* urlStore() const { return m_urlStore; }
 
     const Settings& settings() const { return m_settings; }
 
     static QUrl urlFromUserInput(const QString& string);
 
 public Q_SLOTS:
+    void load(const QString& url);
     MainWindow* newWindow(const QString &url = QString());
     void changeLocation();
     void urlTextEdited(const QString&);
@@ -112,6 +114,8 @@ public Q_SLOTS:
     void zoomIn() { zoomInOrOut(true); }
     void zoomOut() { zoomInOrOut(false); }
     void zoomInOrOut(bool zoomIn);
+
+    void updateUrlStore();
     
 protected:
     void keyPressEvent(QKeyEvent* event);
@@ -137,13 +141,14 @@ private:
 
 private:
     Settings m_settings;
-    MainView* m_view;
+    PageView* m_pageView;
     QGraphicsScene* m_scene;
     WebView* m_webViewItem;
     WebPage* m_page;
     QNetworkProxy* m_proxy;     // not owned (FIXME)
     QAction* m_stopAction;
     QAction* m_reloadAction;
+    QAction* m_historyAction;
     UrlStore* m_urlStore;
     
     QToolBar* m_naviToolbar;

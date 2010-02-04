@@ -44,7 +44,6 @@
 #include <QtGlobal>
 
 #include "WebViewportItem.h"
-#include "MainView.h"
 #include "EventHelpers.h"
 
 static const int s_zoomAnimDurationMS = 300;

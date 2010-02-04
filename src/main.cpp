@@ -55,7 +55,6 @@
 #include <X11/Xatom.h>
 
 #include "MainWindow.h"
-#include "MainView.h"
 
 QNetworkProxy* g_globalProxy;
 
@@ -71,7 +70,7 @@ int main(int argc, char** argv)
         g_globalProxy = new QNetworkProxy(QNetworkProxy::HttpProxy, proxyUrl.host(), proxyPort);
     }
 
-    QString url = QString("file://%1/%2").arg(QDir::homePath()).arg(QLatin1String("index.html"));
+    QString url; //QString("file://%1/%2").arg(QDir::homePath()).arg(QLatin1String("index.html"));
 
     app.setApplicationName("yberbrowser");
 
@@ -140,7 +139,8 @@ int main(int argc, char** argv)
 #endif
 
     MainWindow* window = new MainWindow(g_globalProxy, settings);
-    window->load(url);
+    if (url.size())
+        window->load(url);
     if (noFullscreen)
         window->show();
     else

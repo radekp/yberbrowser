@@ -32,8 +32,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MainView_h_
-#define MainView_h_
+#ifndef PageView_h_
+#define PageView_h_
 
 #include <QGraphicsView>
 
@@ -43,24 +43,32 @@ class QGraphicsWidget;
 class QResizeEvent;
 class MainWindow;
 class WebViewportItem;
+class HistoryViewportItem;
 class TileItem;
 class QLabel;
+class HistoryItem;
 
-class MainView : public QGraphicsView {
+class PageView : public QGraphicsView {
     Q_OBJECT
 
 public:
-    MainView(MainWindow* parent);
-    ~MainView();
+    PageView(MainWindow* parent);
+    ~PageView();
 
+    void init();
     void setWebView(WebView* widget);
     WebView* webView();
 
     void resizeEvent(QResizeEvent* event);
 
-    WebViewportItem* interactionItem() { return m_interactionItem; }
+    WebViewportItem* interactionItem() const { return m_pageViewportItem; }
+
+    MainWindow* mainWindow() const { return m_mainWindow; }
 
     void showTiles(bool tilesOn);
+
+public Q_SLOTS:
+    void toggleHistory();
 
 protected Q_SLOTS:
     void resetState();
@@ -76,6 +84,7 @@ protected Q_SLOTS:
     void tilePainted(unsigned hPos, unsigned vPos);
     void tileCacheViewportScaleChanged();
     void resetCacheTiles();
+    void disableHistoryView();
 
 private:
     void updateSize();
@@ -90,7 +99,8 @@ private:
 
 private:
     MainWindow* m_mainWindow;
-    WebViewportItem* m_interactionItem;
+    WebViewportItem* m_pageViewportItem;
+    HistoryViewportItem* m_historyViewportItem;
     State m_state;
     WebView* m_webView;
     bool m_tilesOn;

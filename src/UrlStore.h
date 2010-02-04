@@ -4,36 +4,31 @@
 #include <QObject>
 #include <QList>
 #include <QUrl>
+#include "UrlItem.h"
 
-class UrlItem {
-public:
-    UrlItem();
-    UrlItem(const QString& host);
-    UrlItem(const UrlItem& item);
-
-    QString m_host;
-    uint m_refcount;
-    uint m_lastAccess;
-};
-
-typedef QList<UrlItem> UrlList;
+typedef QList<UrlItem*> UrlList;
 
 class UrlStore : public QObject {
     Q_OBJECT
-
 public:
     UrlStore();
     ~UrlStore();
     
-    void accessed(const QUrl& url);
-    QString match(const QString& str);    
+    void accessed(const QUrl& url, const QString& title, QImage* thumbnail);
+    bool contains(const QString& url);
+    QString match(const QString& url);
+    UrlList& list() { return m_list; }
 
 private:
     void internalize();
-    void externalize();
     bool matchUrls(const QString& url1, const QString& url2);
 
+private Q_SLOTS:
+    void externalize();
+
+private:
     UrlList m_list;
+    bool m_needsPersisting;
 };
 
 #endif

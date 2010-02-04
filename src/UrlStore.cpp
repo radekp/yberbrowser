@@ -3,33 +3,17 @@
 #include <QFile>
 #include <QDateTime>
 #include <iostream>
+#include <QImage>
+#include <QTimer>
+
 #if defined(ENABLE_URLSTORE_DEBUG)
 #include <QDebug>
 #endif
 
-static uint currentVersion = 1;
-
-UrlItem::UrlItem()
-    : m_refcount(0)
-    , m_lastAccess(0)
-{
-}
-
-UrlItem::UrlItem(const QString& host)
-    : m_host(host)
-    , m_refcount(1)
-    , m_lastAccess(QDateTime::currentDateTime().toTime_t())
-{
-}
-
-UrlItem::UrlItem(const UrlItem& item) 
-{
-    m_host = item.m_host;
-    m_refcount = item.m_refcount;
-    m_lastAccess = item.m_lastAccess;
-}
+static uint currentVersion = 2;
 
 UrlStore::UrlStore()
+    : m_needsPersisting(false)
 {
     internalize();
 }
@@ -37,6 +21,8 @@ UrlStore::UrlStore()
 UrlStore::~UrlStore()
 {
     externalize();
+    for (int i = 0; i < m_list.size(); ++i)
+        delete m_list.takeAt(i);
 }
 
 void UrlStore::internalize()
@@ -57,8 +43,10 @@ void UrlStore::internalize()
             int count;
             in>>count;
             for (int i = 0; i < count; ++i) {
-                UrlItem item;
-                in>>item.m_host>>item.m_refcount>>item.m_lastAccess;
+                UrlItem* item = new UrlItem();
+                QString url;
+                in>>url; item->m_url = url;
+                in>>item->m_title>>item->m_refcount>>item->m_lastAccess>>item->m_thumbnailPath;
                 m_list.append(item);
             }
         }
@@ -70,20 +58,39 @@ void UrlStore::internalize()
         qDebug() << "UrlStore: no url store, use default values";
 #endif
         // init urlstore with some popular urls. prefer non-www for to save space
-        m_list.append(UrlItem("google.com"));
-        m_list.append(UrlItem("cnn.com"));
-        m_list.append(UrlItem("news.bbc.co.uk"));
-        m_list.append(UrlItem("news.google.com"));
-        m_list.append(UrlItem("msn.com"));
-        m_list.append(UrlItem("nytimes.com"));
+        m_list.append(new UrlItem(QUrl("http://cnn.com/"), "CNN.com - Breaking News, U.S., World, Weather, Entertainment &amp; Video News"));
+        m_list.append(new UrlItem(QUrl("http://news.bbc.co.uk/"), "BBC NEWS | News Front Page"));
+        m_list.append(new UrlItem(QUrl("http://news.google.com/"), "Google News"));
+        m_list.append(new UrlItem(QUrl("http://nokia.com/"), "Nokia - Nokia on the Web"));
+        m_list.append(new UrlItem(QUrl("http://qt.nokia.com/"), "Qt - A cross-platform application and UI framework"));
+        m_list.append(new UrlItem(QUrl("http://ovi.com/"), "Ovi by Nokia"));
+        m_list.append(new UrlItem(QUrl("http://nytimes.com/"), "The New York Times - Breaking News, World News Multimedia"));
+        m_list.append(new UrlItem(QUrl("http://google.com/"), "Google"));
     }
 }
 
 void UrlStore::externalize()
 {
+    if (!m_needsPersisting)
+        return;
 #if defined(ENABLE_URLSTORE_DEBUG)
     qDebug() << "UrlStore:" << __FUNCTION__ << "urlstore.txt"<<endl;
 #endif
+    // save thumbnails first
+    for (int i = 0; i < m_list.size(); ++i) {
+        UrlItem* item = m_list[i];
+        // save if new thumbnail is available
+        if (item->thumbnailAvailable() && item->m_thumbnailChanged) {
+             item->m_thumbnailChanged = false;
+             // first time?
+             if (!item->m_thumbnailPath.size())
+                item->m_thumbnailPath = QString::number(item->m_lastAccess) + ".png";
+#if defined(ENABLE_URLSTORE_DEBUG)
+            qDebug() << item->m_thumbnailPath;
+#endif
+            item->thumbnail()->save(item->m_thumbnailPath);
+        }
+    }
     // save url store
     // version
     // number of items
@@ -93,61 +100,75 @@ void UrlStore::externalize()
         QDataStream out(&store);
         out<<currentVersion<<m_list.size();
         for (int i = 0; i < m_list.size(); ++i) {
-            UrlItem item = m_list.at(i);
-            out<<item.m_host<<item.m_refcount<<item.m_lastAccess;
+            UrlItem* item = m_list.at(i);
+            out<<item->m_url.toString()<<item->m_title<<item->m_refcount<<item->m_lastAccess<<item->m_thumbnailPath;
         }
         store.close();
     } 
+    m_needsPersisting = false;
 }
 
-void UrlStore::accessed(const QUrl& prettyUrl)
+void UrlStore::accessed(const QUrl& url, const QString& title, QImage* thumbnail)
 {
-    QString host = prettyUrl.host();
-    bool found = false;
+    QString accessedHost = url.host();
+    int found = -1;
 #if defined(ENABLE_URLSTORE_DEBUG)
-    qDebug() << "UrlStore:" << __FUNCTION__ << "host";
+    qDebug() << "UrlStore:" << __FUNCTION__ << accessedHost;
 #endif
     for (int i = 0; i < m_list.size(); ++i) {
-        UrlItem* item = &m_list[i];
-        if (matchUrls(item->m_host, host)) {
+        UrlItem* item = m_list[i];
+        if (matchUrls(item->m_url.host(), accessedHost)) {
             item->m_refcount++;
+            item->m_lastAccess = QDateTime::currentDateTime().toTime_t();
             // move it up if needed
             int j = i;
             // '<=' is for the last access sorting, recently used items move up
-            while (--j >= 0 && item->m_refcount >= m_list.at(j).m_refcount);
+            while (--j >= 0 && item->m_refcount >= m_list.at(j)->m_refcount);
             // position adjusting and check whether we really moved
             if (++j != i) 
                 m_list.move(i, j);
-            found = true;
+            found = j;
             break;
         }
     }
     
-    if (!found) {
-        UrlItem newItem(host);
+    if (found == -1) {
         // insert to the top of the 1 refcount items. recently used sort
         int i = m_list.size();
-        while (--i >= 0 && m_list.at(i).m_refcount == 1);
-        m_list.insert(++i, newItem);
+        while (--i >= 0 && m_list.at(i)->m_refcount == 1);
+        m_list.insert(++i, new UrlItem(url, title, thumbnail));
+    } else if (thumbnail) {
+        // add thumbnail if not there yet
+        m_list[found]->setThumbnail(thumbnail);
     }
 #if defined(ENABLE_URLSTORE_DEBUG)
     for (int i = 0; i < m_list.size(); ++i)
-        qDebug()<<m_list.at(i).m_host<<" "<<m_list.at(i).m_refcount;
+        qDebug()<<m_list.at(i)->m_url.toString()<<" "<<m_list.at(i)->m_refcount;
 #endif
+    m_needsPersisting = true;
+    QTimer::singleShot(2000, this, SLOT(externalize()));
 }
 
-QString UrlStore::match(const QString& str)
+bool UrlStore::contains(const QString& url)
 {
-    if (!str.size())
+    for (int i = 0; i < m_list.size(); ++i)
+        if (m_list.at(i)->m_url.toString() == url)
+            return true;
+    return false;
+}
+
+QString UrlStore::match(const QString& url)
+{
+    if (!url.size())
         return QString();
     for (int i = 0; i < m_list.size(); ++i) {
         // do a very simply startWith matching first.
-        QString host = m_list.at(i).m_host;
-        if (host.startsWith(str))
+        QString host = m_list.at(i)->m_url.host();
+        if (host.startsWith(url))
             return host;
         else if (host.startsWith("www.")) {
             host = host.mid(4);
-            if (host.startsWith(str))
+            if (host.startsWith(url))
                 return host;
         }
     }
@@ -165,7 +186,4 @@ bool UrlStore::matchUrls(const QString& url1, const QString& url2)
         return true;
     return false;
 }
-
-
-
 

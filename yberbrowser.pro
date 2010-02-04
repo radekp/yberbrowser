@@ -107,19 +107,25 @@ HEADERS = \
   src/AutoScroller.h \
   src/MainWindow.h \
   src/WebViewportItem.h \
+  src/HistoryViewportItem.h \
   src/CommonGestureRecognizer.h \
   src/EventHelpers.h \
   src/FlickAnimation.h \
-  src/MainView.h \
-  src/UrlStore.h
+  src/PageView.h \
+  src/HistoryItem.h \
+  src/UrlStore.h \
+  src/UrlItem.h
 
 SOURCES = \
   src/main.cpp \
   src/AutoScroller.cpp \
   src/MainWindow.cpp \
   src/WebViewportItem.cpp \
+  src/HistoryViewportItem.cpp \
   src/CommonGestureRecognizer.cpp \
   src/EventHelpers.cpp \
   src/FlickAnimation.cpp \
-  src/MainView.cpp \
-  src/UrlStore.cpp
+  src/PageView.cpp \
+  src/HistoryItem.cpp \
+  src/UrlStore.cpp \
+  src/UrlItem.cpp

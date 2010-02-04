@@ -64,7 +64,7 @@
 
 
 #include "MainWindow.h"
-#include "MainView.h"
+#include "PageView.h"
 #include "WebViewportItem.h"
 #include "UrlStore.h"
 
@@ -113,11 +113,12 @@ void AutoSelectLineEdit::focusOutEvent(QFocusEvent*e)
 MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
     : QMainWindow()
     , m_settings(settings)
-    , m_view(new MainView(this))
+    , m_pageView(new PageView(this))
     , m_scene(new QGraphicsScene(this))
     , m_webViewItem(new WebView)
     , m_page(0)
     , m_proxy(proxy)
+    , m_urlStore(new UrlStore())
     , m_naviToolbar(0)
     , m_urlEdit(0)
     , m_fpsBox(0)
@@ -126,11 +127,6 @@ MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
 {
     init();
     m_zoomInOutTimestamp.start();
-
-    m_urlStore = 0;
-    if (!m_settings.m_disableAutoComplete)
-        m_urlStore = new UrlStore;
-
 
 #if defined(Q_WS_MAEMO_5)
     QDBusConnection::systemBus().connect(QString(), MCE_SIGNAL_PATH, MCE_SIGNAL_IF,
@@ -157,6 +153,7 @@ void MainWindow::init()
     resize(800, 480);
 
     setAttribute(Qt::WA_DeleteOnClose);
+
     m_page = new WebPage(m_webViewItem, this);
     if (m_proxy)
         m_page->networkAccessManager()->setProxy(*m_proxy);
@@ -169,10 +166,11 @@ void MainWindow::init()
 #endif
 
     m_scene->setItemIndexMethod(QGraphicsScene::NoIndex);
-    m_view->setScene(m_scene);
+    m_pageView->setScene(m_scene);
+    setCentralWidget(m_pageView);
 
-    setCentralWidget(m_view);
-    m_view->setWebView(m_webViewItem);
+    m_pageView->init();
+    m_pageView->setWebView(m_webViewItem);
 
     connect(m_webViewItem, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(m_webViewItem, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
@@ -183,7 +181,7 @@ void MainWindow::init()
     buildUI();
     setLoadInProgress(false);
     setFPSCalculation(m_settings.m_showFPS);
-    m_view->showTiles(m_settings.m_showTiles);
+    m_pageView->showTiles(m_settings.m_showTiles);
 }
 
 void MainWindow::load(const QString& url)
@@ -213,8 +211,8 @@ QWebPage* MainWindow::page() const
     return m_webViewItem->page();
 }
 
-MainView* MainWindow::view() {
-    return m_view;
+PageView* MainWindow::pageView() {
+    return m_pageView;
 }
 
 void MainWindow::changeLocation()
@@ -226,7 +224,7 @@ void MainWindow::changeLocation()
 
 void MainWindow::urlTextEdited(const QString& newText)
 {
-    if (!m_urlStore)
+    if (m_settings.m_disableAutoComplete)
         return;
 
     QString text = newText;
@@ -249,8 +247,24 @@ void MainWindow::loadFinished(bool success)
 {
     setLoadInProgress(false);
     updateURL();
-    if (success && m_urlStore)
-        m_urlStore->accessed(m_webViewItem->url());
+    if (success)
+        QTimer::singleShot(1000, this, SLOT(updateUrlStore()));
+}
+
+void MainWindow::updateUrlStore()
+{
+    // render thumbnail
+    // todo: render thumbnail if it is really needed
+    // todo: update them, right now thumbnails get saved only when accessed first
+    QImage* thumbnail = 0;
+    //if (!m_urlStore->contains(m_webViewItem->url().toString())) 
+    {
+        QSize thumbnailSize(500, 400);
+        thumbnail = new QImage(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
+        QPainter p(thumbnail);
+        m_page->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
+    }
+    m_urlStore->accessed(m_webViewItem->url(), m_webViewItem->title(), thumbnail);
 }
 
 void MainWindow::urlChanged(const QUrl& url)
@@ -262,7 +276,6 @@ void MainWindow::updateURL()
 {
     urlChanged(m_webViewItem->url());
 }
-
 
 void MainWindow::showFPSChanged(bool checked) 
 {
@@ -284,7 +297,7 @@ void MainWindow::setFPSCalculation(bool fpsOn)
 void MainWindow::showTilesChanged(bool checked)
 {
     m_settings.m_showTiles = checked;
-    m_view->showTiles(m_settings.m_showTiles);
+    m_pageView->showTiles(m_settings.m_showTiles);
 }
 
 MainWindow* MainWindow::newWindow(const QString &url)
@@ -350,6 +363,7 @@ void MainWindow::buildToolbar()
 
     m_naviToolbar->addAction(m_reloadAction = page->action(QWebPage::Reload));
     m_naviToolbar->addAction(m_stopAction = page->action(QWebPage::Stop));
+    m_historyAction = m_naviToolbar->addAction(style()->standardIcon(QStyle::SP_FileIcon), "History", m_pageView, SLOT(toggleHistory()));
     m_naviToolbar->addWidget(m_urlEdit);
     m_naviToolbar->addAction(page->action(QWebPage::Back));
     if (m_settings.m_disableToolbar)
@@ -367,7 +381,7 @@ QUrl MainWindow::urlFromUserInput(const QString& string)
 }
 
 void MainWindow::keyPressEvent(QKeyEvent* event) {
-    if (m_view->interactionItem()) {
+    if (m_pageView->interactionItem()) {
         if (event->modifiers() & Qt::ControlModifier) {
             switch (event->key()) {
             case Qt::Key_I:
@@ -429,7 +443,7 @@ void MainWindow::zoomInOrOut(bool zoomIn)
         return;
     m_zoomInOutTimestamp.restart();
 
-    WebViewportItem *viewportItem = m_view->interactionItem();
+    WebViewportItem *viewportItem = m_pageView->interactionItem();
     qreal curScale = viewportItem->zoomScale();
     qreal newScale;
 

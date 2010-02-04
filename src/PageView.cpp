@@ -52,9 +52,11 @@
 #include <QGLWidget>
 #include <QtGlobal>
 
-#include "MainView.h"
+#include "PageView.h"
 #include "MainWindow.h"
 #include "WebViewportItem.h"
+#include "HistoryViewportItem.h"
+#include "UrlStore.h"
 
 static const unsigned s_tileSize = 35;
 static const unsigned s_progressBckgColor = 0xA0C6F3;
@@ -160,23 +162,24 @@ void TileItem::paintBlinkEnd()
 // qt api is not very clear on the signal order. once the aspects
 // of load signal order have been cleared, remove these ifdefs
 
-MainView::MainView(MainWindow* window)
+PageView::PageView(MainWindow* window)
     : QGraphicsView(window)
     , m_mainWindow(window)
-    , m_interactionItem(0)
+    , m_pageViewportItem(0)
+    , m_historyViewportItem(0)
     , m_state(InitialLoad)
     , m_webView(0)
     , m_tilesOn(false)
     , m_progressBox(0)
 {
     if (window->settings().m_useGL)  {
-	QGLFormat format = QGLFormat::defaultFormat();
+	    QGLFormat format = QGLFormat::defaultFormat();
         format.setSampleBuffers(false);
 
         QGLWidget *glWidget = new QGLWidget(format);    
         glWidget->setAutoFillBackground(false);
 
-	setViewport(glWidget);
+	    setViewport(glWidget);
     }
 
     setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
@@ -189,58 +192,74 @@ MainView::MainView(MainWindow* window)
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
 
-MainView::~MainView()
+PageView::~PageView()
 {
+    // delete history only when it is not active
+    if (scene()->activeWindow() != m_historyViewportItem)
+        delete m_historyViewportItem;
+    else 
+        delete m_pageViewportItem;
     // todo: figure out ownership
     delete m_progressBox;
 }
 
-void MainView::setWebView(WebView* webViewItem)
+void PageView::init()
+{
+    m_historyViewportItem = new HistoryViewportItem(*this);
+    scene()->addItem(m_historyViewportItem);
+    m_historyViewportItem->setZValue(100);
+    scene()->setActiveWindow(m_historyViewportItem);
+    connect(m_historyViewportItem, SIGNAL(hideHistory()), this, SLOT(disableHistoryView()));
+}
+
+void PageView::setWebView(WebView* webViewItem)
 {
     if (webViewItem) {
-        if (!m_interactionItem) {
+        if (!m_pageViewportItem) {
             Q_ASSERT(scene());
-            m_interactionItem = new WebViewportItem();
-            scene()->addItem(m_interactionItem);
-            scene()->setActiveWindow(m_interactionItem);
+            m_pageViewportItem = new WebViewportItem();
+            scene()->addItem(m_pageViewportItem);
         }
-        m_interactionItem->setWebView(m_webView = webViewItem);
+        m_pageViewportItem->setWebView(m_webView = webViewItem);
         installSignalHandlers();
         updateSize();
     } else {
-        m_interactionItem->setParent(0);
-        delete m_interactionItem;
-        m_interactionItem = 0;
+        m_pageViewportItem->setParent(0);
+        delete m_pageViewportItem;
+        m_pageViewportItem = 0;
     }
 }
 
-void MainView::resizeEvent(QResizeEvent* event)
+void PageView::resizeEvent(QResizeEvent* event)
 {
     QGraphicsView::resizeEvent(event);
     updateSize();
 }
 
-void MainView::updateSize()
+void PageView::updateSize()
 {
     setUpdatesEnabled(false);
-    if (!m_interactionItem)
+    if (!m_pageViewportItem)
         return;
 
     QRectF rect(QPointF(0, 0), size());
     scene()->setSceneRect(rect);
 
-    m_interactionItem->setGeometry(rect);
+    m_pageViewportItem->setGeometry(rect);
     updateZoomScaleToPageWidth();
     setUpdatesEnabled(true);
+
+    m_historyViewportItem->setGeometry(rect);
+
     update();
 }
 
-WebView* MainView::webView()
+WebView* PageView::webView()
 {
     return m_webView;
 }
 
-void MainView::installSignalHandlers()
+void PageView::installSignalHandlers()
 {
     connect(webView()->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), this, SLOT(resetState()));
     connect(webView()->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(contentsSizeChanged(const QSize&)));
@@ -255,23 +274,25 @@ void MainView::installSignalHandlers()
     connect(webView()->page(),SIGNAL(tileCacheViewportScaleChanged()), SLOT(tileCacheViewportScaleChanged()));
 }
 
-void MainView::resetState()
+void PageView::resetState()
 {
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__;
 #endif
     m_state = InitialLoad;
-    if (m_interactionItem) {
+    if (m_pageViewportItem) {
         // zoom will be updated in contentsSizeChanged
-        m_interactionItem->resetState(false);
+        m_pageViewportItem->resetState(false);
     }
 
     setUpdatesEnabled(true);
     update();
 }
 
-void MainView::loadStarted()
+void PageView::loadStarted()
 {
+    if (m_historyViewportItem->isActive())
+        toggleHistory();
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__;
 #endif
@@ -297,7 +318,7 @@ void MainView::loadStarted()
     //setUpdatesEnabled(false);
 }
 
-void MainView::loadProgress(int progress)
+void PageView::loadProgress(int progress)
 {
     // todo: find out this magic 10% thing
     if (progress <= 10)
@@ -305,7 +326,7 @@ void MainView::loadProgress(int progress)
     m_progressBox->setText(QString::number(progress) + "%");
 }
 
-void MainView::loadFinished(bool)
+void PageView::loadFinished(bool)
 {
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__;
@@ -317,12 +338,12 @@ void MainView::loadFinished(bool)
         m_state = Interaction;
 }
 
-void MainView::sceneRectChanged(const QRectF& /*rect*/)
+void PageView::sceneRectChanged(const QRectF& /*rect*/)
 {
     m_progressBox->setGeometry(progressRect());
 }
 
-void MainView::contentsSizeChanged(const QSize&)
+void PageView::contentsSizeChanged(const QSize&)
 {
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__;
@@ -334,17 +355,17 @@ void MainView::contentsSizeChanged(const QSize&)
     }
 }
 
-void MainView::updateZoomScaleToPageWidth()
+void PageView::updateZoomScaleToPageWidth()
 {
-    if (!m_interactionItem)
+    if (!m_pageViewportItem)
         return;
 
     QSize contentsSize = webView()->page()->mainFrame()->contentsSize();
     qreal targetScale = 1.;
     if (contentsSize.width()) {
-        targetScale = static_cast<qreal>(m_interactionItem->size().width()) / contentsSize.width();
+        targetScale = static_cast<qreal>(m_pageViewportItem->size().width()) / contentsSize.width();
     }
-    m_interactionItem->setZoomScale(targetScale);
+    m_pageViewportItem->setZoomScale(targetScale);
 }
 
 struct SavedViewState
@@ -373,7 +394,7 @@ struct SavedViewState
 };
 Q_DECLARE_METATYPE(SavedViewState);  // a bit heavy weight for what this is used for
 
-void MainView::saveFrameState(QWebFrame* frame, QWebHistoryItem* item)
+void PageView::saveFrameState(QWebFrame* frame, QWebHistoryItem* item)
 {
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__ << frame << item;
@@ -383,14 +404,14 @@ void MainView::saveFrameState(QWebFrame* frame, QWebHistoryItem* item)
     if (m_mainWindow->settings().m_enableEngineThread)
         return;
     if (frame == webView()->page()->mainFrame())
-        item->setUserData(QVariant::fromValue(SavedViewState(m_interactionItem)));
+        item->setUserData(QVariant::fromValue(SavedViewState(m_pageViewportItem)));
 #if defined(ENABLE_LOADEVENT_DEBUG)
     else
         qDebug() << "Unknown frame at " << __PRETTY_FUNCTION__;
 #endif
 }
 
-void MainView::restoreFrameState(QWebFrame* frame)
+void PageView::restoreFrameState(QWebFrame* frame)
 {
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__ << frame;
@@ -403,7 +424,7 @@ void MainView::restoreFrameState(QWebFrame* frame)
         if (value.canConvert<SavedViewState>()) {
             SavedViewState s = value.value<SavedViewState>();
             if (s.isValid())
-                s.imposeTo(m_interactionItem);
+                s.imposeTo(m_pageViewportItem);
         }
     }
 #if defined(ENABLE_LOADEVENT_DEBUG)
@@ -412,7 +433,7 @@ void MainView::restoreFrameState(QWebFrame* frame)
 #endif
 }
 
-void MainView::showTiles(bool tilesOn) 
+void PageView::showTiles(bool tilesOn) 
 {
     m_tilesOn = tilesOn;
     QMapIterator<int, TileItem*> i(m_tileMap);
@@ -422,7 +443,7 @@ void MainView::showTiles(bool tilesOn)
     }
 }
 
-void MainView::tileCreated(unsigned hPos, unsigned vPos)
+void PageView::tileCreated(unsigned hPos, unsigned vPos)
 {
     // new tile or just inactive?
     if (!m_tileMap.contains(TILE_KEY(hPos, vPos)))
@@ -431,30 +452,26 @@ void MainView::tileCreated(unsigned hPos, unsigned vPos)
         m_tileMap.value(TILE_KEY(hPos, vPos))->setActive(true);
 }
 
-void MainView::tileRemoved(unsigned hPos, unsigned vPos)
+void PageView::tileRemoved(unsigned hPos, unsigned vPos)
 {
-    if (!m_tileMap.contains(TILE_KEY(hPos, vPos))) {
-        // qDebug() << __FUNCTION__ << " didn't find tile at:" << hPos << " " <<  vPos;
+    if (!m_tileMap.contains(TILE_KEY(hPos, vPos)))
         return;
-    }
     m_tileMap.value(TILE_KEY(hPos, vPos))->setActive(false);
 }
 
-void MainView::tilePainted(unsigned hPos, unsigned vPos)
+void PageView::tilePainted(unsigned hPos, unsigned vPos)
 {
-    if (!m_tileMap.contains(TILE_KEY(hPos, vPos))) {
-        // qDebug() << __FUNCTION__ << " didn't find tile at:" << hPos << " " <<  vPos;
+    if (!m_tileMap.contains(TILE_KEY(hPos, vPos)))
         return;
-    }
     m_tileMap.value(TILE_KEY(hPos, vPos))->painted();
 }
 
-void MainView::tileCacheViewportScaleChanged()
+void PageView::tileCacheViewportScaleChanged()
 {
     QTimer::singleShot(0, this, SLOT(resetCacheTiles()));
 }
 
-void MainView::resetCacheTiles()
+void PageView::resetCacheTiles()
 {
     QMapIterator<int, TileItem*> i(m_tileMap);
     while (i.hasNext()) {
@@ -463,11 +480,30 @@ void MainView::resetCacheTiles()
     }
 }
 
-QRect MainView::progressRect()
+QRect PageView::progressRect()
 {
     int height = m_progressBox->fontMetrics().height();
     int width = qMin(m_progressBox->fontMetrics().size(Qt::TextSingleLine, s_initialProgressText).width() + 30, 100);
     return QRect(0, scene()->sceneRect().bottomLeft().y() - (height + 3), width, height + 3);
 }
 
-#include "MainView.moc"
+void PageView::toggleHistory()
+{
+    // hack
+    if (m_historyViewportItem->zValue() == -1) {
+        scene()->addItem(m_historyViewportItem);
+        m_historyViewportItem->setZValue(100);
+        scene()->setActiveWindow(m_historyViewportItem);
+    }
+    m_historyViewportItem->toggleHistory();
+}
+
+// callback from historyview when outbound animation finished
+void PageView::disableHistoryView()
+{
+    scene()->removeItem(m_historyViewportItem);
+    m_historyViewportItem->setZValue(-1);
+    scene()->setActiveWindow(m_pageViewportItem);
+}
+
+#include "PageView.moc"
