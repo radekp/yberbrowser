@@ -303,8 +303,12 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
             e = e.parent();
         }
         if (!e.isNull()) {
-            QSizeF targetSize = e.geometry().size();
             QRectF er = e.geometry();
+            er.adjust(-5, -5, 5, 5);
+            qreal overMinWidth = er.width() - 300;
+            if (overMinWidth < 0)
+                er.adjust(overMinWidth / 2, 0, -overMinWidth / 2, 0);
+            QSizeF targetSize = er.size();
             p.setX(er.x() + er.size().width() / 2);
             targetScale = static_cast<qreal>(viewportSize.width()) / targetSize.width();
         }
