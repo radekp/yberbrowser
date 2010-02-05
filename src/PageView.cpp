@@ -121,6 +121,8 @@ void PageView::init()
     m_historyViewportItem->setZValue(100);
     scene()->setActiveWindow(m_historyViewportItem);
     connect(m_historyViewportItem, SIGNAL(hideHistory()), this, SLOT(disableHistoryView()));
+    // turn history on by default on startup
+    toggleHistory();
 }
 
 void PageView::setWebView(WebView* webViewItem)

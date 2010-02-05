@@ -24,7 +24,7 @@ HistoryViewportItem::HistoryViewportItem(PageView& view, QGraphicsItem* parent, 
     : QGraphicsWidget(parent, wFlags)
     , m_view(&view)
     , m_bckg(0)
-    , m_active(true)
+    , m_active(false)
     // fixme: remove m_ongoing, it is hack anyway
     , m_ongoing(false)
 {
@@ -53,9 +53,7 @@ void HistoryViewportItem::setGeometry(const QRectF& rect)
 void HistoryViewportItem::toggleHistory()
 {
     m_active = !m_active;
-    // create tiles only when they are destroyed
-    // don't create tiles, when cancelling ongoing outbound animation
-    if (m_active && !m_historyList.size())
+    if (m_active)
         createHistoryTiles();
     startAnimation(m_active);
 }
@@ -163,8 +161,12 @@ void HistoryViewportItem::animFinished()
 
 void HistoryViewportItem::startAnimation(bool in)
 {
-    if (!m_historyList.size())
+    if (!m_historyList.size()) {
+        // keep the state sane, even where there is no items
+        if (!m_active)
+            emit hideHistory();
         return;
+    }
 
     // get the topmost item and calculate the slide distance accordingly
     unsigned dist = rect().height() - m_historyList.at(0)->geometry().y();
