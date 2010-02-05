@@ -116,14 +116,14 @@ void UrlStore::externalize()
 
 void UrlStore::accessed(const QUrl& url, const QString& title, QImage* thumbnail)
 {
-    QString accessedHost = url.host();
+    QString accessedHostAndPath = url.host() + url.path();
     int found = -1;
 #if defined(ENABLE_URLSTORE_DEBUG)
     qDebug() << "UrlStore:" << __FUNCTION__ << accessedHost;
 #endif
     for (int i = 0; i < m_list.size(); ++i) {
         UrlItem* item = m_list[i];
-        if (matchUrls(item->m_url.host(), accessedHost)) {
+        if (matchUrls(item->m_url.host() + item->m_url.path(), accessedHostAndPath)) {
             item->m_refcount++;
             item->m_lastAccess = QDateTime::currentDateTime().toTime_t();
             // move it up if needed
