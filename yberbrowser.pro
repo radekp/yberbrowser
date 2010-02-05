@@ -114,7 +114,8 @@ HEADERS = \
   src/PageView.h \
   src/HistoryItem.h \
   src/UrlStore.h \
-  src/UrlItem.h
+  src/UrlItem.h \
+  src/Settings.h
 
 SOURCES = \
   src/main.cpp \

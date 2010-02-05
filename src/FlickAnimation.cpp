@@ -27,12 +27,6 @@ void FlickAnimation::start(qreal velocity)
     m_velocityTs.start();
     m_currentVelocity = velocity;
     // max it out at +-1.9
-    qDebug() << m_currentVelocity; 
-    if (qAbs(m_currentVelocity) > 1.9)
-        m_currentVelocity = qMax(1.9, qMin(-1.9, m_currentVelocity));
-    qDebug() << m_currentVelocity; 
-    
-
     m_timerId = startTimer(s_timerRes);
 
 }
