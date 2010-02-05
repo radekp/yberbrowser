@@ -57,6 +57,7 @@
 #include "WebViewportItem.h"
 #include "HistoryViewportItem.h"
 #include "UrlStore.h"
+#include "Settings.h"
 
 static const unsigned s_progressBckgColor = 0xA0C6F3;
 static const unsigned s_progressTextColor = 0x185488;
@@ -82,7 +83,7 @@ PageView::PageView(MainWindow* window)
     , m_webView(0)
     , m_progressBox(0)
 {
-    if (window->settings().m_useGL)  {
+    if (Settings::instance()->useGL())  {
 	    QGLFormat format = QGLFormat::defaultFormat();
         format.setSampleBuffers(false);
 
@@ -307,7 +308,7 @@ void PageView::saveFrameState(QWebFrame* frame, QWebHistoryItem* item)
 #endif
 
     // FIXME: this crashes with threading for some reason
-    if (m_mainWindow->settings().m_enableEngineThread)
+    if (Settings::instance()->engineThreadEnabled())
         return;
     if (frame == webView()->page()->mainFrame())
         item->setUserData(QVariant::fromValue(SavedViewState(m_pageViewportItem)));

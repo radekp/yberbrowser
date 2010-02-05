@@ -54,26 +54,6 @@ class QLabel;
 class QToolBar;
 class QGraphicsView;
 
-struct Settings
-{
-    bool m_disableToolbar;
-    bool m_disableTiling;
-    bool m_useGL;
-    bool m_showFPS;
-    bool m_disableAutoComplete;
-    bool m_showTiles;
-    bool m_enableEngineThread;
-
-    Settings()
-        : m_disableToolbar(false)
-        , m_disableTiling(false)
-        , m_useGL(false)
-        , m_showFPS(false)
-        , m_disableAutoComplete(false)
-        , m_showTiles(false)
-        , m_enableEngineThread(false)
-    {}
-};
 class AutoSelectLineEdit;
 
 class MainWindow : public QMainWindow
@@ -81,7 +61,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QNetworkProxy* m_proxy = 0, Settings settings = Settings());
+    MainWindow(QNetworkProxy* m_proxy = 0);
     ~MainWindow();
     void init();
 
@@ -92,8 +72,6 @@ public:
     PageView* pageView();
 
     UrlStore* urlStore() const { return m_urlStore; }
-
-    const Settings& settings() const { return m_settings; }
 
     static QUrl urlFromUserInput(const QString& string);
 
@@ -140,7 +118,6 @@ private:
 #endif
 
 private:
-    Settings m_settings;
     PageView* m_pageView;
     QGraphicsScene* m_scene;
     WebView* m_webViewItem;
@@ -162,8 +139,6 @@ private:
 
     QTime m_zoomInOutTimestamp;
 };
-
-
 
 class WebView : public QGraphicsWebView {
     Q_OBJECT
@@ -199,7 +174,6 @@ public:
 private:
     MainWindow* m_ownerWindow;
 };
-
 
 class AutoSelectLineEdit : public QLineEdit
 {

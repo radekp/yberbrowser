@@ -3,6 +3,8 @@
 #include <QDateTime>
 #include <QImage>
 
+#include "Settings.h"
+
 UrlItem::UrlItem()
     : m_refcount(0)
     , m_lastAccess(0)
@@ -40,7 +42,7 @@ QImage* UrlItem::thumbnail()
     if (!m_thumbnailPath.size())
         return 0;
     // load thumbnail
-    m_thumbnail = new QImage(UrlStore::thumbnailDir() + m_thumbnailPath);
+    m_thumbnail = new QImage(Settings::instance()->privatePath() + m_thumbnailPath);
     return m_thumbnail;
 }
 

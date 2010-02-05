@@ -1,10 +1,13 @@
 #include "UrlStore.h"
+#include <QtGlobal>
 #include <QDataStream>
 #include <QFile>
 #include <QDateTime>
 #include <iostream>
 #include <QImage>
 #include <QTimer>
+
+#include "Settings.h"
 
 //#define ENABLE_URLSTORE_DEBUG 1
 
@@ -14,8 +17,8 @@
 
 // FIXME: remove privPath
 
-static uint currentVersion = 2;
-QString UrlStore::s_thumbnailDir = QString();
+static uint s_currentVersion = 2;
+static int s_maxUrlStoreItems = 50;
 
 UrlStore::UrlStore()
     : m_needsPersisting(false)
@@ -39,13 +42,13 @@ void UrlStore::internalize()
 #if defined(ENABLE_URLSTORE_DEBUG)
     qDebug() << "UrlStore:" << __FUNCTION__ << "urlstore.txt"<<endl;
 #endif
-    QFile store(thumbnailDir() + "urlstore.txt");
+    QFile store(Settings::instance()->privatePath() + "urlstore.txt");
 
     if (store.open(QFile::ReadWrite)) {
         QDataStream in(&store);
         uint version;
         in>>version;
-        if (version == currentVersion) {
+        if (version == s_currentVersion) {
             int count;
             in>>count;
             for (int i = 0; i < count; ++i) {
@@ -82,8 +85,9 @@ void UrlStore::externalize()
 #if defined(ENABLE_URLSTORE_DEBUG)
     qDebug() << "UrlStore:" << __FUNCTION__ << "urlstore.txt"<<endl;
 #endif
+    int count = qMin(m_list.size(), s_maxUrlStoreItems);
     // save thumbnails first
-    for (int i = 0; i < m_list.size(); ++i) {
+    for (int i = 0; i < count; ++i) {
         UrlItem* item = m_list[i];
         // save if new thumbnail is available
         if (item->thumbnailAvailable() && item->m_thumbnailChanged) {
@@ -94,18 +98,18 @@ void UrlStore::externalize()
 #if defined(ENABLE_URLSTORE_DEBUG)
             qDebug() << item->m_thumbnailPath;
 #endif
-            item->thumbnail()->save(thumbnailDir() + item->m_thumbnailPath);
+            item->thumbnail()->save(Settings::instance()->privatePath() + item->m_thumbnailPath);
         }
     }
     // save url store
     // version
     // number of items
     // url, refcount, lastaccess
-    QFile store(thumbnailDir() + "urlstore.txt");
+    QFile store(Settings::instance()->privatePath() + "urlstore.txt");
     if (store.open(QFile::WriteOnly | QIODevice::Truncate)) {
         QDataStream out(&store);
-        out<<currentVersion<<m_list.size();
-        for (int i = 0; i < m_list.size(); ++i) {
+        out<<s_currentVersion<<count;
+        for (int i = 0; i < count; ++i) {
             UrlItem* item = m_list.at(i);
             out<<item->m_url.toString()<<item->m_title<<item->m_refcount<<item->m_lastAccess<<item->m_thumbnailPath;
         }

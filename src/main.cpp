@@ -55,6 +55,7 @@
 #include <X11/Xatom.h>
 
 #include "MainWindow.h"
+#include "Settings.h"
 #include "UrlStore.h"
 
 QNetworkProxy* g_globalProxy;
@@ -79,7 +80,9 @@ int main(int argc, char** argv)
     if (!privDir.exists()) {
         privDir.mkpath(privPath);
     }
-    UrlStore::setThumbnailDir(privPath);
+    Settings* settings = Settings::instance();
+
+    settings->setPrivatePath(privPath);
 
     QWebSettings::setObjectCacheCapacities((16 * 1024 * 1024) / 8, (16 * 1024 * 1024) / 8, 16 * 1024 * 1024);
     QWebSettings::setMaximumPagesInCache(4);
@@ -94,17 +97,15 @@ int main(int argc, char** argv)
 
     QStringList args = app.arguments();
 
-    Settings settings;
-
 #if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
-    settings.m_disableTiling = false;
+    settings->enableTileCache(true);
 #else
-    settings.m_disableTiling = true;
+    settings->enableTileCache(false);
 #endif
 #if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
-    settings.m_enableEngineThread = true;
+    settings->enableEngineThread(true);
 #else
-    settings.m_enableEngineThread = false;
+    settings->enableEngineThread(false);
 #endif
 
     bool noFullscreen = false;
@@ -116,25 +117,25 @@ int main(int argc, char** argv)
                 noFullscreen = true;
                 args.removeAt(1);
             } else if (args.at(1) == "-t") {
-                settings.m_disableToolbar = true;
+                settings->enableToolbar(false);
                 args.removeAt(1);
             } else if (args.at(1) == "-g") {
-                settings.m_useGL = true;
+                settings->setUseGL(true);
                 args.removeAt(1);
             } else if (args.at(1) == "-c") {
-                settings.m_disableTiling = true;
+                settings->enableTileCache(false);
                 args.removeAt(1);
             } else if (args.at(1) == "-a") {
-                settings.m_disableAutoComplete = true;
+                settings->enableAutoComplete(false);
                 args.removeAt(1);
             } else if (args.at(1) == "-f") {
-                settings.m_showFPS = true;
+                settings->enableFPS(true);
                 args.removeAt(1);
             } else if (args.at(1) == "-v") {
-                settings.m_showTiles = true;
+                settings->enableTileVisualization(true);
                 args.removeAt(1);
             } else if (args.at(1) == "-e") {
-                settings.m_enableEngineThread = false;
+                settings->enableEngineThread(false);
                 args.removeAt(1);
             } else if (args.at(1) == "-?" || args.at(1) == "-h" || args.at(1) == "--help") {
                 usage(argv[0]);
@@ -151,11 +152,11 @@ int main(int argc, char** argv)
         url = args.at(1);
     
 #if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
-    if (settings.m_enableEngineThread)
+    if (settings->engineThreadEnabled())
         QWebSettings::enableEngineThread();
 #endif
 
-    MainWindow* window = new MainWindow(g_globalProxy, settings);
+    MainWindow* window = new MainWindow(g_globalProxy);
     if (url.size())
         window->load(url);
     if (noFullscreen)

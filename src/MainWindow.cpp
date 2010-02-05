@@ -62,11 +62,11 @@
 #include <X11/Xatom.h>
 #endif
 
-
 #include "MainWindow.h"
 #include "PageView.h"
 #include "WebViewportItem.h"
 #include "UrlStore.h"
+#include "Settings.h"
 
 static const float s_zoomScaleKeyStep = 1.4;
 static const int s_fpsTimerInterval = 250;
@@ -110,9 +110,8 @@ void AutoSelectLineEdit::focusOutEvent(QFocusEvent*e)
     deselect();
 }
 
-MainWindow::MainWindow(QNetworkProxy* proxy, Settings settings)
+MainWindow::MainWindow(QNetworkProxy* proxy)
     : QMainWindow()
-    , m_settings(settings)
     , m_pageView(new PageView(this))
     , m_scene(new QGraphicsScene(this))
     , m_webViewItem(new WebView)
@@ -145,7 +144,7 @@ MainWindow::~MainWindow()
 
 MainWindow* MainWindow::createWindow()
 {
-    return new MainWindow(m_proxy, m_settings);
+    return new MainWindow(m_proxy);
 }
 
 void MainWindow::init()
@@ -162,7 +161,7 @@ void MainWindow::init()
     
     m_webViewItem->setResizesToContent(true);
 #if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
-    m_page->mainFrame()->setTileCacheEnabled(!m_settings.m_disableTiling);
+    m_page->mainFrame()->setTileCacheEnabled(Settings::instance()->tileCacheEnabled());
 #endif
 
     m_scene->setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -180,8 +179,8 @@ void MainWindow::init()
 
     buildUI();
     setLoadInProgress(false);
-    setFPSCalculation(m_settings.m_showFPS);
-    m_pageView->interactionItem()->showTiles(m_settings.m_showTiles);
+    setFPSCalculation(Settings::instance()->FPSEnabled());
+    m_pageView->interactionItem()->showTiles(Settings::instance()->tileVisualizationEnabled());
 }
 
 void MainWindow::load(const QString& url)
@@ -224,7 +223,7 @@ void MainWindow::changeLocation()
 
 void MainWindow::urlTextEdited(const QString& newText)
 {
-    if (m_settings.m_disableAutoComplete)
+    if (!Settings::instance()->autoCompleteEnabled())
         return;
 
     QString text = newText;
@@ -279,8 +278,8 @@ void MainWindow::updateURL()
 
 void MainWindow::showFPSChanged(bool checked) 
 {
-    m_settings.m_showFPS = checked;
-    setFPSCalculation(m_settings.m_showFPS);
+    Settings::instance()->enableFPS(checked);
+    setFPSCalculation(checked);
     buildToolbar();
 }
 
@@ -296,8 +295,8 @@ void MainWindow::setFPSCalculation(bool fpsOn)
 
 void MainWindow::showTilesChanged(bool checked)
 {
-    m_settings.m_showTiles = checked;
-    m_pageView->interactionItem()->showTiles(m_settings.m_showTiles);
+    Settings::instance()->enableTileVisualization(checked);
+    m_pageView->interactionItem()->showTiles(checked);
 }
 
 MainWindow* MainWindow::newWindow(const QString &url)
@@ -324,13 +323,13 @@ void MainWindow::buildUI()
     // fps
     QAction* fpsAction = new QAction("Show FPS", developerMenu);
     fpsAction->setCheckable(true);
-    fpsAction->setChecked(m_settings.m_showFPS);
+    fpsAction->setChecked(Settings::instance()->FPSEnabled());
     connect(fpsAction, SIGNAL(toggled(bool)), this, SLOT(showFPSChanged(bool)));
     developerMenu->addAction(fpsAction);
     // tiling visualization
     QAction* tileAction = new QAction("Show tiles", developerMenu);
     tileAction->setCheckable(true);
-    tileAction->setChecked(m_settings.m_showTiles);
+    tileAction->setChecked(Settings::instance()->tileVisualizationEnabled());
     connect(tileAction, SIGNAL(toggled(bool)), this, SLOT(showTilesChanged(bool)));
     developerMenu->addAction(tileAction);
 
@@ -353,7 +352,7 @@ void MainWindow::buildToolbar()
     connect(m_urlEdit, SIGNAL(editCancelled()), SLOT(updateURL()));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
 
-    if (m_settings.m_showFPS) {
+    if (Settings::instance()->FPSEnabled()) {
         m_fpsBox = new QLabel("FPS:00.00", this);
         m_fpsBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
         m_fpsBox->setFixedSize(m_fpsBox->width(), m_fpsBox->height());
@@ -366,7 +365,7 @@ void MainWindow::buildToolbar()
     m_historyAction = m_naviToolbar->addAction(style()->standardIcon(QStyle::SP_FileIcon), "History", m_pageView, SLOT(toggleHistory()));
     m_naviToolbar->addWidget(m_urlEdit);
     m_naviToolbar->addAction(page->action(QWebPage::Back));
-    if (m_settings.m_disableToolbar)
+    if (!Settings::instance()->toolbarEnabled())
         m_naviToolbar->hide();
 }
 
@@ -425,7 +424,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
 
 void MainWindow::timerEvent(QTimerEvent *)
 {
-    if (!m_settings.m_showFPS)
+    if (!Settings::instance()->FPSEnabled())
         return;
     double dt = m_fpsTimestamp.restart();
     double dticks = m_webViewItem->fpsTicks() - m_fpsTicks;
