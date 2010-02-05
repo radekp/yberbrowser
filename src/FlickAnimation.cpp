@@ -7,7 +7,7 @@ static const int s_timerRes = 1000. / 60.;
 
 // acceleration / deceleration in pixels per millisecond^2
 static const float s_acceleration = 1./300.;
-static const float s_maxVelocity = 1.9;
+static const float s_maxVelocity = 2.8;
 
 FlickAnimation::FlickAnimation(WebViewportItem* item)
     : m_item(item)
