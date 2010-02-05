@@ -7,6 +7,7 @@ static const int s_timerRes = 1000. / 60.;
 
 // acceleration / deceleration in pixels per millisecond^2
 static const float s_acceleration = 1./300.;
+static const float s_maxVelocity = 1.9;
 
 FlickAnimation::FlickAnimation(WebViewportItem* item)
     : m_item(item)
@@ -27,6 +28,9 @@ void FlickAnimation::start(qreal velocity)
     m_velocityTs.start();
     m_currentVelocity = velocity;
     // max it out at +-1.9
+    if (qAbs(m_currentVelocity) > s_maxVelocity)
+        m_currentVelocity = s_maxVelocity * (m_currentVelocity < 0 ? -1 : 1);
+
     m_timerId = startTimer(s_timerRes);
 
 }
