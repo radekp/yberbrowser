@@ -63,7 +63,7 @@
 #endif
 
 #include "MainWindow.h"
-#include "PageView.h"
+#include "MainView.h"
 #include "WebViewportItem.h"
 #include "UrlStore.h"
 #include "Settings.h"
@@ -112,7 +112,7 @@ void AutoSelectLineEdit::focusOutEvent(QFocusEvent*e)
 
 MainWindow::MainWindow(QNetworkProxy* proxy)
     : QMainWindow()
-    , m_pageView(new PageView(this))
+    , m_mainView(new MainView(this))
     , m_scene(new QGraphicsScene(this))
     , m_webViewItem(new WebView)
     , m_page(0)
@@ -165,11 +165,11 @@ void MainWindow::init()
 #endif
 
     m_scene->setItemIndexMethod(QGraphicsScene::NoIndex);
-    m_pageView->setScene(m_scene);
-    setCentralWidget(m_pageView);
+    m_mainView->setScene(m_scene);
+    setCentralWidget(m_mainView);
 
-    m_pageView->init();
-    m_pageView->setWebView(m_webViewItem);
+    m_mainView->init();
+    m_mainView->setWebView(m_webViewItem);
 
     connect(m_webViewItem, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(m_webViewItem, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
@@ -180,7 +180,7 @@ void MainWindow::init()
     buildUI();
     setLoadInProgress(false);
     setFPSCalculation(Settings::instance()->FPSEnabled());
-    m_pageView->interactionItem()->showTiles(Settings::instance()->tileVisualizationEnabled());
+    m_mainView->interactionItem()->showTiles(Settings::instance()->tileVisualizationEnabled());
 }
 
 void MainWindow::load(const QString& url)
@@ -210,8 +210,8 @@ QWebPage* MainWindow::page() const
     return m_webViewItem->page();
 }
 
-PageView* MainWindow::pageView() {
-    return m_pageView;
+MainView* MainWindow::mainView() {
+    return m_mainView;
 }
 
 void MainWindow::changeLocation()
@@ -296,7 +296,7 @@ void MainWindow::setFPSCalculation(bool fpsOn)
 void MainWindow::showTilesChanged(bool checked)
 {
     Settings::instance()->enableTileVisualization(checked);
-    m_pageView->interactionItem()->showTiles(checked);
+    m_mainView->interactionItem()->showTiles(checked);
 }
 
 MainWindow* MainWindow::newWindow(const QString &url)
@@ -362,7 +362,7 @@ void MainWindow::buildToolbar()
 
     m_naviToolbar->addAction(m_reloadAction = page->action(QWebPage::Reload));
     m_naviToolbar->addAction(m_stopAction = page->action(QWebPage::Stop));
-    m_historyAction = m_naviToolbar->addAction(style()->standardIcon(QStyle::SP_FileIcon), "History", m_pageView, SLOT(toggleHistory()));
+    m_historyAction = m_naviToolbar->addAction(style()->standardIcon(QStyle::SP_FileIcon), "History", m_mainView, SLOT(toggleHistory()));
     m_naviToolbar->addWidget(m_urlEdit);
     m_naviToolbar->addAction(page->action(QWebPage::Back));
     if (!Settings::instance()->toolbarEnabled())
@@ -380,7 +380,7 @@ QUrl MainWindow::urlFromUserInput(const QString& string)
 }
 
 void MainWindow::keyPressEvent(QKeyEvent* event) {
-    if (m_pageView->interactionItem()) {
+    if (m_mainView->interactionItem()) {
         if (event->modifiers() & Qt::ControlModifier) {
             switch (event->key()) {
             case Qt::Key_I:
@@ -442,7 +442,7 @@ void MainWindow::zoomInOrOut(bool zoomIn)
         return;
     m_zoomInOutTimestamp.restart();
 
-    WebViewportItem *viewportItem = m_pageView->interactionItem();
+    WebViewportItem *viewportItem = m_mainView->interactionItem();
     qreal curScale = viewportItem->zoomScale();
     qreal newScale;
 

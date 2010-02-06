@@ -32,8 +32,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PageView_h_
-#define PageView_h_
+#ifndef MainView_h_
+#define MainView_h_
 
 #include <QGraphicsView>
 
@@ -47,12 +47,12 @@ class HistoryViewportItem;
 class QLabel;
 class HistoryItem;
 
-class PageView : public QGraphicsView {
+class MainView : public QGraphicsView {
     Q_OBJECT
 
 public:
-    PageView(MainWindow* parent);
-    ~PageView();
+    MainView(MainWindow* parent);
+    ~MainView();
 
     void init();
     void setWebView(WebView* widget);

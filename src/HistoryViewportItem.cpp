@@ -5,7 +5,7 @@
 #include <QDebug>
 
 #include "HistoryViewportItem.h"
-#include "PageView.h"
+#include "MainView.h"
 #include "MainWindow.h"
 #include "HistoryItem.h"
 #include "UrlStore.h"
@@ -20,7 +20,7 @@ public:
     TileBackground(const QRectF& rect, QGraphicsItem* parent) : QGraphicsRectItem(rect, parent) {}
 };
 
-HistoryViewportItem::HistoryViewportItem(PageView& view, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+HistoryViewportItem::HistoryViewportItem(MainView& view, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_view(&view)
     , m_bckg(0)

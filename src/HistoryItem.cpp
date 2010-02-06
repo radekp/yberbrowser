@@ -2,13 +2,11 @@
 #include <QGraphicsView>
 #include <QGraphicsWidget>
 #include <QGraphicsSimpleTextItem>
-#include <QGraphicsDropShadowEffect>
 #include <QGLWidget>
 #include <QtGlobal>
 #include <QDebug>
 
 #include "HistoryItem.h"
-#include "PageView.h"
 #include "MainWindow.h"
 #include "UrlStore.h"
 #include "UrlItem.h"

@@ -5,7 +5,7 @@
 #include <QList>
 
 class HistoryItem;
-class PageView;
+class MainView;
 class TileBackground;
 class QParallelAnimationGroup;
 class UrlItem;
@@ -13,7 +13,7 @@ class UrlItem;
 class HistoryViewportItem : public QGraphicsWidget {
     Q_OBJECT
 public:
-    HistoryViewportItem(PageView& view, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    HistoryViewportItem(MainView& view, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~HistoryViewportItem();
 
     void setGeometry(const QRectF& rect);
@@ -34,7 +34,7 @@ private:
     void startAnimation(bool in);
 
 private:
-    PageView* m_view;
+    MainView* m_view;
     TileBackground* m_bckg;
     QList<HistoryItem*> m_historyList;
     QParallelAnimationGroup* m_animGroup;

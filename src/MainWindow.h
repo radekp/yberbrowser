@@ -47,7 +47,7 @@ class QGraphicsScene;
 class QLineEdit;
 class WebPage;
 class WebView;
-class PageView;
+class MainView;
 class QNetworkProxy;
 class UrlStore;
 class QLabel;
@@ -69,7 +69,7 @@ public:
 
     QWebPage* page() const;
 
-    PageView* pageView();
+    MainView* mainView();
 
     UrlStore* urlStore() const { return m_urlStore; }
 
@@ -118,7 +118,7 @@ private:
 #endif
 
 private:
-    PageView* m_pageView;
+    MainView* m_mainView;
     QGraphicsScene* m_scene;
     WebView* m_webViewItem;
     WebPage* m_page;
