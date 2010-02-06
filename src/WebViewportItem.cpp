@@ -44,6 +44,7 @@
 #include <QtGlobal>
 
 #include "WebViewportItem.h"
+#include "ProgressWidget.h"
 #include "EventHelpers.h"
 
 static const int s_zoomAnimDurationMS = 300;
@@ -145,7 +146,7 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_zoomCommitTimer(this)
     , m_recognizer(this)
     , m_flickAnim(this)
-
+    , m_progressBox(0)
 {
 #if !defined(ENABLE_PAINT_DEBUG)
     setFlag(QGraphicsItem::ItemHasNoContents, true);
@@ -167,6 +168,7 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 WebViewportItem::~WebViewportItem()
 {
     resetCacheTiles();
+    delete m_progressBox;
 }
 
 void WebViewportItem::panAnimStateChanged(QTimeLine::State newState)
@@ -262,7 +264,6 @@ void WebViewportItem::touchGestureBegin(const QPointF&)
 void WebViewportItem::touchGestureEnd()
 {
 }
-
 
 void WebViewportItem::startInteraction()
 {
@@ -420,6 +421,8 @@ void WebViewportItem::setWebView(QGraphicsWebView* view)
     m_webView->setParentItem(this);
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
     m_zoomAnim.setItem(m_webView);
+    delete m_progressBox;
+    m_progressBox = new ProgressWidget(this);
     updatePreferredSize();
 }
 
@@ -444,7 +447,6 @@ void WebViewportItem::resetState(bool resetZoom)
         m_zoomAnim.timeLine()->stop();
         resetZoomAnim();
     }
-
 }
 
 void WebViewportItem::resetZoomAnim()
@@ -572,6 +574,8 @@ QGraphicsWebView* WebViewportItem::webView()
 void WebViewportItem::setGeometry(const QRectF& rect)
 {
     QGraphicsWidget::setGeometry(rect);
+    if (m_progressBox)
+        m_progressBox->sizeChanged();
 }
 
 void WebViewportItem::updatePreferredSize()

@@ -27,10 +27,11 @@ HistoryViewportItem::HistoryViewportItem(MainView& view, QGraphicsItem* parent, 
     , m_active(false)
     // fixme: remove m_ongoing, it is hack anyway
     , m_ongoing(false)
+    , m_animGroup(new QParallelAnimationGroup)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
-    m_animGroup = new QParallelAnimationGroup;
+    
     connect(m_animGroup, SIGNAL(finished()), this, SLOT(animFinished()));
 }
 
@@ -91,7 +92,7 @@ void HistoryViewportItem::createHistoryTiles()
         tileWidth = width / --hTileNum;
 
     tileWidth = qMin(tileWidth, maxWidth);
-
+m_animGroup = new QParallelAnimationGroup;
     // keep height proposional
     int height = rect().height();
     int vTileNum = 3;
