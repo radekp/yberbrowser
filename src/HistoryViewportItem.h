@@ -8,6 +8,7 @@ class HistoryItem;
 class PageView;
 class TileBackground;
 class QParallelAnimationGroup;
+class UrlItem;
 
 class HistoryViewportItem : public QGraphicsWidget {
     Q_OBJECT
@@ -25,6 +26,7 @@ Q_SIGNALS:
 
 public Q_SLOTS:
     void animFinished();
+    void historyItemActivated(UrlItem* item);
     
 private:
     void createHistoryTiles();

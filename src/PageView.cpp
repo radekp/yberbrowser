@@ -200,8 +200,6 @@ void PageView::resetState()
 
 void PageView::loadStarted()
 {
-    if (m_historyViewportItem->isActive())
-        toggleHistory();
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__;
 #endif

@@ -125,8 +125,7 @@ void HistoryItem::setGeometry(const QRectF& rect)
 
 void HistoryItem::thumbnailClicked()
 {
-    if (m_urlItem)
-        emit load(m_urlItem->m_url.toString());
+    emit itemActivated(m_urlItem);
 }
 
 #include "HistoryItem.moc"

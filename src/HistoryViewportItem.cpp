@@ -125,7 +125,7 @@ void HistoryViewportItem::createHistoryTiles()
                 item = m_historyList.at(itemIndex);
             else {
                 item = new HistoryItem(this, urlItem);  
-                connect(item, SIGNAL(load(const QString&)), m_view->mainWindow(), SLOT(load(const QString&)));
+                connect(item, SIGNAL(itemActivated(UrlItem*)), this, SLOT(historyItemActivated(UrlItem*)));
                 m_historyList.append(item);
             }
             item->setGeometry(QRectF(x + 20, y + 20, tileWidth - (2*20), tileHeight  - (2*20)));
@@ -157,6 +157,13 @@ void HistoryViewportItem::animFinished()
         emit hideHistory();
         destroyHistoryTiles();
     }
+}
+
+void HistoryViewportItem::historyItemActivated(UrlItem* item)
+{
+    toggleHistory();
+    if (item)
+        m_view->mainWindow()->load(item->m_url.toString());
 }
 
 void HistoryViewportItem::startAnimation(bool in)

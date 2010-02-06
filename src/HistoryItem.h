@@ -25,7 +25,7 @@ public:
     UrlItem* urlItem() const { return m_urlItem; }
 
 Q_SIGNALS:
-    void load(const QString& url);
+    void itemActivated(UrlItem*);
 
 public Q_SLOTS:
     void thumbnailClicked();
