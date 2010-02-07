@@ -61,9 +61,8 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QNetworkProxy* m_proxy = 0);
+    MainWindow(QNetworkProxy* m_proxy, const QString& url);
     ~MainWindow();
-    void init();
 
     MainWindow* createWindow();
 
@@ -71,6 +70,7 @@ public:
 
     MainView* mainView();
 
+    // fixme: this needs to be a singleton.
     UrlStore* urlStore() const { return m_urlStore; }
 
     static QUrl urlFromUserInput(const QString& string);
@@ -106,6 +106,7 @@ protected Q_SLOTS:
 #endif
 
 private:
+    void init(bool historyOn);
     void setFPSCalculation(bool);
     void buildUI();
     void buildToolbar();

@@ -54,7 +54,7 @@ public:
     MainView(MainWindow* parent);
     ~MainView();
 
-    void init();
+    void init(bool historyOn);
     void setWebView(WebView* widget);
     WebView* webView();
 

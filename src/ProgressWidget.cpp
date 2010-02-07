@@ -32,7 +32,7 @@ ProgressWidget::ProgressWidget(WebViewportItem* parent)
     connect(parent->webView()->page(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
     connect(parent->webView()->page(), SIGNAL(loadProgress(int)), this, SLOT(progressChanged(int)));
     connect(parent->webView()->page(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
-
+    hide();
     sizeChanged();
 }
 

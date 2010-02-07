@@ -107,15 +107,16 @@ MainView::~MainView()
         delete m_pageViewportItem;
 }
 
-void MainView::init()
+void MainView::init(bool historyOn)
 {
     m_historyViewportItem = new HistoryViewportItem(*this);
-    scene()->addItem(m_historyViewportItem);
-    m_historyViewportItem->setZValue(100);
-    scene()->setActiveWindow(m_historyViewportItem);
     connect(m_historyViewportItem, SIGNAL(hideHistory()), this, SLOT(disableHistoryView()));
-    // turn history on by default on startup
-    toggleHistory();
+    m_historyViewportItem->setZValue(historyOn ? 100 : -1);
+    if (historyOn) {
+        scene()->addItem(m_historyViewportItem);
+        scene()->setActiveWindow(m_historyViewportItem);
+        toggleHistory();
+    }
 }
 
 void MainView::setWebView(WebView* webViewItem)

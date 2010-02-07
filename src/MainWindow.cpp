@@ -110,7 +110,7 @@ void AutoSelectLineEdit::focusOutEvent(QFocusEvent*e)
     deselect();
 }
 
-MainWindow::MainWindow(QNetworkProxy* proxy)
+MainWindow::MainWindow(QNetworkProxy* proxy, const QString& url)
     : QMainWindow()
     , m_mainView(new MainView(this))
     , m_scene(new QGraphicsScene(this))
@@ -124,7 +124,7 @@ MainWindow::MainWindow(QNetworkProxy* proxy)
     , m_fpsTicks(0)
     , m_fpsTimerId(0)
 {
-    init();
+    init(!url.size());
     m_zoomInOutTimestamp.start();
 
 #if defined(Q_WS_MAEMO_5)
@@ -134,6 +134,8 @@ MainWindow::MainWindow(QNetworkProxy* proxy)
                                          SLOT(orientationChanged(QString)));
     grabIncreaseDecreaseKeys(this, true);
 #endif
+    if (url.size())
+        load(url);
 }
 
 MainWindow::~MainWindow()
@@ -144,10 +146,10 @@ MainWindow::~MainWindow()
 
 MainWindow* MainWindow::createWindow()
 {
-    return new MainWindow(m_proxy);
+    return new MainWindow(m_proxy, QString());
 }
 
-void MainWindow::init()
+void MainWindow::init(bool historyOn)
 {
     resize(800, 480);
 
@@ -168,7 +170,7 @@ void MainWindow::init()
     m_mainView->setScene(m_scene);
     setCentralWidget(m_mainView);
 
-    m_mainView->init();
+    m_mainView->init(historyOn);
     m_mainView->setWebView(m_webViewItem);
 
     connect(m_webViewItem, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
@@ -301,9 +303,7 @@ void MainWindow::showTilesChanged(bool checked)
 
 MainWindow* MainWindow::newWindow(const QString &url)
 {
-    MainWindow* mw = new MainWindow();
-    mw->load(url);
-    return mw;
+    return new MainWindow(0 , url);
 }
 
 void MainWindow::buildUI()
