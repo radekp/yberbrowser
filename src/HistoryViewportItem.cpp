@@ -177,7 +177,7 @@ void HistoryViewportItem::startAnimation(bool in)
     }
 
     // get the topmost item and calculate the slide distance accordingly
-    unsigned dist = rect().height() - m_historyList.at(0)->geometry().y();
+    unsigned dist = rect().height() - m_historyList.at(0)->rect().y();
     QPoint startPos(0, in ? dist : 0);
     QPoint endPos(0, in ? 0 : dist);
     QEasingCurve::Type curve = in ? QEasingCurve::OutBack : QEasingCurve::OutQuint;

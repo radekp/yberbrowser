@@ -11,44 +11,19 @@
 #include "UrlStore.h"
 #include "UrlItem.h"
 
-class ThumbnailGraphicsItem : public QObject, public QGraphicsRectItem {
-    Q_OBJECT
-public:
-    ThumbnailGraphicsItem(QGraphicsWidget* parent, HistoryItem& historyItem);
-    ~ThumbnailGraphicsItem();
-
-    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
-    void sizeChanged(const QRectF& rect);
-
-Q_SIGNALS:
-    void clicked();
-
-public Q_SLOTS:
-    void thumbnailChanged() { update(); }
-
-private:
-    virtual void mousePressEvent(QGraphicsSceneMouseEvent* event);
-
-private:
-    HistoryItem* m_historyItem;
-    QRect m_thumbnailRect;
-    QPoint m_titlePos;
-    QString m_title;
-};
-
-ThumbnailGraphicsItem::ThumbnailGraphicsItem(QGraphicsWidget* parent, HistoryItem& historyItem)
+HistoryItem::HistoryItem(QGraphicsWidget* parent, UrlItem* urlItem)
     : QGraphicsRectItem(parent)
-    , m_historyItem(&historyItem)
+    , m_urlItem(urlItem)
 {
-    if (m_historyItem->urlItem())
-        connect(m_historyItem->urlItem(), SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
+    if (m_urlItem)
+        connect(m_urlItem, SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
 }
 
-ThumbnailGraphicsItem::~ThumbnailGraphicsItem()
+HistoryItem::~HistoryItem()
 {
 }
 
-void ThumbnailGraphicsItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
+void HistoryItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
 
@@ -59,22 +34,21 @@ void ThumbnailGraphicsItem::paint(QPainter* painter, const QStyleOptionGraphicsI
     painter->setPen(QColor(220, 220, 220));
     painter->drawText(m_titlePos, m_title);
     
-    if (!m_historyItem->urlItem() || (m_historyItem->urlItem() && !m_historyItem->urlItem()->thumbnail()))
+    if (!m_urlItem || (m_urlItem && !m_urlItem->thumbnail()))
         return;
 
     QRectF r(QPoint(m_thumbnailRect.topLeft() + QPoint(3,3)), QSize(m_thumbnailRect.size() - QSize(6,6)));
-    painter->drawImage(r, *m_historyItem->urlItem()->thumbnail(), m_historyItem->urlItem()->thumbnail()->rect());
+    painter->drawImage(r, *m_urlItem->thumbnail(), m_urlItem->thumbnail()->rect());
 }
 
-void ThumbnailGraphicsItem::sizeChanged(const QRectF& rect)
+void HistoryItem::setGeometry(const QRectF& rect)
 {
     setRect(rect);
-    UrlItem* urlItem = m_historyItem->urlItem();
     
     // reposition items
     m_title = "";
-    if (urlItem)
-        m_title = urlItem->m_title;
+    if (m_urlItem)
+        m_title = m_urlItem->m_title;
         
     m_title = QFontMetrics(QFont()).elidedText(m_title, Qt::ElideRight, rect.width());
     QSize textSize = QFontMetrics(QFont()).size(Qt::TextSingleLine, m_title);
@@ -84,44 +58,7 @@ void ThumbnailGraphicsItem::sizeChanged(const QRectF& rect)
     m_titlePos = QPoint(m_thumbnailRect.left() + ((m_thumbnailRect.width() - textSize.width()) / 2), m_thumbnailRect.bottom() + QFontMetrics(QFont()).height() + 2);
 }
 
-void ThumbnailGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
-{
-    emit clicked();
-}
-
-HistoryItem::HistoryItem(QGraphicsWidget* parent, UrlItem* urlItem)
-    : m_urlItem(urlItem)
-{
-    m_thumbnailRect = new ThumbnailGraphicsItem(parent, *this);
-    connect(m_thumbnailRect, SIGNAL(clicked()), this, SLOT(thumbnailClicked()));
-}
-
-HistoryItem::~HistoryItem()
-{
-    delete m_thumbnailRect;
-}
-
-void HistoryItem::setPos(const QPointF& pos)
-{
-    m_thumbnailRect->setPos(pos);
-}
-
-QPointF HistoryItem::pos() const
-{
-    return m_thumbnailRect->pos();
-}
-
-QRectF HistoryItem::geometry() const
-{
-    return m_thumbnailRect->rect();
-}
-
-void HistoryItem::setGeometry(const QRectF& rect)
-{
-    m_thumbnailRect->sizeChanged(rect);
-}
-
-void HistoryItem::thumbnailClicked()
+void HistoryItem::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
 {
     emit itemActivated(m_urlItem);
 }
