@@ -575,7 +575,7 @@ void WebViewportItem::setGeometry(const QRectF& rect)
 {
     QGraphicsWidget::setGeometry(rect);
     if (m_progressBox)
-        m_progressBox->sizeChanged();
+        m_progressBox->udpateGeometry(rect);
 }
 
 void WebViewportItem::updatePreferredSize()

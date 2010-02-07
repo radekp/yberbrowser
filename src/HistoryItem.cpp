@@ -27,9 +27,9 @@ void HistoryItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*opt
 {
     painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
 
-    painter->setPen(QPen(QBrush(QColor(109, 109, 109)), 3));
+    painter->setPen(QPen(QBrush(QColor(209, 209, 209)), 1));
     painter->setBrush(QColor(139, 139, 139));
-    painter->drawRect(m_thumbnailRect);
+    painter->drawRoundedRect(m_thumbnailRect, 2, 2);
     
     painter->setPen(QColor(220, 220, 220));
     painter->drawText(m_titlePos, m_title);
@@ -37,7 +37,7 @@ void HistoryItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*opt
     if (!m_urlItem || (m_urlItem && !m_urlItem->thumbnail()))
         return;
 
-    QRectF r(QPoint(m_thumbnailRect.topLeft() + QPoint(3,3)), QSize(m_thumbnailRect.size() - QSize(6,6)));
+    QRectF r(QPoint(m_thumbnailRect.topLeft() + QPoint(2,2)), QSize(m_thumbnailRect.size() - QSize(4,4)));
     painter->drawImage(r, *m_urlItem->thumbnail(), m_urlItem->thumbnail()->rect());
 }
 
@@ -63,4 +63,3 @@ void HistoryItem::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
     emit itemActivated(m_urlItem);
 }
 
-#include "HistoryItem.moc"

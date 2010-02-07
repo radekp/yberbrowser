@@ -27,17 +27,21 @@ private:
 
 ProgressWidget::ProgressWidget(WebViewportItem* parent)
     : QGraphicsRectItem(parent)
+    , m_slider(new QPropertyAnimation(this, "pos"))
     , m_lastPercentage(0)
+    , m_slideAnimState(0)
 {
     connect(parent->webView()->page(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
     connect(parent->webView()->page(), SIGNAL(loadProgress(int)), this, SLOT(progressChanged(int)));
     connect(parent->webView()->page(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
+    connect(m_slider, SIGNAL(finished()), this, SLOT(slideFinished()));
+    udpateGeometry(parentWidget()->rect());
     hide();
-    sizeChanged();
 }
 
 ProgressWidget::~ProgressWidget()
 {
+    delete m_slider;
     for (int i = m_progressItemList.size() - 1; i >= 0 ; i--)
         delete m_progressItemList.takeAt(i);
 }
@@ -63,9 +67,11 @@ void ProgressWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*
         paintItems(painter, m_progressItemList.at(j)->rect(), m_progressItemList.at(j)->opacity());
 
     // paint percentage
-    painter->setOpacity(1.0);
-    painter->setPen(QColor(40, 40, 40));
-    painter->drawText(progressBoxRect(), Qt::AlignCenter, m_label);
+    if (m_label.size()) {
+        painter->setOpacity(1.0);
+        painter->setPen(QColor(40, 40, 40));
+        painter->drawText(progressBoxRect(), Qt::AlignCenter, m_label);
+    }
 }
 
 void ProgressWidget::paintBackground(QPainter* painter)
@@ -112,6 +118,13 @@ void ProgressWidget::loadStarted()
     m_label = s_initialProgressText;
     m_lastPercentage = 0;
     show();
+    slide(true);
+}
+
+void ProgressWidget::setPos(const QPointF& pos)
+{
+    QGraphicsRectItem::setPos(pos);
+    update();
 }
 
 void ProgressWidget::progressChanged(int percentage)
@@ -119,11 +132,10 @@ void ProgressWidget::progressChanged(int percentage)
     // todo: find out this magic 10% thing
     if (percentage == m_lastPercentage || percentage <= 10)
         return;
-    
+    // no percentage text
+    m_label = QString();
     m_lastPercentage = percentage;
     
-    m_label = QString::number(percentage) + "%";
-
     // create the new progress item
     QRectF rect(progressBoxRect());
     // shrink it
@@ -145,7 +157,7 @@ void ProgressWidget::progressChanged(int percentage)
     animation->setDuration(800);
 
     animation->setStartValue(0.0);
-    animation->setEndValue(s_progressbarOpacity);
+    animation->setEndValue(s_progressbarOpacity);    
 
     animation->setEasingCurve(QEasingCurve::InCubic);
     animation->start(QAbstractAnimation::DeleteWhenStopped);
@@ -153,23 +165,31 @@ void ProgressWidget::progressChanged(int percentage)
 
 void ProgressWidget::loadFinished(bool /*success*/)
 {
-    hide();
-    m_lastPercentage = 0;
+    slide(false);
     for (int i = m_progressItemList.size() - 1; i >= 0 ; --i)
         delete m_progressItemList.takeAt(i);
+    m_lastPercentage = 0;
 }
 
-void ProgressWidget::sizeChanged()
+void ProgressWidget::slideFinished()
+{
+    if (m_slideAnimState == 2)
+        hide();
+    m_slideAnimState = 0;
+    update();
+}
+
+void ProgressWidget::udpateGeometry(const QRectF& rect)
 {
     const QFont f = QFont();
     QFontMetrics fm(f);
     int height = fm.height();
     // set the progressbox size to 1/4 of the view
-    int width = rect().width();
+    int width = rect.width();
     // todo: progress width stays the same while loading. make it dynamic 
     if (m_lastPercentage == 0)
-        width = qMax(fm.size(Qt::TextSingleLine, s_initialProgressText).width() + 30, int(parentWidget()->rect().width() / 4));
-    m_progressBoxRect = QRectF(0, parentWidget()->rect().bottomLeft().y() - (height + 3), width, height + 3);
+        width = qMax(fm.size(Qt::TextSingleLine, s_initialProgressText).width() + 30, int(rect.width() / 4));
+    m_progressBoxRect = QRectF(0, rect.bottomLeft().y() - (height + 3), width, height + 3);
     // reset progress items
     for (int i = 0; i < m_progressItemList.size(); ++i) {
         QRectF r = m_progressItemList.at(i)->rect();
@@ -177,7 +197,6 @@ void ProgressWidget::sizeChanged()
         r.setBottom(m_progressBoxRect.bottom() - 1);
         m_progressItemList.at(i)->setRect(r);
     }
-
     setRect(m_progressBoxRect);
 }
 
@@ -186,4 +205,25 @@ QRectF ProgressWidget::progressBoxRect()
     return m_progressBoxRect;
 }
 
+void ProgressWidget::slide(bool in) 
+{
+    QPointF startPos(0, in ? m_progressBoxRect.height():0);
+    QPointF endPos(0, in ? 0 : m_progressBoxRect.height());
+    if (m_slideAnimState) {
+        // continue where the current animation is
+        startPos = pos();
+        m_slideAnimState = 0;
+        m_slider->stop();
+    }
+    
+    m_slider->setDuration(500);
+
+    m_slider->setStartValue(startPos);
+    m_slider->setEndValue(endPos);
+
+    m_slider->setEasingCurve(QEasingCurve::InCubic);
+
+    m_slider->start();
+    m_slideAnimState = in ? 1 : 2;
+}
 #include "ProgressWidget.moc"
