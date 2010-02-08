@@ -2,12 +2,84 @@ This is based on QGVLauncher
 
 Credits: QGVLauncher committers
 
+Supported build envs:
+   * host (linux host)
+   * sb-arm
+   * sb-i486
+
+---+ File structure
+
+By default, we need custom version of qt and webkit.
+
+The scripts 'git clone' corresponding sources to following dirs:
+   * ./qt4-maemo5 -- qt in fremantle sb
+   * ./qt         -- qt in host
+   * ./webkit     -- webkit
+
+---+ Setting up SB environment from scratch, Fremantle
+
+Start with empty computer, SB installed.
+
+In host:
+
+sudo apt-get install maemo-assistant
+
+---+ Create SB targets
+
+In host:
+
+maemo-assistant fremantle -f -r 2.2009.51-1 -t maemo5-w51
+
+---+ Install
+
+In SB:
+./sb-install-deps-fremantle.sh
+./scripts/qt-install-builddeps.sh
+./webkit-install-builddeps.sh
+
+---+ Clone
+
+In SB:
+./scripts/qt-clone.sh
+./scripts/webkit-clone.sh
+
+---+ Build
+
+In SB:
+./scripts/qt-build.sh
+./scripts/webkit-build.sh
 
 
-Build with system webkit package
---------------------------------
+---+ Building yberbrowser
 
-mkdir builddir && cd builddir
+Build webkit as above.
+
+In SB:
+
+cd builddir-armel
+../scripts/qmake-dev.sh
+make
+./yberbrowser
+
+
+---+ Build notes
+
+Build scripts will one of following dirs:
+   * builddir-host
+   * builddir-i486
+   * builddir-armel
+
+WebKit is built to builddir, so that source tree remains really
+prestine and git is fast.
+
+Builds are always debug. You can run build scripts with '--release' to
+compile release versions.
+
+
+---++ Build with system webkit package
+
+
+mkdir builddir-host && cd builddir-host
 qmake ../yberbrowser.pro WEBKIT=system
 
 

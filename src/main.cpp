@@ -101,6 +101,7 @@ int main(int argc, char** argv)
     settings->enableTileCache(true);
 #else
     settings->enableTileCache(false);
+    settings->enableTileVisualization(false);
 #endif
 #if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
     settings->enableEngineThread(true);
@@ -122,21 +123,25 @@ int main(int argc, char** argv)
             } else if (args.at(1) == "-g") {
                 settings->setUseGL(true);
                 args.removeAt(1);
+#if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
             } else if (args.at(1) == "-c") {
                 settings->enableTileCache(false);
                 args.removeAt(1);
+            } else if (args.at(1) == "-v") {
+                settings->enableTileVisualization(true);
+                args.removeAt(1);
+#endif
             } else if (args.at(1) == "-a") {
                 settings->enableAutoComplete(false);
                 args.removeAt(1);
             } else if (args.at(1) == "-f") {
                 settings->enableFPS(true);
                 args.removeAt(1);
-            } else if (args.at(1) == "-v") {
-                settings->enableTileVisualization(true);
-                args.removeAt(1);
+#if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
             } else if (args.at(1) == "-e") {
                 settings->enableEngineThread(false);
                 args.removeAt(1);
+#endif
             } else if (args.at(1) == "-?" || args.at(1) == "-h" || args.at(1) == "--help") {
                 usage(argv[0]);
                 return EXIT_SUCCESS;
@@ -185,10 +190,12 @@ void usage(const char* name)
     s << " -w disable fullscreen" << endl;
     s << " -t disable toolbar" << endl;
     s << " -g use glwidget as qgv viewport" << endl;
+#if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
     s << " -c disable tile cache" << endl;
+    s << " -v enable tile visualization" << endl;
+#endif
     s << " -f show fps counter" << endl;
     s << " -a disable url autocomplete" << endl;
-    s << " -v enable tile visualization" << endl;
 #if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
     s << " -e disable engine thread" << endl;
 #endif
