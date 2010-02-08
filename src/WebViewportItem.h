@@ -70,6 +70,8 @@ public:
 
     void showTiles(bool tilesOn);
 
+    bool hasUserZoomScale() const { return m_hasUserZoomScale; }
+
 protected:
     void wheelEvent(QGraphicsSceneWheelEvent * event);
 
@@ -95,7 +97,6 @@ private:
         PanInteraction = 0x2,
         VPanInteraction = 0x4,
         HPanInteraction = 0x8
-
     };
 
     bool sendWheelEventFromChild(QGraphicsSceneWheelEvent *event);
@@ -130,6 +131,7 @@ private:
     qreal m_zoomScale;
     QGraphicsItemAnimation m_zoomAnim;
     QTimer m_zoomCommitTimer;
+    bool m_hasUserZoomScale;
 
     CommonGestureRecognizer m_recognizer;
     QPointF m_panModeResidue;

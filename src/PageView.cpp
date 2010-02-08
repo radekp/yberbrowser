@@ -257,11 +257,8 @@ void PageView::contentsSizeChanged(const QSize&)
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__;
 #endif
-    // FIXME: QSize& arg vs contentsSize(): these  report different sizes
-    // probably scrollbar thing
-    if (m_state == InitialLoad) {
+    if (m_state == InitialLoad && !m_pageViewportItem->hasUserZoomScale())
         updateZoomScaleToPageWidth();
-    }
 }
 
 void PageView::updateZoomScaleToPageWidth()

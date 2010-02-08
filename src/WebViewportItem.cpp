@@ -143,6 +143,7 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_webView(0)
     , m_zoomAnim(this)
     , m_zoomCommitTimer(this)
+    , m_hasUserZoomScale(false)
     , m_recognizer(this)
     , m_flickAnim(this)
 
@@ -311,6 +312,7 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
             QSizeF targetSize = er.size();
             p.setX(er.x() + er.size().width() / 2);
             targetScale = static_cast<qreal>(viewportSize.width()) / targetSize.width();
+	    m_hasUserZoomScale = true;
         }
 
         targetPoint = clipPointToViewport(QPointF(viewportSize.width()/2, viewportSize.height()/2) - (p * targetScale), targetScale);
@@ -426,6 +428,7 @@ void WebViewportItem::setWebView(QGraphicsWebView* view)
 void WebViewportItem::resetState(bool resetZoom)
 {
     m_interactionState = NoInteraction;
+    m_hasUserZoomScale = false;
     m_recognizer.reset();
 
     if (m_webView)
@@ -444,7 +447,6 @@ void WebViewportItem::resetState(bool resetZoom)
         m_zoomAnim.timeLine()->stop();
         resetZoomAnim();
     }
-
 }
 
 void WebViewportItem::resetZoomAnim()
