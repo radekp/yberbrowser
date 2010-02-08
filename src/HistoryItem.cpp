@@ -5,6 +5,7 @@
 #include <QGLWidget>
 #include <QtGlobal>
 #include <QDebug>
+#include <QGraphicsDropShadowEffect>
 
 #include "HistoryItem.h"
 #include "MainWindow.h"
@@ -17,6 +18,11 @@ HistoryItem::HistoryItem(QGraphicsWidget* parent, UrlItem* urlItem)
 {
     if (m_urlItem)
         connect(m_urlItem, SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
+    QGraphicsDropShadowEffect* d = new QGraphicsDropShadowEffect(this);
+    d->setColor(QColor(20, 20, 20));
+    d->setOffset(QPoint(4, 4));
+    d->setBlurRadius(5);
+    setGraphicsEffect(d);
 }
 
 HistoryItem::~HistoryItem()
@@ -27,18 +33,13 @@ void HistoryItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*opt
 {
     painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
 
-    painter->setPen(QPen(QBrush(QColor(209, 209, 209)), 1));
-    painter->setBrush(QColor(139, 139, 139));
-    painter->drawRoundedRect(m_thumbnailRect, 2, 2);
-    
     painter->setPen(QColor(220, 220, 220));
     painter->drawText(m_titlePos, m_title);
-    
+
     if (!m_urlItem || (m_urlItem && !m_urlItem->thumbnail()))
         return;
 
-    QRectF r(QPoint(m_thumbnailRect.topLeft() + QPoint(2,2)), QSize(m_thumbnailRect.size() - QSize(4,4)));
-    painter->drawImage(r, *m_urlItem->thumbnail(), m_urlItem->thumbnail()->rect());
+    painter->drawImage(m_thumbnailRect, *m_urlItem->thumbnail(), m_urlItem->thumbnail()->rect());
 }
 
 void HistoryItem::setGeometry(const QRectF& rect)
