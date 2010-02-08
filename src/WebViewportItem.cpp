@@ -313,7 +313,6 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
             QSizeF targetSize = er.size();
             p.setX(er.x() + er.size().width() / 2);
             targetScale = static_cast<qreal>(viewportSize.width()) / targetSize.width();
-            m_hasUserZoomScale = true;
         }
 
         targetPoint = clipPointToViewport(QPointF(viewportSize.width()/2, viewportSize.height()/2) - (p * targetScale), targetScale);
@@ -347,6 +346,8 @@ void WebViewportItem::startZoomAnimTo(const QPointF& targetPoint, qreal targetSc
     m_zoomAnim.setStep(0);
     m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
     m_zoomAnim.timeLine()->start();
+
+    m_hasUserZoomScale = true;
 }
 
 void WebViewportItem::transferAnimStateToView()
