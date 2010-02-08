@@ -133,6 +133,7 @@ private:
     QGraphicsItemAnimation m_zoomAnim;
     QTimer m_zoomCommitTimer;
     bool m_hasUserZoomScale;
+    bool m_forceUpdateAfterZoomCommit;
 
     CommonGestureRecognizer m_recognizer;
     QPointF m_panModeResidue;

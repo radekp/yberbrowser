@@ -48,7 +48,7 @@
 #include "EventHelpers.h"
 
 static const int s_zoomAnimDurationMS = 300;
-static const int s_zoomCommitTimerDurationMS = 500;
+static const int s_zoomCommitTimerDurationMS = 50;
 
 static const float s_zoomScaleWheelStep = .2;
 static const qreal s_minZoomScale = .01; // arbitrary
@@ -145,6 +145,7 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_zoomAnim(this)
     , m_zoomCommitTimer(this)
     , m_hasUserZoomScale(false)
+    , m_forceUpdateAfterZoomCommit(false)
     , m_recognizer(this)
     , m_flickAnim(this)
     , m_progressBox(0)
@@ -348,6 +349,7 @@ void WebViewportItem::startZoomAnimTo(const QPointF& targetPoint, qreal targetSc
     m_zoomAnim.timeLine()->start();
 
     m_hasUserZoomScale = true;
+    m_forceUpdateAfterZoomCommit = true;
 }
 
 void WebViewportItem::transferAnimStateToView()
@@ -411,6 +413,10 @@ void WebViewportItem::commitZoom()
     m_webView->setTileCacheZoomFactorX(s);
     m_webView->setTileCacheZoomFactorY(s);
     m_webView->setTileCacheState(QWebFrame::TileCacheNormal);
+    if (m_forceUpdateAfterZoomCommit) {
+        m_webView->page()->mainFrame()->forceSynchronousTileCacheUpdate();
+	m_forceUpdateAfterZoomCommit = false;
+    }
 }
 
 void WebViewportItem::setWebView(QGraphicsWebView* view)
