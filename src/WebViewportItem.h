@@ -40,6 +40,7 @@
 
 class QGraphicsWebView;
 class TileItem;
+class ProgressWidget;
 
 class WebViewportItem : public QGraphicsWidget, private CommonGestureConsumer
 {
@@ -137,6 +138,7 @@ private:
     QPointF m_panModeResidue;
     FlickAnimation m_flickAnim;
     QMap<int, TileItem*> m_tileMap;  
+    ProgressWidget* m_progressBox;
 };
 
 #endif

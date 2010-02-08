@@ -11,15 +11,17 @@ typedef QList<UrlItem*> UrlList;
 class UrlStore : public QObject {
     Q_OBJECT
 public:
-    UrlStore();
-    ~UrlStore();
-    
+    static UrlStore* instance();    
+
     void accessed(const QUrl& url, const QString& title, QImage* thumbnail);
     bool contains(const QString& url);
     QString match(const QString& url);
     UrlList& list() { return m_list; }
 
 private:
+    UrlStore();
+    ~UrlStore();
+
     void internalize();
     bool matchUrls(const QString& url1, const QString& url2);
 

@@ -156,9 +156,8 @@ int main(int argc, char** argv)
         QWebSettings::enableEngineThread();
 #endif
 
-    MainWindow* window = new MainWindow(g_globalProxy);
-    if (url.size())
-        window->load(url);
+    MainWindow* window = new MainWindow(g_globalProxy, url);
+
     if (noFullscreen)
         window->show();
     else

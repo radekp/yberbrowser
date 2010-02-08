@@ -3,36 +3,34 @@
 
 #include <QObject>
 #include <QRectF>
+#include <QGraphicsRectItem>
 
-class MainWindow;
 class QGraphicsWidget;
 class UrlItem;
 
-class ThumbnailGraphicsItem;
-
-class HistoryItem : public QObject {
+class HistoryItem : public QObject, public QGraphicsRectItem {
     Q_OBJECT
     Q_PROPERTY(QPointF pos READ pos WRITE setPos)
 public:
     HistoryItem(QGraphicsWidget* parent, UrlItem* urlItem);
     ~HistoryItem();
     
-    void setPos(const QPointF& pos);    
-    QPointF pos() const;
-
-    QRectF geometry() const;
     void setGeometry(const QRectF& rect);
-    UrlItem* urlItem() const { return m_urlItem; }
-
-Q_SIGNALS:
-    void load(const QString& url);
+    void addDropshadow();
 
 public Q_SLOTS:
-    void thumbnailClicked();
+    void thumbnailChanged() { update(); }
+
+Q_SIGNALS:
+    void itemActivated(UrlItem*);
 
 private:
-    ThumbnailGraphicsItem* m_thumbnailRect;
+    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
+    virtual void mousePressEvent(QGraphicsSceneMouseEvent* event);
+
     UrlItem* m_urlItem;
+    QRect m_thumbnailRect;
+    QString m_title;
 };
 
 #endif

@@ -52,16 +52,12 @@
 #include <QGLWidget>
 #include <QtGlobal>
 
-#include "PageView.h"
+#include "MainView.h"
 #include "MainWindow.h"
 #include "WebViewportItem.h"
 #include "HistoryViewportItem.h"
 #include "UrlStore.h"
 #include "Settings.h"
-
-static const unsigned s_progressBckgColor = 0xA0C6F3;
-static const unsigned s_progressTextColor = 0x185488;
-static QString s_initialProgressText("Loading...");
 
 // TODO:
 // detect when user interaction has been done and do
@@ -74,14 +70,13 @@ static QString s_initialProgressText("Loading...");
 // qt api is not very clear on the signal order. once the aspects
 // of load signal order have been cleared, remove these ifdefs
 
-PageView::PageView(MainWindow* window)
+MainView::MainView(MainWindow* window)
     : QGraphicsView(window)
     , m_mainWindow(window)
     , m_pageViewportItem(0)
     , m_historyViewportItem(0)
     , m_state(InitialLoad)
     , m_webView(0)
-    , m_progressBox(0)
 {
     if (Settings::instance()->useGL())  {
 	    QGLFormat format = QGLFormat::defaultFormat();
@@ -103,29 +98,28 @@ PageView::PageView(MainWindow* window)
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
 
-PageView::~PageView()
+MainView::~MainView()
 {
     // delete history only when it is not active
     if (scene()->activeWindow() != m_historyViewportItem)
         delete m_historyViewportItem;
     else 
         delete m_pageViewportItem;
-    // todo: figure out ownership
-    delete m_progressBox;
 }
 
-void PageView::init()
+void MainView::init(bool historyOn)
 {
     m_historyViewportItem = new HistoryViewportItem(*this);
-    scene()->addItem(m_historyViewportItem);
-    m_historyViewportItem->setZValue(100);
-    scene()->setActiveWindow(m_historyViewportItem);
     connect(m_historyViewportItem, SIGNAL(hideHistory()), this, SLOT(disableHistoryView()));
-    // turn history on by default on startup
-    toggleHistory();
+    m_historyViewportItem->setZValue(historyOn ? 100 : -1);
+    if (historyOn) {
+        scene()->addItem(m_historyViewportItem);
+        scene()->setActiveWindow(m_historyViewportItem);
+        toggleHistory();
+    }
 }
 
-void PageView::setWebView(WebView* webViewItem)
+void MainView::setWebView(WebView* webViewItem)
 {
     if (webViewItem) {
         if (!m_pageViewportItem) {
@@ -143,13 +137,13 @@ void PageView::setWebView(WebView* webViewItem)
     }
 }
 
-void PageView::resizeEvent(QResizeEvent* event)
+void MainView::resizeEvent(QResizeEvent* event)
 {
     QGraphicsView::resizeEvent(event);
     updateSize();
 }
 
-void PageView::updateSize()
+void MainView::updateSize()
 {
     setUpdatesEnabled(false);
     if (!m_pageViewportItem)
@@ -167,12 +161,12 @@ void PageView::updateSize()
     update();
 }
 
-WebView* PageView::webView()
+WebView* MainView::webView()
 {
     return m_webView;
 }
 
-void PageView::installSignalHandlers()
+void MainView::installSignalHandlers()
 {
     connect(webView()->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), this, SLOT(resetState()));
     connect(webView()->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(contentsSizeChanged(const QSize&)));
@@ -180,10 +174,9 @@ void PageView::installSignalHandlers()
     connect(webView()->page(),SIGNAL(restoreFrameStateRequested(QWebFrame*)), SLOT(restoreFrameState(QWebFrame*)));
     connect(webView(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(webView(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
-    connect(webView(), SIGNAL(loadProgress(int)), this, SLOT(loadProgress(int)));
 }
 
-void PageView::resetState()
+void MainView::resetState()
 {
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__;
@@ -198,61 +191,23 @@ void PageView::resetState()
     update();
 }
 
-void PageView::loadStarted()
-{
-    if (m_historyViewportItem->isActive())
-        toggleHistory();
-#if defined(ENABLE_LOADEVENT_DEBUG)
-    qDebug() << __FUNCTION__;
-#endif
-    // progress indicator
-    connect(scene(), SIGNAL(sceneRectChanged(const QRectF&)), this, SLOT(sceneRectChanged(const QRectF&)));
-    // probably need to be changed this to something else, but not qprogress
-    if (!m_progressBox) {
-        m_progressBox = new QLabel();
-        m_progressBox->setFrameStyle(QFrame::Panel);
-        m_progressBox->setAlignment(Qt::AlignHCenter|Qt::AlignVCenter);
-
-        const QPalette& p = m_progressBox->palette();
-        QPalette m(p);
-        m.setBrush(QPalette::Window, QBrush(QColor(s_progressBckgColor)));
-        m.setColor(QPalette::WindowText, QColor(s_progressTextColor));
-        m_progressBox->setPalette(m);
-        scene()->addWidget(m_progressBox);
-    }
-    m_progressBox->setText(s_initialProgressText);
-    m_progressBox->setGeometry(progressRect());
-    m_progressBox->show();
-
-    //setUpdatesEnabled(false);
-}
-
-void PageView::loadProgress(int progress)
-{
-    // todo: find out this magic 10% thing
-    if (progress <= 10)
-        return;
-    m_progressBox->setText(QString::number(progress) + "%");
-}
-
-void PageView::loadFinished(bool)
+void MainView::loadStarted()
 {
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__;
 #endif
-    m_progressBox->hide();
-    disconnect(scene(), SIGNAL(sceneRectChanged(const QRectF&)), this, SLOT(sceneRectChanged(const QRectF&)));
+}
 
+void MainView::loadFinished(bool)
+{
+#if defined(ENABLE_LOADEVENT_DEBUG)
+    qDebug() << __FUNCTION__;
+#endif
     if (m_state == InitialLoad)
         m_state = Interaction;
 }
 
-void PageView::sceneRectChanged(const QRectF& /*rect*/)
-{
-    m_progressBox->setGeometry(progressRect());
-}
-
-void PageView::contentsSizeChanged(const QSize&)
+void MainView::contentsSizeChanged(const QSize&)
 {
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__;
@@ -261,7 +216,7 @@ void PageView::contentsSizeChanged(const QSize&)
         updateZoomScaleToPageWidth();
 }
 
-void PageView::updateZoomScaleToPageWidth()
+void MainView::updateZoomScaleToPageWidth()
 {
     if (!m_pageViewportItem)
         return;
@@ -300,7 +255,7 @@ struct SavedViewState
 };
 Q_DECLARE_METATYPE(SavedViewState);  // a bit heavy weight for what this is used for
 
-void PageView::saveFrameState(QWebFrame* frame, QWebHistoryItem* item)
+void MainView::saveFrameState(QWebFrame* frame, QWebHistoryItem* item)
 {
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__ << frame << item;
@@ -317,7 +272,7 @@ void PageView::saveFrameState(QWebFrame* frame, QWebHistoryItem* item)
 #endif
 }
 
-void PageView::restoreFrameState(QWebFrame* frame)
+void MainView::restoreFrameState(QWebFrame* frame)
 {
 #if defined(ENABLE_LOADEVENT_DEBUG)
     qDebug() << __FUNCTION__ << frame;
@@ -339,14 +294,7 @@ void PageView::restoreFrameState(QWebFrame* frame)
 #endif
 }
 
-QRect PageView::progressRect()
-{
-    int height = m_progressBox->fontMetrics().height();
-    int width = qMin(m_progressBox->fontMetrics().size(Qt::TextSingleLine, s_initialProgressText).width() + 30, 100);
-    return QRect(0, scene()->sceneRect().bottomLeft().y() - (height + 3), width, height + 3);
-}
-
-void PageView::toggleHistory()
+void MainView::toggleHistory()
 {
     // hack
     if (m_historyViewportItem->zValue() == -1) {
@@ -358,7 +306,7 @@ void PageView::toggleHistory()
 }
 
 // callback from historyview when outbound animation finished
-void PageView::disableHistoryView()
+void MainView::disableHistoryView()
 {
     scene()->removeItem(m_historyViewportItem);
     m_historyViewportItem->setZValue(-1);

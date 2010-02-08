@@ -5,7 +5,7 @@
 #include <QDebug>
 
 #include "HistoryViewportItem.h"
-#include "PageView.h"
+#include "MainView.h"
 #include "MainWindow.h"
 #include "HistoryItem.h"
 #include "UrlStore.h"
@@ -20,17 +20,18 @@ public:
     TileBackground(const QRectF& rect, QGraphicsItem* parent) : QGraphicsRectItem(rect, parent) {}
 };
 
-HistoryViewportItem::HistoryViewportItem(PageView& view, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+HistoryViewportItem::HistoryViewportItem(MainView& view, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_view(&view)
     , m_bckg(0)
+    , m_animGroup(new QParallelAnimationGroup)
     , m_active(false)
     // fixme: remove m_ongoing, it is hack anyway
     , m_ongoing(false)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
-    m_animGroup = new QParallelAnimationGroup;
+    
     connect(m_animGroup, SIGNAL(finished()), this, SLOT(animFinished()));
 }
 
@@ -107,7 +108,7 @@ void HistoryViewportItem::createHistoryTiles()
 
     tileHeight = qMin(tileHeight, maxHeight);
     
-    UrlList& list = m_view->mainWindow()->urlStore()->list();
+    UrlList& list = UrlStore::instance()->list();
     // move tiles to the middle
     int y = (height - (vTileNum * tileHeight)) / 2;
     for (int i = 0; i < vTileNum; ++i) {
@@ -125,7 +126,7 @@ void HistoryViewportItem::createHistoryTiles()
                 item = m_historyList.at(itemIndex);
             else {
                 item = new HistoryItem(this, urlItem);  
-                connect(item, SIGNAL(load(const QString&)), m_view->mainWindow(), SLOT(load(const QString&)));
+                connect(item, SIGNAL(itemActivated(UrlItem*)), this, SLOT(historyItemActivated(UrlItem*)));
                 m_historyList.append(item);
             }
             item->setGeometry(QRectF(x + 20, y + 20, tileWidth - (2*20), tileHeight  - (2*20)));
@@ -156,7 +157,18 @@ void HistoryViewportItem::animFinished()
     if (!m_active) {
         emit hideHistory();
         destroyHistoryTiles();
+    } else {
+        // add dropshadow when slide in anim finished to avoid rendering artifacts
+        for (int i = 0; i < m_historyList.size(); ++i)
+            m_historyList.at(i)->addDropshadow();
     }
+}
+
+void HistoryViewportItem::historyItemActivated(UrlItem* item)
+{
+    toggleHistory();
+    if (item)
+        m_view->mainWindow()->load(item->m_url.toString());
 }
 
 void HistoryViewportItem::startAnimation(bool in)
@@ -169,7 +181,7 @@ void HistoryViewportItem::startAnimation(bool in)
     }
 
     // get the topmost item and calculate the slide distance accordingly
-    unsigned dist = rect().height() - m_historyList.at(0)->geometry().y();
+    unsigned dist = rect().height() - m_historyList.at(0)->rect().y();
     QPoint startPos(0, in ? dist : 0);
     QPoint endPos(0, in ? 0 : dist);
     QEasingCurve::Type curve = in ? QEasingCurve::OutBack : QEasingCurve::OutQuint;

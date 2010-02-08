@@ -47,9 +47,8 @@ class QGraphicsScene;
 class QLineEdit;
 class WebPage;
 class WebView;
-class PageView;
+class MainView;
 class QNetworkProxy;
-class UrlStore;
 class QLabel;
 class QToolBar;
 class QGraphicsView;
@@ -61,17 +60,14 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QNetworkProxy* m_proxy = 0);
+    MainWindow(QNetworkProxy* m_proxy, const QString& url);
     ~MainWindow();
-    void init();
 
     MainWindow* createWindow();
 
     QWebPage* page() const;
 
-    PageView* pageView();
-
-    UrlStore* urlStore() const { return m_urlStore; }
+    MainView* mainView();
 
     static QUrl urlFromUserInput(const QString& string);
 
@@ -106,6 +102,7 @@ protected Q_SLOTS:
 #endif
 
 private:
+    void init(bool historyOn);
     void setFPSCalculation(bool);
     void buildUI();
     void buildToolbar();
@@ -118,7 +115,7 @@ private:
 #endif
 
 private:
-    PageView* m_pageView;
+    MainView* m_mainView;
     QGraphicsScene* m_scene;
     WebView* m_webViewItem;
     WebPage* m_page;
@@ -126,7 +123,6 @@ private:
     QAction* m_stopAction;
     QAction* m_reloadAction;
     QAction* m_historyAction;
-    UrlStore* m_urlStore;
     
     QToolBar* m_naviToolbar;
     AutoSelectLineEdit* m_urlEdit;

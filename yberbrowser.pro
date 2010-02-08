@@ -111,11 +111,12 @@ HEADERS = \
   src/CommonGestureRecognizer.h \
   src/EventHelpers.h \
   src/FlickAnimation.h \
-  src/PageView.h \
+  src/MainView.h \
   src/HistoryItem.h \
   src/UrlStore.h \
   src/UrlItem.h \
-  src/Settings.h
+  src/Settings.h \
+  src/ProgressWidget.h
 
 SOURCES = \
   src/main.cpp \
@@ -126,7 +127,8 @@ SOURCES = \
   src/CommonGestureRecognizer.cpp \
   src/EventHelpers.cpp \
   src/FlickAnimation.cpp \
-  src/PageView.cpp \
+  src/MainView.cpp \
   src/HistoryItem.cpp \
   src/UrlStore.cpp \
-  src/UrlItem.cpp
+  src/UrlItem.cpp \
+  src/ProgressWidget.cpp
