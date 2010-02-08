@@ -41,6 +41,7 @@
 class QGraphicsWebView;
 class TileItem;
 class ProgressWidget;
+class ScrollbarItem;
 
 class WebViewportItem : public QGraphicsWidget, private CommonGestureConsumer
 {
@@ -75,7 +76,6 @@ public:
 
 protected:
     void wheelEvent(QGraphicsSceneWheelEvent * event);
-
 
 #if defined(ENABLE_PAINT_DEBUG)
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
@@ -125,6 +125,9 @@ private:
 
     void updatePreferredSize();
 
+    void setWebViewPos(const QPointF& point);    
+    void updateScrollbars();
+
 private:
     QGraphicsWebView* m_webView;
     InteractionState m_interactionState;
@@ -140,6 +143,8 @@ private:
     FlickAnimation m_flickAnim;
     QMap<int, TileItem*> m_tileMap;  
     ProgressWidget* m_progressBox;
+    ScrollbarItem* m_vScrollbar;
+    ScrollbarItem* m_hScrollbar;
 };
 
 #endif

@@ -294,6 +294,14 @@ void MainView::restoreFrameState(QWebFrame* frame)
 #endif
 }
 
+void MainView::hideHistory()
+{
+    // hide if active
+    if (m_historyViewportItem->zValue() == -1)
+        return;
+    toggleHistory();
+}
+
 void MainView::toggleHistory()
 {
     // hack
