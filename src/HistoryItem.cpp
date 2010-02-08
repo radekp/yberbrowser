@@ -5,6 +5,7 @@
 #include <QGLWidget>
 #include <QtGlobal>
 #include <QDebug>
+#include <QGraphicsDropShadowEffect>
 
 #include "HistoryItem.h"
 #include "MainWindow.h"
@@ -27,18 +28,13 @@ void HistoryItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*opt
 {
     painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
 
-    painter->setPen(QPen(QBrush(QColor(209, 209, 209)), 1));
-    painter->setBrush(QColor(139, 139, 139));
-    painter->drawRoundedRect(m_thumbnailRect, 2, 2);
-    
     painter->setPen(QColor(220, 220, 220));
-    painter->drawText(m_titlePos, m_title);
-    
+    painter->drawText(rect(), Qt::AlignHCenter|Qt::AlignBottom, m_title);
+
     if (!m_urlItem || (m_urlItem && !m_urlItem->thumbnail()))
         return;
 
-    QRectF r(QPoint(m_thumbnailRect.topLeft() + QPoint(2,2)), QSize(m_thumbnailRect.size() - QSize(4,4)));
-    painter->drawImage(r, *m_urlItem->thumbnail(), m_urlItem->thumbnail()->rect());
+    painter->drawImage(m_thumbnailRect, *m_urlItem->thumbnail(), m_urlItem->thumbnail()->rect());
 }
 
 void HistoryItem::setGeometry(const QRectF& rect)
@@ -48,14 +44,23 @@ void HistoryItem::setGeometry(const QRectF& rect)
     // reposition items
     m_title = "";
     if (m_urlItem)
-        m_title = m_urlItem->m_title;
+        m_title = QFontMetrics(QFont()).elidedText(m_urlItem->m_title, Qt::ElideRight, rect.width());
         
-    m_title = QFontMetrics(QFont()).elidedText(m_title, Qt::ElideRight, rect.width());
-    QSize textSize = QFontMetrics(QFont()).size(Qt::TextSingleLine, m_title);
     m_thumbnailRect = rect.toRect();
-    m_thumbnailRect.setHeight(m_thumbnailRect.height() - textSize.height());
+    m_thumbnailRect.setHeight(m_thumbnailRect.height() - (QFontMetrics(QFont()).height() + 3));
+}
 
-    m_titlePos = QPoint(m_thumbnailRect.left() + ((m_thumbnailRect.width() - textSize.width()) / 2), m_thumbnailRect.bottom() + QFontMetrics(QFont()).height() + 2);
+void HistoryItem::addDropshadow()
+{
+    if (graphicsEffect())
+        setGraphicsEffect(0);
+
+    QGraphicsDropShadowEffect* d = new QGraphicsDropShadowEffect(this);
+    d->setColor(QColor(20, 20, 20));
+    d->setOffset(QPoint(2, 2));
+    d->setBlurRadius(5);
+    setGraphicsEffect(d);
+    update();
 }
 
 void HistoryItem::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
