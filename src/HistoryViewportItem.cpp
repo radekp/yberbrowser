@@ -157,6 +157,10 @@ void HistoryViewportItem::animFinished()
     if (!m_active) {
         emit hideHistory();
         destroyHistoryTiles();
+    } else {
+        // add dropshadow when slide in anim finished to avoid rendering artifacts
+        for (int i = 0; i < m_historyList.size(); ++i)
+            m_historyList.at(i)->addDropshadow();
     }
 }
 

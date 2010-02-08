@@ -16,6 +16,7 @@ public:
     ~HistoryItem();
     
     void setGeometry(const QRectF& rect);
+    void addDropshadow();
 
 public Q_SLOTS:
     void thumbnailChanged() { update(); }
@@ -29,7 +30,6 @@ private:
 
     UrlItem* m_urlItem;
     QRect m_thumbnailRect;
-    QPoint m_titlePos;
     QString m_title;
 };
 
