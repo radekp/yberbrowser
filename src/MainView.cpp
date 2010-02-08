@@ -79,13 +79,13 @@ MainView::MainView(MainWindow* window)
     , m_webView(0)
 {
     if (Settings::instance()->useGL())  {
-	    QGLFormat format = QGLFormat::defaultFormat();
+        QGLFormat format = QGLFormat::defaultFormat();
         format.setSampleBuffers(false);
 
         QGLWidget *glWidget = new QGLWidget(format);    
         glWidget->setAutoFillBackground(false);
 
-	    setViewport(glWidget);
+        setViewport(glWidget);
     }
 
     setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);

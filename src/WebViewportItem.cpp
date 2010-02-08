@@ -313,7 +313,7 @@ void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
             QSizeF targetSize = er.size();
             p.setX(er.x() + er.size().width() / 2);
             targetScale = static_cast<qreal>(viewportSize.width()) / targetSize.width();
-	    m_hasUserZoomScale = true;
+            m_hasUserZoomScale = true;
         }
 
         targetPoint = clipPointToViewport(QPointF(viewportSize.width()/2, viewportSize.height()/2) - (p * targetScale), targetScale);
