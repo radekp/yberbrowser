@@ -15,10 +15,16 @@
 #include <QDebug>
 #endif
 
-// FIXME: remove privPath
-
 static uint s_currentVersion = 2;
 static int s_maxUrlStoreItems = 50;
+
+UrlStore* UrlStore::instance()
+{
+    static UrlStore* urlStore = 0;
+    if (!urlStore)
+        urlStore = new UrlStore();
+    return urlStore;
+}    
 
 UrlStore::UrlStore()
     : m_needsPersisting(false)
@@ -26,6 +32,7 @@ UrlStore::UrlStore()
     internalize();
 }
 
+// FIXME: this is a singleton, dont get properly deleted
 UrlStore::~UrlStore()
 {
     externalize();

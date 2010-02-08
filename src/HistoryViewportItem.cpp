@@ -108,7 +108,7 @@ void HistoryViewportItem::createHistoryTiles()
 
     tileHeight = qMin(tileHeight, maxHeight);
     
-    UrlList& list = m_view->mainWindow()->urlStore()->list();
+    UrlList& list = UrlStore::instance()->list();
     // move tiles to the middle
     int y = (height - (vTileNum * tileHeight)) / 2;
     for (int i = 0; i < vTileNum; ++i) {

@@ -37,13 +37,24 @@ ProgressWidget::ProgressWidget(WebViewportItem* parent)
     connect(m_slider, SIGNAL(finished()), this, SLOT(slideFinished()));
     udpateGeometry(parentWidget()->rect());
     hide();
+    // setup gradients
+    // background
+    QGradientStops stops;
+    stops << QGradientStop(0.00, QColor(120, 120, 120)) << QGradientStop(0.30, QColor(209, 204, 234)) << QGradientStop(0.50, QColor(219, 214, 244)) << QGradientStop(0.70, QColor(209, 204, 234)) << QGradientStop(1.00, QColor(120, 120, 120));
+    for (int j=0; j<stops.size(); ++j)
+        m_bckgGradient.setColorAt(stops.at(j).first, stops.at(j).second);
+
+    // progress items
+    QGradientStops pstops;
+    pstops << QGradientStop(0.00, QColor(226, 255, 51)) << QGradientStop(0.50, QColor(39, 115 , 3)) << QGradientStop(0.60, QColor(39, 115 , 3)) << QGradientStop(1.00, QColor(226, 255, 51));
+    for (int j=0; j<pstops.size(); ++j)
+        m_progressGradient.setColorAt(pstops.at(j).first, pstops.at(j).second);
 }
 
 ProgressWidget::~ProgressWidget()
 {
     delete m_slider;
-    for (int i = m_progressItemList.size() - 1; i >= 0 ; i--)
-        delete m_progressItemList.takeAt(i);
+    destroyProgressItems();
 }
 
 void ProgressWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
@@ -51,7 +62,7 @@ void ProgressWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*
     paintBackground(painter);
     // paint percentage items
     int i = 0;
-    // should merge them, really
+    // paint finished items in one go. should merge them, really
     if (m_progressItemList.size() > 1) {
         QRectF rect = m_progressItemList.at(0)->rect();
         for (;i < m_progressItemList.size(); ++i) {
@@ -76,19 +87,7 @@ void ProgressWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*
 
 void ProgressWidget::paintBackground(QPainter* painter)
 {
-    QGradientStops stops;
-    stops << QGradientStop(0.00, QColor(120, 120, 120));
-    stops << QGradientStop(0.30, QColor(209, 204, 234));
-    stops << QGradientStop(0.50, QColor(219, 214, 244));
-    stops << QGradientStop(0.70, QColor(209, 204, 234));
-    stops << QGradientStop(1.00, QColor(120, 120, 120));
-
-    QLinearGradient g(progressBoxRect().topLeft(), progressBoxRect().bottomLeft());
-
-    for (int j=0; j<stops.size(); ++j)
-        g.setColorAt(stops.at(j).first, stops.at(j).second);
-
-    painter->setBrush(g);
+    painter->setBrush(m_bckgGradient);
     painter->setPen(Qt::black);
     painter->setOpacity(0.8);
     painter->drawRoundedRect(progressBoxRect(), 3, 1);
@@ -96,18 +95,7 @@ void ProgressWidget::paintBackground(QPainter* painter)
 
 void ProgressWidget::paintItems(QPainter* painter, const QRectF& rect, qreal opacity)
 {
-    QGradientStops stops;
-    stops << QGradientStop(0.00, QColor(226, 255, 51));
-    stops << QGradientStop(0.50, QColor(39, 115 , 3));
-    stops << QGradientStop(0.60, QColor(39, 115 , 3));
-    stops << QGradientStop(1.00, QColor(226, 255, 51));
-
-    QLinearGradient gb(rect.topLeft(), rect.bottomLeft());
-
-    for (int j=0; j<stops.size(); ++j)
-        gb.setColorAt(stops.at(j).first, stops.at(j).second);
-
-    painter->setBrush(gb);
+    painter->setBrush(m_progressGradient);
     painter->setPen(Qt::NoPen);
     painter->setOpacity(opacity);
     painter->drawRect(rect);
@@ -117,8 +105,8 @@ void ProgressWidget::loadStarted()
 {
     m_label = s_initialProgressText;
     m_lastPercentage = 0;
-    show();
     slide(true);
+    show();
 }
 
 void ProgressWidget::setPos(const QPointF& pos)
@@ -149,6 +137,7 @@ void ProgressWidget::progressChanged(int percentage)
     rect.setRight(rect.x() + (rect.width() * percentage) / 100);
     rect.setLeft(startX);
 
+    // animation
     ProgressItem* item = new ProgressItem(rect, *this);
     m_progressItemList.append(item);
 
@@ -166,15 +155,15 @@ void ProgressWidget::progressChanged(int percentage)
 void ProgressWidget::loadFinished(bool /*success*/)
 {
     slide(false);
-    for (int i = m_progressItemList.size() - 1; i >= 0 ; --i)
-        delete m_progressItemList.takeAt(i);
     m_lastPercentage = 0;
 }
 
 void ProgressWidget::slideFinished()
 {
-    if (m_slideAnimState == 2)
+    if (m_slideAnimState == 2) {
+        destroyProgressItems();
         hide();
+    }
     m_slideAnimState = 0;
     update();
 }
@@ -190,6 +179,7 @@ void ProgressWidget::udpateGeometry(const QRectF& rect)
     if (m_lastPercentage == 0)
         width = qMax(fm.size(Qt::TextSingleLine, s_initialProgressText).width() + 30, int(rect.width() / 4));
     m_progressBoxRect = QRectF(0, rect.bottomLeft().y() - (height + 3), width, height + 3);
+
     // reset progress items
     for (int i = 0; i < m_progressItemList.size(); ++i) {
         QRectF r = m_progressItemList.at(i)->rect();
@@ -197,6 +187,13 @@ void ProgressWidget::udpateGeometry(const QRectF& rect)
         r.setBottom(m_progressBoxRect.bottom() - 1);
         m_progressItemList.at(i)->setRect(r);
     }
+    // update gradient stops
+    m_progressGradient.setStart(progressBoxRect().topLeft());
+    m_progressGradient.setFinalStop(progressBoxRect().bottomLeft());
+
+    m_bckgGradient.setStart(progressBoxRect().topLeft());
+    m_bckgGradient.setFinalStop(progressBoxRect().bottomLeft());
+    
     setRect(m_progressBoxRect);
 }
 
@@ -212,7 +209,6 @@ void ProgressWidget::slide(bool in)
     if (m_slideAnimState) {
         // continue where the current animation is
         startPos = pos();
-        m_slideAnimState = 0;
         m_slider->stop();
     }
     
@@ -226,4 +222,11 @@ void ProgressWidget::slide(bool in)
     m_slider->start();
     m_slideAnimState = in ? 1 : 2;
 }
+
+void ProgressWidget::destroyProgressItems() 
+{
+    for (int i = m_progressItemList.size() - 1; i >= 0 ; i--)
+        delete m_progressItemList.takeAt(i);
+}
+
 #include "ProgressWidget.moc"

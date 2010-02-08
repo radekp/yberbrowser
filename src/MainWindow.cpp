@@ -117,7 +117,6 @@ MainWindow::MainWindow(QNetworkProxy* proxy, const QString& url)
     , m_webViewItem(new WebView)
     , m_page(0)
     , m_proxy(proxy)
-    , m_urlStore(new UrlStore())
     , m_naviToolbar(0)
     , m_urlEdit(0)
     , m_fpsBox(0)
@@ -141,7 +140,6 @@ MainWindow::MainWindow(QNetworkProxy* proxy, const QString& url)
 MainWindow::~MainWindow()
 {
     killTimer(m_fpsTimerId);
-    delete m_urlStore;
 }
 
 MainWindow* MainWindow::createWindow()
@@ -234,7 +232,7 @@ void MainWindow::urlTextEdited(const QString& newText)
     // autocomplete only when adding text, not when deleting or backspacing
     if (text.size() > m_lastEnteredText.size()) {
         // todo: make it async
-        QString match = m_urlStore->match(text);
+        QString match = UrlStore::instance()->match(text);
         if (match.size()) {
             m_urlEdit->setText(match);
             m_urlEdit->setCursorPosition(text.size());
@@ -265,7 +263,7 @@ void MainWindow::updateUrlStore()
         QPainter p(thumbnail);
         m_page->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
     }
-    m_urlStore->accessed(m_webViewItem->url(), m_webViewItem->title(), thumbnail);
+    UrlStore::instance()->accessed(m_webViewItem->url(), m_webViewItem->title(), thumbnail);
 }
 
 void MainWindow::urlChanged(const QUrl& url)

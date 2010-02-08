@@ -49,7 +49,6 @@ class WebPage;
 class WebView;
 class MainView;
 class QNetworkProxy;
-class UrlStore;
 class QLabel;
 class QToolBar;
 class QGraphicsView;
@@ -69,9 +68,6 @@ public:
     QWebPage* page() const;
 
     MainView* mainView();
-
-    // fixme: this needs to be a singleton.
-    UrlStore* urlStore() const { return m_urlStore; }
 
     static QUrl urlFromUserInput(const QString& string);
 
@@ -127,7 +123,6 @@ private:
     QAction* m_stopAction;
     QAction* m_reloadAction;
     QAction* m_historyAction;
-    UrlStore* m_urlStore;
     
     QToolBar* m_naviToolbar;
     AutoSelectLineEdit* m_urlEdit;

@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QGraphicsRectItem>
+#include <QLinearGradient>
 
 class WebViewportItem;
 class ProgressItem;
@@ -31,6 +32,7 @@ private:
     void paintItems(QPainter* painter, const QRectF& rect, qreal opacity);
     QRectF progressBoxRect();
     void slide(bool in);
+    void destroyProgressItems();
 
     QString m_label;
     QList<ProgressItem*> m_progressItemList;
@@ -38,6 +40,8 @@ private:
     int m_lastPercentage;
     QRectF m_progressBoxRect;
     unsigned m_slideAnimState;
+    QLinearGradient m_bckgGradient;
+    QLinearGradient m_progressGradient;
 };
 
 #endif
