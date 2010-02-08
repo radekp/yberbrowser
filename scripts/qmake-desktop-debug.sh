@@ -1,3 +1,3 @@
 #!/bin/bash
 
-../scripts/qmake-desktop-dev.sh DEFINES+=ENABLE_PAINT_DEBUG=1
+../scripts/qmake-dev.sh DEFINES+=ENABLE_PAINT_DEBUG=1

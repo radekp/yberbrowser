@@ -13,7 +13,7 @@ BINDIR = $$PREFIX/bin
 
 
 QT += network opengl
-macx:QT+=xml
+QT += xml xmlpatterns
 
 contains(QT_CONFIG, maemo5)  {
     QT += maemo5 dbus
@@ -25,10 +25,10 @@ disable_tile_cache {
     DEFINES+=WEBKIT_SUPPORTS_TILE_CACHE=1
 }
 
-enable_engine_thread {
-    DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=1
-} else {
+disable_engine_thread|disable_tile_cache {
     DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=0
+} else {
+    DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=1
 }
 
 contains(WEBKIT, system) {
@@ -60,7 +60,7 @@ contains(WEBKIT, system) {
                WEBKIT_BUILD_MODE=Release
            }
        }
-       WEBKIT_BUILD_PATH=$$WEBKIT_PATH/WebKitBuild/$$WEBKIT_BUILD_MODE
+       WEBKIT_BUILD_PATH=$$OUT_PWD/WebKitBuild/$$WEBKIT_BUILD_MODE
     }
 
     mac:contains(QT_CONFIG, qt_framework):!CONFIG(webkit_no_framework) {
