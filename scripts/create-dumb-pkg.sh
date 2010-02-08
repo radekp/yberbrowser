@@ -83,6 +83,8 @@ cp -r data/icon/* pkg/$pkgname/usr/share/icons/hicolor/
 mkdir -p pkg/$pkgname/opt/yberbrowser/lib
 cp -L $qtlibdir/lib*.so.4 pkg/$pkgname/opt/yberbrowser/lib
 #cp -L $qtlibdir/libphonon.so.4.3 pkg/$pkgname/opt/yberbrowser/lib
+cp -r $qtlibdir/qt4 pkg/$pkgname/opt/yberbrowser/lib
+
 
 mkdir -p pkg/$pkgname/opt/yberbrowser/
 
