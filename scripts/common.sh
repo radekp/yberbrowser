@@ -1,5 +1,10 @@
 # common script functionality
 
+function die() {
+    echo "error: $1"
+    exit 1
+}
+
 function is_sbox() {
     if [ -z "$SBOX_UNAME_MACHINE" ]; then
         return 1
