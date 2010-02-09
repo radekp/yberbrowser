@@ -64,6 +64,8 @@ public:
 
     MainWindow* mainWindow() const { return m_mainWindow; }
 
+    void hideHistory();
+
 public Q_SLOTS:
     void toggleHistory();
 

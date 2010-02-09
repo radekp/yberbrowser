@@ -218,6 +218,7 @@ void MainWindow::changeLocation()
 {
     // nullify on hitting enter. end  of editing.
     m_lastEnteredText.resize(0);
+    m_mainView->hideHistory();
     load(m_urlEdit->text());
 }
 

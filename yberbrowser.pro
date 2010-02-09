@@ -116,7 +116,8 @@ HEADERS = \
   src/UrlStore.h \
   src/UrlItem.h \
   src/Settings.h \
-  src/ProgressWidget.h
+  src/ProgressWidget.h \
+  src/ScrollbarItem.h
 
 SOURCES = \
   src/main.cpp \
@@ -131,4 +132,6 @@ SOURCES = \
   src/HistoryItem.cpp \
   src/UrlStore.cpp \
   src/UrlItem.cpp \
-  src/ProgressWidget.cpp
+  src/ProgressWidget.cpp \
+  src/ScrollbarItem.cpp
+

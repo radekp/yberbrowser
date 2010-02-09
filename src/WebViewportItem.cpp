@@ -45,6 +45,7 @@
 
 #include "WebViewportItem.h"
 #include "ProgressWidget.h"
+#include "ScrollbarItem.h"
 #include "EventHelpers.h"
 
 static const int s_zoomAnimDurationMS = 300;
@@ -64,6 +65,10 @@ static const int s_defaultPreferredWidth = 1024;
 static const int s_defaultPreferredHeight = 768;
 
 static const unsigned s_tileSize = 35;
+
+static const int s_thumbSize = 6;
+static const int s_thumbMinSize = 50;
+static const int s_thumbMargin = 12;
 
 #define TILE_KEY(x,y) (x << 16 | y)
 
@@ -147,6 +152,8 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_recognizer(this)
     , m_flickAnim(this)
     , m_progressBox(0)
+    , m_vScrollbar(0)
+    , m_hScrollbar(0)
 {
 #if !defined(ENABLE_PAINT_DEBUG)
     setFlag(QGraphicsItem::ItemHasNoContents, true);
@@ -169,6 +176,8 @@ WebViewportItem::~WebViewportItem()
 {
     resetCacheTiles();
     delete m_progressBox;
+    delete m_vScrollbar;
+    delete m_hScrollbar;
 }
 
 void WebViewportItem::panAnimStateChanged(QTimeLine::State newState)
@@ -228,8 +237,7 @@ void WebViewportItem::panBy(const QPointF& delta)
 
 void WebViewportItem::moveItemBy(const QPointF& delta)
 {
-    QPointF p = m_webView->pos() + delta;
-    m_webView->setPos(clipPointToViewport(p, zoomScale()));
+    setWebViewPos(clipPointToViewport(m_webView->pos() + delta, zoomScale()));
 }
 
 QPointF WebViewportItem::clipPointToViewport(const QPointF& p, qreal targetZoomScale)
@@ -254,7 +262,6 @@ void WebViewportItem::flickGesture(qreal /*velocityX*/, qreal velocityY)
 {
     m_flickAnim.start(velocityY);
 }
-
 
 void WebViewportItem::touchGestureBegin(const QPointF&)
 {
@@ -335,7 +342,7 @@ void WebViewportItem::startZoomAnimTo(const QPointF& targetPoint, qreal targetSc
     qreal curScale = m_zoomAnim.horizontalScaleAt(step) * m_webView->scale();
     QPointF curPos = m_zoomAnim.posAt(step) + m_webView->pos();
 
-    m_webView->setPos(QPointF(0,0));
+    setWebViewPos(QPointF(0,0));
     m_webView->setScale(1.);
 
     m_zoomAnim.setPosAt(0, curPos);
@@ -358,7 +365,7 @@ void WebViewportItem::transferAnimStateToView()
 
     resetZoomAnim();
 
-    m_webView->setPos(p);
+    setWebViewPos(p);
     m_webView->setScale(s);
 }
 
@@ -380,7 +387,7 @@ void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
         QPointF p = m_webView->pos();
         m_webView->setScale(value);
         p *= value / curZoomScale;
-        m_webView->setPos(clipPointToViewport(p, zoomScale()));
+        setWebViewPos(clipPointToViewport(p, zoomScale()));
     }
 
     if (commitInstantly) {
@@ -423,6 +430,12 @@ void WebViewportItem::setWebView(QGraphicsWebView* view)
     m_zoomAnim.setItem(m_webView);
     delete m_progressBox;
     m_progressBox = new ProgressWidget(this);
+
+    delete m_hScrollbar;
+    m_hScrollbar = new ScrollbarItem(this, true);
+    delete m_vScrollbar;
+    m_vScrollbar = new ScrollbarItem(this, false);
+
     updatePreferredSize();
 }
 
@@ -432,7 +445,7 @@ void WebViewportItem::resetState(bool resetZoom)
     m_recognizer.reset();
 
     if (m_webView)
-        m_webView->setPos(QPointF(0, 0));
+        setWebViewPos(QPointF(0, 0));
 
     m_zoomAnim.setPosAt(0, QPointF(0,0));
     m_zoomAnim.setPosAt(1, QPointF(0,0));
@@ -576,6 +589,7 @@ void WebViewportItem::setGeometry(const QRectF& rect)
     QGraphicsWidget::setGeometry(rect);
     if (m_progressBox)
         m_progressBox->udpateGeometry(rect);
+    updateScrollbars();
 }
 
 void WebViewportItem::updatePreferredSize()
@@ -589,7 +603,7 @@ void WebViewportItem::updatePreferredSize()
 
 void WebViewportItem::setPanPos(const QPointF& pos)
 {
-    m_webView->setPos(clipPointToViewport(pos, zoomScale()));
+    setWebViewPos(clipPointToViewport(pos, zoomScale()));
 }
 
 QPointF WebViewportItem::panPos() const
@@ -650,6 +664,49 @@ void WebViewportItem::resetCacheTiles()
         delete i.value();
     }    
     m_tileMap.clear();
+}
+
+void WebViewportItem::setWebViewPos(const QPointF& point)
+{
+    m_webView->setPos(point);
+    updateScrollbars();
+}
+
+void WebViewportItem::updateScrollbars()
+{
+    if (!m_vScrollbar || !m_hScrollbar)
+        return;
+    QPointF contentPos = m_webView->pos();
+    QSizeF contentSize = m_webView->page()->mainFrame()->contentsSize() * zoomScale();
+    
+    QSizeF viewSize = size();
+
+    int hThumbLength = qMax(s_thumbMinSize, static_cast<int>(viewSize.width() * viewSize.width() / contentSize.width()));
+    int vThumbLength = qMax(s_thumbMinSize, static_cast<int>(viewSize.height() * viewSize.height() / contentSize.height()));
+
+    int xPos =  (viewSize.width() - hThumbLength) * -contentPos.x() / (contentSize.width() - viewSize.width());
+    int yPos =  (viewSize.height() - vThumbLength) * -contentPos.y() / (contentSize.height() - viewSize.height());
+
+    // need to display?
+    if (yPos >= 0 && vThumbLength < viewSize.height()) {
+        // add top/bottom margin, so it doesn't hit the edges
+        yPos = qMax(s_thumbMargin, yPos);
+        if (yPos + vThumbLength + s_thumbMargin > viewSize.height())
+            vThumbLength = viewSize.height() - s_thumbMargin - yPos;
+        m_vScrollbar->setRect(QRectF(viewSize.width() - s_thumbSize - 5, yPos, s_thumbSize, vThumbLength));
+        if (vThumbLength < viewSize.height())
+            m_vScrollbar->show();
+    }
+
+    // need to display?
+    if (xPos >= 0 && hThumbLength < viewSize.width()) {
+        xPos = qMax(s_thumbMargin, xPos);
+        if (xPos + hThumbLength + s_thumbMargin > viewSize.width())
+            hThumbLength = viewSize.width() - s_thumbMargin - xPos;
+        m_hScrollbar->setRect(QRectF(xPos, size().height() - s_thumbSize - 5, hThumbLength, s_thumbSize));
+        if (hThumbLength < viewSize.width())
+            m_hScrollbar->show();    
+    }
 }
 
 #include "WebViewportItem.moc"
