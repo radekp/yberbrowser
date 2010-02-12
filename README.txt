@@ -125,7 +125,8 @@ Day-to-day development
 
 See scripts/ -dir for qmake build scripts, etc
 
-
+To debug webkit debug version using ubuntu karmic, use following:
+ulimit -s 65535
 
 
 Run examples
