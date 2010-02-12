@@ -22,7 +22,7 @@ if is_sbox; then
     target="$SBOX_DPKG_INST_ARCH"
 else
     sudo="sudo"
-    QT_SRC_DIR=${QT_SRC_DIR:-$bd/qt4}
+    QT_SRC_DIR=${QT_SRC_DIR:-$bd/qt4-maemo5}
     target="host"
 fi
 
