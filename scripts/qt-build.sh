@@ -25,9 +25,9 @@ conf_opts="-no-declarative \
  -developer-build \
  -optimized-qmake \
  ${mode} \
- -prefix '${CUSTOM_QT_PREFIX}'
- -plugindir '${CUSTOM_QT_PREFIX}/lib/qt4/plugins' \
- -translationdir '${CUSTOM_QT_PREFIX}/share/qt4/translations' \
+ -prefix ${CUSTOM_QT_PREFIX}
+ -plugindir ${CUSTOM_QT_PREFIX}/lib/qt4/plugins \
+ -translationdir ${CUSTOM_QT_PREFIX}/share/qt4/translations \
  -nomake docs
 "
 # commented out because it might be the cause for fail on sb-armel
