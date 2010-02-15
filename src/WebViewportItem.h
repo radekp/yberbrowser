@@ -34,6 +34,7 @@
 #include <QGraphicsItemAnimation>
 #include <QTimer>
 #include <QTimeLine>
+#include <QAbstractKineticScroller>
 
 #include "CommonGestureRecognizer.h"
 #include "FlickAnimation.h"
@@ -43,7 +44,7 @@ class TileItem;
 class ProgressWidget;
 class ScrollbarItem;
 
-class WebViewportItem : public QGraphicsWidget, private CommonGestureConsumer
+class WebViewportItem : public QGraphicsWidget, private CommonGestureConsumer, public QAbstractKineticScroller
 {
     Q_OBJECT
     Q_PROPERTY(qreal zoomScale READ zoomScale WRITE setZoomScale)
@@ -59,7 +60,7 @@ public:
     void setPanPos(const QPointF& pos);
     QPointF panPos() const;
 
-    QPointF clipPointToViewport(const QPointF& p, qreal targetScale);
+    QPointF clipPointToViewport(const QPointF& p, qreal targetScale) const;
     void startZoomAnimTo(const QPointF& targetPoint, qreal targetScale);
 
     void setWebView(QGraphicsWebView* view);
@@ -79,6 +80,16 @@ protected:
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 #endif
     bool sceneEventFilter(QGraphicsItem *i, QEvent *e);
+
+    QSize viewportSize() const;
+    QPoint maximumScrollPosition() const;
+    QPoint scrollPosition() const;
+    void setScrollPosition(const QPoint &pos, const QPoint &overShootDelta);
+
+    void stateChanged(QAbstractKineticScroller::State oldState);
+    bool canStartScrollingAt(const QPoint &globalPos) const;
+    void cancelLeftMouseButtonPress(const QPoint &globalPressPos);
+
 
 protected Q_SLOTS:
     void commitZoom();
@@ -124,7 +135,8 @@ private:
 
     void updatePreferredSize();
 
-    void setWebViewPos(const QPointF& point);    
+    void setWebViewPos(const QPointF& point);
+
     void updateScrollbars();
 
 private:
@@ -142,6 +154,7 @@ private:
     ProgressWidget* m_progressBox;
     ScrollbarItem* m_vScrollbar;
     ScrollbarItem* m_hScrollbar;
+    QPointF m_overShootDelta;
 };
 
 #endif

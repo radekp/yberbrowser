@@ -66,10 +66,6 @@ static const int s_defaultPreferredHeight = 768;
 
 static const unsigned s_tileSize = 35;
 
-static const int s_thumbSize = 6;
-static const int s_thumbMinSize = 50;
-static const int s_thumbMargin = 12;
-
 #define TILE_KEY(x,y) (x << 16 | y)
 
 class TileItem : public QObject {
@@ -240,7 +236,7 @@ void WebViewportItem::moveItemBy(const QPointF& delta)
     setWebViewPos(clipPointToViewport(m_webView->pos() + delta, zoomScale()));
 }
 
-QPointF WebViewportItem::clipPointToViewport(const QPointF& p, qreal targetZoomScale)
+QPointF WebViewportItem::clipPointToViewport(const QPointF& p, qreal targetZoomScale) const
 {
     QSizeF contentsSize = m_webView->page()->mainFrame()->contentsSize() * targetZoomScale;
     QSizeF sz = size();
@@ -432,9 +428,9 @@ void WebViewportItem::setWebView(QGraphicsWebView* view)
     m_progressBox = new ProgressWidget(this);
 
     delete m_hScrollbar;
-    m_hScrollbar = new ScrollbarItem(this, true);
+    m_hScrollbar = new ScrollbarItem(Qt::Horizontal, this);
     delete m_vScrollbar;
-    m_vScrollbar = new ScrollbarItem(this, false);
+    m_vScrollbar = new ScrollbarItem(Qt::Vertical, this);
 
     updatePreferredSize();
 }
@@ -551,32 +547,44 @@ bool WebViewportItem::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     if (!isVisible())
         return QGraphicsItem::sceneEventFilter(i, e);
 
+    bool doFilter = false;
+
     switch (e->type()) {
     case QEvent::GraphicsSceneMouseDoubleClick:
     case QEvent::GraphicsSceneMousePress:
     case QEvent::GraphicsSceneMouseMove:
     case QEvent::GraphicsSceneMouseRelease:
-        return sendMouseEventFromChild(static_cast<QGraphicsSceneMouseEvent *>(e));
+        doFilter = handleMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
+        if (!doFilter)
+            doFilter = sendMouseEventFromChild(static_cast<QGraphicsSceneMouseEvent *>(e));
+        break;
 
     case QEvent::GraphicsSceneWheel:
-        return sendWheelEventFromChild(static_cast<QGraphicsSceneWheelEvent*>(e));
+        doFilter = sendWheelEventFromChild(static_cast<QGraphicsSceneWheelEvent*>(e));
+        break;
 
     case QEvent::GraphicsSceneContextMenu:
         // filter out context menu, comes from long tap
-        return true;
+        doFilter = true;
+        break;
 
     case QEvent::GraphicsSceneHoverMove:
     case QEvent::GraphicsSceneHoverLeave:
     case QEvent::GraphicsSceneHoverEnter:
         // filter out hover, so that we don't get excess
         // link highlights while panning
-        return true;
+        doFilter = true;
+        break;
 
     default:
         break;
     }
 
-    return QGraphicsItem::sceneEventFilter(i, e);
+    // prevent text selection and image draggin
+    if (e->type() == QEvent::GraphicsSceneMouseMove)
+        return true;
+
+    return doFilter ? true : QGraphicsItem::sceneEventFilter(i, e);
 }
 
 QGraphicsWebView* WebViewportItem::webView()
@@ -678,35 +686,57 @@ void WebViewportItem::updateScrollbars()
         return;
     QPointF contentPos = m_webView->pos();
     QSizeF contentSize = m_webView->page()->mainFrame()->contentsSize() * zoomScale();
-    
+
     QSizeF viewSize = size();
 
-    int hThumbLength = qMax(s_thumbMinSize, static_cast<int>(viewSize.width() * viewSize.width() / contentSize.width()));
-    int vThumbLength = qMax(s_thumbMinSize, static_cast<int>(viewSize.height() * viewSize.height() / contentSize.height()));
-
-    int xPos =  (viewSize.width() - hThumbLength) * -contentPos.x() / (contentSize.width() - viewSize.width());
-    int yPos =  (viewSize.height() - vThumbLength) * -contentPos.y() / (contentSize.height() - viewSize.height());
-
-    // need to display?
-    if (yPos >= 0 && vThumbLength < viewSize.height()) {
-        // add top/bottom margin, so it doesn't hit the edges
-        yPos = qMax(s_thumbMargin, yPos);
-        if (yPos + vThumbLength + s_thumbMargin > viewSize.height())
-            vThumbLength = viewSize.height() - s_thumbMargin - yPos;
-        m_vScrollbar->setRect(QRectF(viewSize.width() - s_thumbSize - 5, yPos, s_thumbSize, vThumbLength));
-        if (vThumbLength < viewSize.height())
-            m_vScrollbar->show();
-    }
-
-    // need to display?
-    if (xPos >= 0 && hThumbLength < viewSize.width()) {
-        xPos = qMax(s_thumbMargin, xPos);
-        if (xPos + hThumbLength + s_thumbMargin > viewSize.width())
-            hThumbLength = viewSize.width() - s_thumbMargin - xPos;
-        m_hScrollbar->setRect(QRectF(xPos, size().height() - s_thumbSize - 5, hThumbLength, s_thumbSize));
-        if (hThumbLength < viewSize.width())
-            m_hScrollbar->show();    
-    }
+    m_hScrollbar->contentPositionUpdated(contentPos.x(), contentSize.width(), viewSize);
+    m_vScrollbar->contentPositionUpdated(contentPos.y(), contentSize.height(), viewSize);
 }
+
+QPoint WebViewportItem::maximumScrollPosition() const
+{
+    QSizeF contentsSize = m_webView->page()->mainFrame()->contentsSize() * zoomScale();
+    QSizeF sz = size();
+    QSize maxSize = (contentsSize - sz).toSize();
+
+    return QPoint(maxSize.width(), maxSize.height());
+}
+
+QSize WebViewportItem::viewportSize() const
+{
+    return size().toSize();
+}
+
+QPoint WebViewportItem::scrollPosition() const
+{
+    qDebug() << __FUNCTION__ << panPos() << m_overShootDelta  << " max" << maximumScrollPosition();
+
+    return (-(panPos()-m_overShootDelta)).toPoint();
+}
+
+void WebViewportItem::setScrollPosition(const QPoint &pos, const QPoint &overShootDelta)
+{
+    qDebug() << __FUNCTION__ << pos << overShootDelta;
+    m_overShootDelta = overShootDelta;
+    setWebViewPos(-(pos - overShootDelta));
+}
+
+void WebViewportItem::stateChanged(QAbstractKineticScroller::State oldState)
+{
+    qDebug() << __FUNCTION__ << oldState;
+    QAbstractKineticScroller::stateChanged(oldState);
+}
+
+bool WebViewportItem::canStartScrollingAt(const QPoint &globalPos) const
+{
+    return QAbstractKineticScroller::canStartScrollingAt(globalPos);
+}
+
+void WebViewportItem::cancelLeftMouseButtonPress(const QPoint &globalPressPos)
+{
+    QAbstractKineticScroller::cancelLeftMouseButtonPress(globalPressPos);
+
+}
+
 
 #include "WebViewportItem.moc"

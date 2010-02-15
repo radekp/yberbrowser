@@ -4,34 +4,35 @@
 #include <QObject>
 #include <QRectF>
 #include <QGraphicsRectItem>
-#include <QLinearGradient>
 #include <QTimer>
+#include <QPropertyAnimation>
 
 class QGraphicsWidget;
-class QPropertyAnimation;
+
 
 class ScrollbarItem : public QObject, public QGraphicsRectItem {
     Q_OBJECT
     Q_PROPERTY(qreal opacity READ opacity WRITE setOpacity)
 public:
-    ScrollbarItem(QGraphicsItem* parent, bool horizontal);
+    ScrollbarItem(Qt::Orientation orientation, QGraphicsItem* parent = 0);
     ~ScrollbarItem();
 
-    void show();
+    void updateVisibilityAndFading(bool shouldFadeOut);
+
+    void contentPositionUpdated(qreal pos, qreal contentLength, const QSizeF& viewSize);
 
 protected Q_SLOTS:
-    void fadeScrollbar();
+    void startFadeOut();
     void fadingFinished();
 
 private:
     virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
     void startFading(bool in);
 
-    QTimer m_visibilityTimer;
-    QLinearGradient m_bckgGradient;
-    bool m_horizontal;
-    QPropertyAnimation* m_fader;
-    bool m_fadingIn;
+private:
+    Qt::Orientation m_orientation;
+    QPropertyAnimation m_fadeAnim;
+    QTimer m_fadeOutTimeout;
 };
 
 #endif
