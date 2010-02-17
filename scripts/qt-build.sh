@@ -18,20 +18,18 @@ fi
 #       CXX=$CXX \
 
 
+
 conf_opts="-no-declarative \
  -no-svg \
- -no-webkit \
  -no-qt3support \
  -developer-build \
  -optimized-qmake \
  ${mode} \
- -prefix ${CUSTOM_QT_PREFIX}
+ -prefix ${CUSTOM_QT_PREFIX} \
  -plugindir ${CUSTOM_QT_PREFIX}/lib/qt4/plugins \
  -translationdir ${CUSTOM_QT_PREFIX}/share/qt4/translations \
- -nomake docs
-"
-# commented out because it might be the cause for fail on sb-armel
-#
+ -no-webkit \
+ -nomake docs"
 
 if is_sbox; then
 
@@ -40,7 +38,7 @@ if is_sbox; then
         EXTRA_CONFIGURE_OPTS=$conf_opts \
          ./debian/rules build && \
         $sudo make install && \
-        cp -r $CUSTOM_QT_PREFIX/lib $builddir/qt-lib/ #for packaging and rsync-to-device, unfortunately
+        mkdir -p $builddir/qt-lib && cp -r $CUSTOM_QT_PREFIX/lib/* $builddir/qt-lib/ #for packaging and rsync-to-device, unfortunately
     )
 
 else
