@@ -19,6 +19,9 @@ rsync -av \
     $bd/builddir-armel/qt-lib/lib*.so* user@device:yber/lib/
 
 rsync -av \
+    $bd/builddir-armel/qt-lib/qt4 user@device:yber/lib/
+
+rsync -av \
     $bd/builddir-armel/WebKitBuild/$mode/lib/libQtWebKit.so* user@device:yber/lib/
 
 rsync -av \
