@@ -87,25 +87,27 @@ void ScrollbarItem::startFading(bool in)
   \a contentPos includes overshoot
 */
 
-void ScrollbarItem::contentPositionUpdated(qreal contentPos, qreal contentLength, const QSizeF& viewSize)
+void ScrollbarItem::contentPositionUpdated(qreal contentPos, qreal contentLength, const QSizeF& viewSize, bool shouldFadeOut)
 {
     qreal viewLength = m_orientation == Qt::Horizontal ? viewSize.width() : viewSize.height();
 
-    bool isOverShoot = contentPos > 0 || contentPos < -(contentLength - viewLength);
+    if (contentLength < viewLength)
+        contentLength = viewLength;
 
     qreal thumbRange = viewLength - 2 * s_thumbMargin;
 
     qreal thumbPos = (thumbRange) * (-contentPos  / (contentLength));
     qreal thumbPosMax = (thumbRange) * (-contentPos + viewLength)  / (contentLength);
 
-    thumbPos = qBound(0., thumbPos, thumbRange - s_thumbMinSize);
+    thumbPos = qBound(static_cast<qreal>(0.), thumbPos, thumbRange - s_thumbMinSize);
     thumbPosMax = qBound(s_thumbMinSize, thumbPosMax, thumbRange);
     qreal thumbLength = thumbPosMax - thumbPos;
 
+    // FIXME: What's the number 5 below?
     if (m_orientation == Qt::Horizontal)
         setRect(QRectF(s_thumbMargin + thumbPos, viewSize.height() - s_thumbSize - 5, thumbLength, s_thumbSize));
     else
         setRect(QRectF(viewSize.width() - s_thumbSize - 5, s_thumbMargin + thumbPos, s_thumbSize,  thumbLength));
 
-    updateVisibilityAndFading(!isOverShoot);
+    updateVisibilityAndFading(shouldFadeOut);
 }

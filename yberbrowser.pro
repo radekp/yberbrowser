@@ -110,7 +110,6 @@ HEADERS = \
   src/HistoryViewportItem.h \
   src/CommonGestureRecognizer.h \
   src/EventHelpers.h \
-  src/FlickAnimation.h \
   src/MainView.h \
   src/HistoryItem.h \
   src/UrlStore.h \
@@ -127,7 +126,6 @@ SOURCES = \
   src/HistoryViewportItem.cpp \
   src/CommonGestureRecognizer.cpp \
   src/EventHelpers.cpp \
-  src/FlickAnimation.cpp \
   src/MainView.cpp \
   src/HistoryItem.cpp \
   src/UrlStore.cpp \

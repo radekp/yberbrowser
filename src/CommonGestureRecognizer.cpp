@@ -5,10 +5,6 @@
 
 static const int s_waitForClickTimeoutMS = 200;
 
-//QApplication::startDragDistance() is too little (12)
-// and causes clicks with finger to be interpreted as pans
-static const int s_startPanDistance = 50;
-
 // time between mouse release that was part of pan and
 // double tap that can happen
 static const int s_doubleClickFilterDurationMS = 300;
@@ -160,11 +156,7 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     if (m_consumer)
         m_consumer->touchGestureEnd();
 
-    if (m_consumer->isPanning()) {
-        m_doubleClickFilter.restart();
-        m_consumer->stopPanGesture();
-        m_consumer->flickGesture(m_panVelocity.x(), m_panVelocity.y());
-    } else if (m_delayedReleaseEvent) {
+    if (m_delayedReleaseEvent) {
         // sometimes double click is lost if small mouse move occurs
         // inbetween
         QGraphicsSceneMouseEvent dblClickEvent(QEvent::GraphicsSceneMouseDoubleClick);
@@ -184,57 +176,13 @@ bool CommonGestureRecognizer::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 #if defined(ENABLE_EVENT_DEBUG)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
 #endif
-
-    bool isPanning = m_consumer->isPanning();
-
-    if (!isPanning) {
-        // if the button is still pressed
-        if (m_delayedPressEvent && !m_delayedReleaseEvent) {
-            QPoint d = m_delayedPressEvent->screenPos() - event->screenPos();
-            qreal dy = qAbs(d.y());
-            qreal dx = qAbs(d.x());
-            if (dy > s_startPanDistance
-                || dx > s_startPanDistance
-                || m_delayedPressMoment.elapsed() > s_waitForClickTimeoutMS) {
-                if (dx > dy)
-                    m_consumer->startPanGesture(CommonGestureConsumer::HPan);
-                else
-                    m_consumer->startPanGesture(CommonGestureConsumer::VPan);
-
-                isPanning = m_consumer->isPanning();
-
-                // to avoid initial warping, don't use m_delayedPressEvent->screenPos()
-                m_panVelocity = QPointF(0, 0);
-                m_panVelocitySamplingTs.restart();
-                m_dragStartPos = event->screenPos();
-                clearDelayedPress();
-            }
-        }
-    }
-
-    if (isPanning) {
-        clearDelayedPress();
-        QPointF d = event->screenPos() - m_dragStartPos;
-        if (d.manhattanLength()) {
-            m_consumer->panBy(d);
-            int dt = m_panVelocitySamplingTs.restart();
-            if (dt) {
-                QPointF d_dt = d / dt;
-                m_panVelocity = (m_panVelocity + d_dt) / 2;
-            }
-        }
-
-        m_dragStartPos = event->screenPos();
-        return true;
-    }
-
+    Q_UNUSED(event);
     // filter anyway since we don't want excess link hovers when panning.
     return true;
 }
 
 void CommonGestureRecognizer::reset()
 {
-    m_dragStartPos = QPoint();
     clearDelayedPress();
 }
 

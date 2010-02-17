@@ -1,4 +1,4 @@
-/*
+1/*
  * Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies)
  *
  * All rights reserved.
@@ -56,10 +56,6 @@ static const qreal s_minZoomScale = .01; // arbitrary
 static const qreal s_maxZoomScale = 10.; // arbitrary
 
 static const int s_minDoubleClickZoomTargetWidth = 100; // in document coords, aka CSS pixels
-
-// the amount of pixels to try to pan before pan mode unlocks vertically / horzontally
-static const int s_panModeChangeDelta = 200; // pixels in doc coords
-
 
 static const int s_defaultPreferredWidth = 1024;
 static const int s_defaultPreferredHeight = 768;
@@ -146,7 +142,6 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_zoomAnim(this)
     , m_zoomCommitTimer(this)
     , m_recognizer(this)
-    , m_flickAnim(this)
     , m_progressBox(0)
     , m_vScrollbar(0)
     , m_hScrollbar(0)
@@ -166,6 +161,8 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     m_zoomCommitTimer.setSingleShot(true);
 
     resetState(true);
+    setDirectionErrorMargin(100);
+    
 }
 
 WebViewportItem::~WebViewportItem()
@@ -194,48 +191,6 @@ void WebViewportItem::panAnimStateChanged(QTimeLine::State newState)
     }
 }
 
-void WebViewportItem::startPanGesture(CommonGestureConsumer::PanDirection directionHint)
-{
-    int s = PanInteraction;
-    if (directionHint == CommonGestureConsumer::VPan)
-        s |= VPanInteraction;
-    else
-        s |= HPanInteraction;
-
-    m_interactionState = static_cast<InteractionState>(m_interactionState | s);
-    m_panModeResidue = QPointF(0., 0.);
-    startInteraction();
-}
-
-void WebViewportItem::panBy(const QPointF& delta)
-{
-    QPointF p;
-    m_panModeResidue += delta;
-
-    if (qAbs(m_panModeResidue.x()) > s_panModeChangeDelta) {
-        m_interactionState = static_cast<InteractionState>(m_interactionState | HPanInteraction);
-    }
-
-    if (qAbs(m_panModeResidue.y()) > s_panModeChangeDelta) {
-        m_interactionState = static_cast<InteractionState>(m_interactionState | VPanInteraction);
-    }
-
-    if (m_interactionState & HPanInteraction) {
-        p.setX(delta.x());
-    }
-
-    if (m_interactionState & VPanInteraction) {
-        p.setY(delta.y());
-    }
-
-    moveItemBy(p);
-}
-
-void WebViewportItem::moveItemBy(const QPointF& delta)
-{
-    setWebViewPos(clipPointToViewport(m_webView->pos() + delta, zoomScale()));
-}
-
 QPointF WebViewportItem::clipPointToViewport(const QPointF& p, qreal targetZoomScale) const
 {
     QSizeF contentsSize = m_webView->page()->mainFrame()->contentsSize() * targetZoomScale;
@@ -248,20 +203,9 @@ QPointF WebViewportItem::clipPointToViewport(const QPointF& p, qreal targetZoomS
                    qBound(minY, p.y(), static_cast<qreal>(0.)));
 }
 
-void WebViewportItem::stopPanGesture()
-{
-    m_interactionState = static_cast<InteractionState>(m_interactionState & ~(PanInteraction | VPanInteraction | HPanInteraction));
-    stopInteraction();
-}
-
-void WebViewportItem::flickGesture(qreal /*velocityX*/, qreal velocityY)
-{
-    m_flickAnim.start(velocityY);
-}
 
 void WebViewportItem::touchGestureBegin(const QPointF&)
 {
-    m_flickAnim.stop();
 }
 
 void WebViewportItem::touchGestureEnd()
@@ -689,8 +633,10 @@ void WebViewportItem::updateScrollbars()
 
     QSizeF viewSize = size();
 
-    m_hScrollbar->contentPositionUpdated(contentPos.x(), contentSize.width(), viewSize);
-    m_vScrollbar->contentPositionUpdated(contentPos.y(), contentSize.height(), viewSize);
+    bool shouldFadeOut = !(state() == QAbstractKineticScroller::MousePressed || state() == QAbstractKineticScroller::Pushing);
+
+    m_hScrollbar->contentPositionUpdated(contentPos.x(), contentSize.width(), viewSize, shouldFadeOut);
+    m_vScrollbar->contentPositionUpdated(contentPos.y(), contentSize.height(), viewSize, shouldFadeOut);
 }
 
 QPoint WebViewportItem::maximumScrollPosition() const
@@ -699,7 +645,7 @@ QPoint WebViewportItem::maximumScrollPosition() const
     QSizeF sz = size();
     QSize maxSize = (contentsSize - sz).toSize();
 
-    return QPoint(maxSize.width(), maxSize.height());
+    return QPoint(qMax(0, maxSize.width()), qMax(0, maxSize.height()));
 }
 
 QSize WebViewportItem::viewportSize() const
@@ -723,8 +669,8 @@ void WebViewportItem::setScrollPosition(const QPoint &pos, const QPoint &overSho
 
 void WebViewportItem::stateChanged(QAbstractKineticScroller::State oldState)
 {
-    qDebug() << __FUNCTION__ << oldState;
     QAbstractKineticScroller::stateChanged(oldState);
+    updateScrollbars();
 }
 
 bool WebViewportItem::canStartScrollingAt(const QPoint &globalPos) const

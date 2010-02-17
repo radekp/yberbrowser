@@ -37,7 +37,6 @@
 #include <QAbstractKineticScroller>
 
 #include "CommonGestureRecognizer.h"
-#include "FlickAnimation.h"
 
 class QGraphicsWebView;
 class TileItem;
@@ -67,7 +66,6 @@ public:
     QGraphicsWebView* webView();
 
     void resetState(bool resetZoom);
-    void moveItemBy(const QPointF& delta);
 
     void setGeometry(const QRectF& rect);
 
@@ -104,9 +102,6 @@ private:
     enum InteractionState {
         NoInteraction = 0,
         ZoomInteraction = 0x1,
-        PanInteraction = 0x2,
-        VPanInteraction = 0x4,
-        HPanInteraction = 0x8
 
     };
 
@@ -119,13 +114,6 @@ private:
 
     void tapGesture(QGraphicsSceneMouseEvent* pressEventLike, QGraphicsSceneMouseEvent* releaseEventLike);
     void doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike);
-
-    bool isPanning() const { return m_interactionState & PanInteraction; }
-    void startPanGesture(CommonGestureConsumer::PanDirection);
-    void panBy(const QPointF& delta);
-    void stopPanGesture();
-
-    void flickGesture(qreal velocityX, qreal velocityY);
 
     void touchGestureBegin(const QPointF&);
     void touchGestureEnd();
@@ -148,8 +136,6 @@ private:
     QTimer m_zoomCommitTimer;
 
     CommonGestureRecognizer m_recognizer;
-    QPointF m_panModeResidue;
-    FlickAnimation m_flickAnim;
     QMap<int, TileItem*> m_tileMap;  
     ProgressWidget* m_progressBox;
     ScrollbarItem* m_vScrollbar;

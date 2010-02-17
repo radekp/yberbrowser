@@ -19,7 +19,7 @@ public:
 
     void updateVisibilityAndFading(bool shouldFadeOut);
 
-    void contentPositionUpdated(qreal pos, qreal contentLength, const QSizeF& viewSize);
+    void contentPositionUpdated(qreal pos, qreal contentLength, const QSizeF& viewSize, bool shouldFadeOut);
 
 protected Q_SLOTS:
     void startFadeOut();
