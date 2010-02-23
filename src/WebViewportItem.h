@@ -34,8 +34,8 @@
 #include <QGraphicsItemAnimation>
 #include <QTimer>
 #include <QTimeLine>
-#include <QAbstractKineticScroller>
 
+#include "3rdparty/qabstractkineticscroller.h"
 #include "CommonGestureRecognizer.h"
 
 class QGraphicsWebView;
@@ -43,7 +43,7 @@ class TileItem;
 class ProgressWidget;
 class ScrollbarItem;
 
-class WebViewportItem : public QGraphicsWidget, private CommonGestureConsumer, public QAbstractKineticScroller
+class WebViewportItem : public QGraphicsWidget, private CommonGestureConsumer, public YberHack_Qt::QAbstractKineticScroller
 {
     Q_OBJECT
     Q_PROPERTY(qreal zoomScale READ zoomScale WRITE setZoomScale)
@@ -84,7 +84,7 @@ protected:
     QPoint scrollPosition() const;
     void setScrollPosition(const QPoint &pos, const QPoint &overShootDelta);
 
-    void stateChanged(QAbstractKineticScroller::State oldState);
+    void stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState);
     bool canStartScrollingAt(const QPoint &globalPos) const;
     void cancelLeftMouseButtonPress(const QPoint &globalPressPos);
 

@@ -1,4 +1,4 @@
-1/*
+/*
  * Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies)
  *
  * All rights reserved.
@@ -48,6 +48,7 @@
 #include "ScrollbarItem.h"
 #include "EventHelpers.h"
 
+static const unsigned s_scrollsPerSecond = 60;
 static const int s_zoomAnimDurationMS = 300;
 static const int s_zoomCommitTimerDurationMS = 500;
 
@@ -153,6 +154,8 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     setFlag(QGraphicsItem::ItemClipsToShape, true);
     setAttribute(Qt::WA_OpaquePaintEvent, true);
     setFiltersChildEvents(true);
+
+    setScrollsPerSecond(s_scrollsPerSecond);
 
     m_zoomAnim.setTimeLine(new QTimeLine(s_zoomAnimDurationMS));
     connect(m_zoomAnim.timeLine(), SIGNAL(stateChanged(QTimeLine::State)), this, SLOT(panAnimStateChanged(QTimeLine::State)));
@@ -633,7 +636,7 @@ void WebViewportItem::updateScrollbars()
 
     QSizeF viewSize = size();
 
-    bool shouldFadeOut = !(state() == QAbstractKineticScroller::MousePressed || state() == QAbstractKineticScroller::Pushing);
+    bool shouldFadeOut = !(state() == YberHack_Qt::QAbstractKineticScroller::MousePressed || state() == YberHack_Qt::QAbstractKineticScroller::Pushing);
 
     m_hScrollbar->contentPositionUpdated(contentPos.x(), contentSize.width(), viewSize, shouldFadeOut);
     m_vScrollbar->contentPositionUpdated(contentPos.y(), contentSize.height(), viewSize, shouldFadeOut);
@@ -655,32 +658,29 @@ QSize WebViewportItem::viewportSize() const
 
 QPoint WebViewportItem::scrollPosition() const
 {
-    qDebug() << __FUNCTION__ << panPos() << m_overShootDelta  << " max" << maximumScrollPosition();
-
     return (-(panPos()-m_overShootDelta)).toPoint();
 }
 
 void WebViewportItem::setScrollPosition(const QPoint &pos, const QPoint &overShootDelta)
 {
-    qDebug() << __FUNCTION__ << pos << overShootDelta;
     m_overShootDelta = overShootDelta;
     setWebViewPos(-(pos - overShootDelta));
 }
 
-void WebViewportItem::stateChanged(QAbstractKineticScroller::State oldState)
+void WebViewportItem::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState)
 {
-    QAbstractKineticScroller::stateChanged(oldState);
+    YberHack_Qt::QAbstractKineticScroller::stateChanged(oldState);
     updateScrollbars();
 }
 
 bool WebViewportItem::canStartScrollingAt(const QPoint &globalPos) const
 {
-    return QAbstractKineticScroller::canStartScrollingAt(globalPos);
+    return YberHack_Qt::QAbstractKineticScroller::canStartScrollingAt(globalPos);
 }
 
 void WebViewportItem::cancelLeftMouseButtonPress(const QPoint &globalPressPos)
 {
-    QAbstractKineticScroller::cancelLeftMouseButtonPress(globalPressPos);
+    YberHack_Qt::QAbstractKineticScroller::cancelLeftMouseButtonPress(globalPressPos);
 
 }
 

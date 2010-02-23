@@ -12,8 +12,15 @@ DATADIR = $$PREFIX/share
 BINDIR = $$PREFIX/bin
 
 
+
 QT += network opengl
 QT += xml xmlpatterns
+
+# Add $$PWD to include path so we can include from 3rdparty/file.h.
+# we want to specify '3rdparty/' explicitly to avoid name clashes
+# with system include path.
+
+INCLUDEPATH += $$PWD/
 
 contains(QT_CONFIG, maemo5)  {
     QT += maemo5 dbus
@@ -30,6 +37,7 @@ disable_engine_thread|disable_tile_cache {
 } else {
     DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=1
 }
+
 
 contains(WEBKIT, system) {
     QT += webkit
@@ -116,7 +124,9 @@ HEADERS = \
   src/UrlItem.h \
   src/Settings.h \
   src/ProgressWidget.h \
-  src/ScrollbarItem.h
+  src/ScrollbarItem.h \
+  3rdparty/qabstractkineticscroller.h \
+  3rdparty/qabstractkineticscroller_p.h
 
 SOURCES = \
   src/main.cpp \
@@ -131,5 +141,7 @@ SOURCES = \
   src/UrlStore.cpp \
   src/UrlItem.cpp \
   src/ProgressWidget.cpp \
-  src/ScrollbarItem.cpp
+  src/ScrollbarItem.cpp \
+  3rdparty/qabstractkineticscroller.cpp
+
 
