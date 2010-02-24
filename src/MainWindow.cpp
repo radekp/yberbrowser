@@ -494,12 +494,12 @@ void MainWindow::orientationChanged(const QString &newOrientation)
 
 void MainWindow::setLandscape()
 {
-        setAttribute(Qt::WA_Maemo5ForceLandscapeOrientation, true);
+        setAttribute(Qt::WA_Maemo5LandscapeOrientation, true);
 }
 
 void MainWindow::setPortrait()
 {
-        setAttribute(Qt::WA_Maemo5ForcePortraitOrientation, true);
+        setAttribute(Qt::WA_Maemo5PortraitOrientation, true);
 }
 
 void MainWindow::grabIncreaseDecreaseKeys(QWidget* window, bool grab)
