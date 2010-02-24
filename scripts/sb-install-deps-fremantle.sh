@@ -32,3 +32,5 @@ libxrender-dev \
 libsms-utils-dev \
 librtcom-call-ui-dev \
 libprofile-dev \
+sharutils libgles2-sgx-img-dev opengles-sgx-img-common-dev
+
