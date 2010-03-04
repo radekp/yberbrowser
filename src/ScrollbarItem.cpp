@@ -108,5 +108,7 @@ void ScrollbarItem::contentPositionUpdated(qreal contentPos, qreal contentLength
     else
         setRect(QRectF(viewSize.width() - s_thumbSize, s_thumbMargin + thumbPos, s_thumbSize,  thumbLength));
 
-    updateVisibilityAndFading(shouldFadeOut);
+    // show scrollbar only when scrolling is possible
+    if (thumbLength < thumbRange)
+        updateVisibilityAndFading(shouldFadeOut);
 }
