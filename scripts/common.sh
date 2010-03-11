@@ -42,8 +42,6 @@ makeargs=${makeargs:-"-j3"}
 build_webkit_args="--engine-thread --no-video"
 
 
-CUSTOM_QT_PREFIX=${CUSTOM_QT_PREFIX:-/opt/qt4-custom}
-
 webkit_release=
 release=
 while [ $# -gt 0 ]; do
@@ -75,3 +73,10 @@ function is_webkit_release() {
     fi
     return 0
 }
+
+
+if is_release; then
+    CUSTOM_QT_PREFIX=${CUSTOM_QT_PREFIX:-/opt/qt4-custom}
+else
+    CUSTOM_QT_PREFIX=${CUSTOM_QT_PREFIX:-/opt/qt4-custom-debug}
+fi
