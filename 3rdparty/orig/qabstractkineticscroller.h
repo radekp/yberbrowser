@@ -61,7 +61,8 @@ class Q_GUI_EXPORT QAbstractKineticScroller
 public:
     ~QAbstractKineticScroller();
 
-    enum Mode {
+    enum Mode
+    {
         AutoMode,
         PushMode,
         AccelerationMode
@@ -72,6 +73,16 @@ public:
 
     Mode mode() const;
     void setMode(Mode mode);
+
+    enum OvershootPolicy
+    {
+        OvershootWhenScrollable,
+        OvershootAlwaysOff,
+        OvershootAlwaysOn,
+    };
+
+    OvershootPolicy overshootPolicy() const;
+    void setOvershootPolicy(OvershootPolicy policy);
 
     bool isLowFrictionEnabled() const;
     void setLowFrictionEnabled(bool b);
@@ -97,10 +108,17 @@ public:
     qreal maximumVelocity() const;
     void setMaximumVelocity(qreal v);
 
+    qreal axisLockThreshold() const;
+    void setAxisLockThreshold(qreal threshold);
+
+    int scrollsPerSecond() const;
+    void setScrollsPerSecond(int sps);
+
     void scrollTo(const QPoint &pos);
     void ensureVisible(const QPoint &pos, int xmargin = 50, int ymargin = 50);
 
-    enum State {
+    enum State
+    {
         Inactive,
         MousePressed,
         Pushing,
@@ -117,7 +135,7 @@ protected:
     virtual QSize viewportSize() const = 0;
     virtual QPoint maximumScrollPosition() const = 0;
     virtual QPoint scrollPosition() const = 0;
-    virtual void setScrollPosition(const QPoint &pos, const QPoint &overShootDelta) = 0;
+    virtual void setScrollPosition(const QPoint &pos, const QPoint &overshootDelta) = 0;
 
     virtual void stateChanged(State oldState);
     virtual bool canStartScrollingAt(const QPoint &globalPos) const;

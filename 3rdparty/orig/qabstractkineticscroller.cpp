@@ -158,8 +158,8 @@ void QAbstractKineticScroller::reset()
         d->killTimer(d->scrollTimerId);
     d->scrollTimerId = 0;
     d->velocity = d->oldVelocity = QPointF(0, 0);
-    d->overShootDist = QPoint(0, 0);
-    d->overShooting = 0;
+    d->overshootDist = QPoint(0, 0);
+    d->overshooting = 0;
 }
 
 /*!
@@ -201,7 +201,7 @@ bool QAbstractKineticScroller::handleMouseEvent(QMouseEvent *e)
 {
     Q_D(QAbstractKineticScroller);
     if (!e || !d->enabled)
-	return false;
+        return false;
 
     bool swallow = false;
 
@@ -239,35 +239,35 @@ bool QAbstractKineticScroller::handleMouseEvent(QMouseEvent *e)
 bool QAbstractKineticScroller::handleMouseEvent(QGraphicsSceneMouseEvent *e)
 {
     if (!e)
-	return false;
+        return false;
 
     QEvent::Type mapped = QEvent::None;
 
     switch (e->type()) {
     case QEvent::GraphicsSceneMousePress:
-	mapped = QEvent::MouseButtonPress;
-	break;
+        mapped = QEvent::MouseButtonPress;
+        break;
     case QEvent::GraphicsSceneMouseMove:
-	mapped = QEvent::MouseMove;
-	break;
+        mapped = QEvent::MouseMove;
+        break;
     case QEvent::GraphicsSceneMouseRelease:
-	mapped = QEvent::MouseButtonRelease;
-	break;
+        mapped = QEvent::MouseButtonRelease;
+        break;
     case QEvent::GraphicsSceneMouseDoubleClick:
-	mapped = QEvent::MouseButtonDblClick;
-	break;
+        mapped = QEvent::MouseButtonDblClick;
+        break;
     default:
         break;
     }
     if (mapped != QEvent::None) {
-	QMouseEvent me(mapped, e->pos().toPoint(), e->screenPos(),
+        QMouseEvent me(mapped, e->pos().toPoint(), e->screenPos(),
                        e->button(), e->buttons(), e->modifiers());
-	bool swallow = handleMouseEvent(&me);
-	e->setAccepted(me.isAccepted());
-	return swallow;
+        bool swallow = handleMouseEvent(&me);
+        e->setAccepted(me.isAccepted());
+        return swallow;
     } else {
         qWarning("QAbstractKineticScroller::handleMouseEvent() received a non-mouse event (type=%d)", e->type());
-	return false;
+        return false;
     }
 }
 
@@ -285,12 +285,12 @@ void QAbstractKineticScrollerPrivate::timerEvent(QTimerEvent *te)
 QAbstractKineticScrollerPrivate::QAbstractKineticScrollerPrivate()
     : enabled(true), mode(QAbstractKineticScroller::AutoMode), state(QAbstractKineticScroller::Inactive),
     lastType(QEvent::User), moved(false), lastIn(true),
-    firstDrag(true), centerOnChildFocusPending(false), lowFrictionMode(false),
-    scrollTo(-1, -1), bounceSteps(3), maxOverShoot(150, 150), vmaxOverShoot(130),
-    overShootDist(0, 0), overShooting(0),
+    firstDrag(true), lowFrictionMode(false), overshootPolicy(QAbstractKineticScroller::OvershootWhenScrollable),
+    scrollTo(-1, -1), bounceSteps(3), maxOvershoot(150, 150), vmaxOvershoot(130),
+    overshootDist(0, 0), overshooting(0),
     minVelocity(10), maxVelocity(3500), fastVelocityFactor(0.01), deceleration(0.85),
-    scrollsPerSecond(20), panningThreshold(25), directionErrorMargin(10), force(50),
-    dragInertia(0.85), scrollTime(1000),
+    scrollsPerSecond(20), panningThreshold(25), directionErrorMargin(10),
+    dragInertia(0.85), scrollTime(1000), axisLockThreshold(0),
     idleTimerId(0), scrollTimerId(0)
 { }
 
@@ -318,7 +318,7 @@ void QAbstractKineticScrollerPrivate::handleScrollTimer()
     qKSDebug("handleScrollTimer: %d/%d", motion.x(), motion.y());
 
     if (!motion.isNull())
-        setScrollPositionHelper(q->scrollPosition() - overShootDist - motion);
+        setScrollPositionHelper(q->scrollPosition() - overshootDist - motion);
     killTimer(scrollTimerId);
     scrollTimerId = 0;
 }
@@ -327,109 +327,111 @@ void QAbstractKineticScrollerPrivate::handleIdleTimer()
 {
     Q_Q(QAbstractKineticScroller);
 
-    if (mode == QAbstractKineticScroller::PushMode && overShootDist.isNull()) {
+    if (mode == QAbstractKineticScroller::PushMode && overshootDist.isNull()) {
         killTimer(idleTimerId);
         idleTimerId = 0;
         changeState(QAbstractKineticScroller::Inactive);
         return;
     }
-    qKSDebug() << "idle timer - velocity: " << velocity << " overShoot: " << overShootDist;
+    qKSDebug() << "idle timer - velocity: " << velocity << " overshoot: " << overshootDist;
 
-    setScrollPositionHelper(q->scrollPosition() - overShootDist - velocity.toPoint());
+    setScrollPositionHelper(q->scrollPosition() - overshootDist - velocity.toPoint());
 
-    if (state == QAbstractKineticScroller::AutoScrolling) {
+    if (!overshootDist.isNull()) {
+        if (moved)
+            return;
+
+        overshooting++;
+        scrollTo = QPoint(-1, -1);
+
+        /* When the overshoot has started we continue for
+         * PROP_BOUNCE_STEPS more steps into the overshoot before we
+         * reverse direction. The deceleration factor is calculated
+         * based on the percentage distance from the first item with
+         * each iteration, therefore always returning us to the
+         * top/bottom most element
+         */
+        if (overshooting < bounceSteps) {
+            velocity.setX( overshootDist.x() / maxOvershoot.x() * velocity.x() );
+            velocity.setY( overshootDist.y() / maxOvershoot.y() * velocity.y() );
+        } else {
+            velocity.setX( -overshootDist.x() * 0.8 );
+            velocity.setY( -overshootDist.y() * 0.8 );
+
+            // ensure a minimum speed when scrolling back or else we might never return
+            if (velocity.x() > -1.0 && velocity.x() < 0.0)
+                velocity.setX(-1.0);
+            if (velocity.x() <  1.0 && velocity.x() > 0.0)
+                velocity.setX( 1.0);
+            if (velocity.y() > -1.0 && velocity.y() < 0.0)
+                velocity.setY(-1.0);
+            if (velocity.y() <  1.0 && velocity.y() > 0.0)
+                velocity.setY( 1.0);
+        }
+
+        velocity.setX( qBound((qreal)-vmaxOvershoot, velocity.x(), (qreal)vmaxOvershoot));
+        velocity.setY( qBound((qreal)-vmaxOvershoot, velocity.y(), (qreal)vmaxOvershoot));
+
+    } else if (state == QAbstractKineticScroller::AutoScrolling) {
         // Decelerate gradually when pointer is raised
-        if (overShootDist.isNull()) {
-            overShooting = 0;
+        overshooting = 0;
 
-            // in case we move to a specific point do not decelerate when arriving
-            if (scrollTo.x() != -1 || scrollTo.y() != -1) {
+        // in case we move to a specific point do not decelerate when arriving
+        if (scrollTo.x() != -1 || scrollTo.y() != -1) {
 
-                // -- check if target was reached
-                QPoint pos = q->scrollPosition();
-                QPointF  dist = QPointF(scrollTo - pos);
+            // -- check if target was reached
+            QPoint pos = q->scrollPosition();
+            QPointF  dist = QPointF(scrollTo - pos);
 
-                qKSDebug() << "handleIdleTimer dist:" << dist << " scrollTo:" << scrollTo;
+            qKSDebug() << "handleIdleTimer dist:" << dist << " scrollTo:" << scrollTo;
 
-                // -- break if target was reached
-                if ((velocity.x() < 0.0 && dist.x() <= 0.0) ||
-                    (velocity.x() > 0.0 && dist.x() >= 0.0) )
-                    velocity.setX(0.0);
+            // -- break if target was reached
+            if ((velocity.x() < 0.0 && dist.x() <= 0.0) ||
+                (velocity.x() > 0.0 && dist.x() >= 0.0) )
+                velocity.setX(0.0);
 
-                if ((velocity.y() < 0.0 && dist.y() <= 0.0) ||
-                    (velocity.y() > 0.0 && dist.y() >= 0.0) )
-                    velocity.setY(0.0);
+            if ((velocity.y() < 0.0 && dist.y() <= 0.0) ||
+                (velocity.y() > 0.0 && dist.y() >= 0.0) )
+                velocity.setY(0.0);
 
-                // -- break if we reached the borders
-                /*
-                QPoint maxPos = q->maximumScrollPosition();
-                if ((0 > pos.x()-velocity.x() && velocity.x() > 0.0) ||
-                    (maxPos.x() < pos.x()-velocity.x() && velocity.x() < 0.0))
-                    velocity.setX(0.0);
+            // -- break if we reached the borders
+            /*
+            QPoint maxPos = q->maximumScrollPosition();
+            if ((0 > pos.x()-velocity.x() && velocity.x() > 0.0) ||
+                (maxPos.x() < pos.x()-velocity.x() && velocity.x() < 0.0))
+                velocity.setX(0.0);
 
-                if ((0 > pos.y()-velocity.y() && velocity.y() > 0.0) ||
-                    (maxPos.y() < pos.y()-velocity.y() && velocity.y() < 0.0))
-                    velocity.setY(0.0);
-                */
+            if ((0 > pos.y()-velocity.y() && velocity.y() > 0.0) ||
+                (maxPos.y() < pos.y()-velocity.y() && velocity.y() < 0.0))
+                velocity.setY(0.0);
+            */
 
-                if (velocity.x() == 0.0 && velocity.y() == 0.0) {
-                    killTimer(idleTimerId);
-                    idleTimerId = 0;
-                    changeState(QAbstractKineticScroller::Inactive);
-                    return;
-                }
-
-                // -- don't get too slow if target was not yet reached
-                if (qAbs(velocity.x()) >= qreal(1.5))
-                    velocity.rx() *= deceleration;
-                if (qAbs(velocity.y()) >= qreal(1.5))
-                    velocity.ry() *= deceleration;
-
-            } else {
-                if (!lowFrictionMode || (qAbs(velocity.x()) < qreal(0.8) * maxVelocity))
-                    velocity.rx() *= deceleration;
-                if (!lowFrictionMode || (qAbs(velocity.y()) < qreal(0.8) * maxVelocity))
-                    velocity.ry() *= deceleration;
-
-                if ((qAbs(velocity.x()) < qreal(1.0)) && (qAbs(velocity.y()) < qreal(1.0))) {
-                    velocity = QPointF(0, 0);
-                    killTimer(idleTimerId);
-                    idleTimerId = 0;
-                    changeState(QAbstractKineticScroller::Inactive);
-                }
-            }
-        } else { // overShootDist != 0
-            overShooting++;
-            scrollTo = QPoint(-1, -1);
-
-            /* When the overshoot has started we continue for
-             * PROP_BOUNCE_STEPS more steps into the overshoot before we
-             * reverse direction. The deceleration factor is calculated
-             * based on the percentage distance from the first item with
-             * each iteration, therefore always returning us to the
-             * top/bottom most element
-             */
-            if (overShooting < bounceSteps) {
-                velocity.setX( overShootDist.x() / maxOverShoot.x() * velocity.x() );
-                velocity.setY( overShootDist.y() / maxOverShoot.y() * velocity.y() );
-            } else {
-                velocity.setX( -overShootDist.x() * 0.8 );
-                velocity.setY( -overShootDist.y() * 0.8 );
-
-                // ensure a minimum speed when scrolling back or else we might never return
-                if (velocity.x() > -1.5 && velocity.x() < 0.0)
-                    velocity.setX(-1.5);
-                if (velocity.x() <  1.5 && velocity.x() > 0.0)
-                    velocity.setX( 1.5);
-                if (velocity.y() > -1.5 && velocity.y() < 0.0)
-                    velocity.setY(-1.5);
-                if (velocity.y() <  1.5 && velocity.y() > 0.0)
-                    velocity.setY( 1.5);
+            if (velocity.x() == 0.0 && velocity.y() == 0.0) {
+                killTimer(idleTimerId);
+                idleTimerId = 0;
+                changeState(QAbstractKineticScroller::Inactive);
+                return;
             }
 
-            velocity.setX( qBound((qreal)-vmaxOverShoot, velocity.x(), (qreal)vmaxOverShoot));
-            velocity.setY( qBound((qreal)-vmaxOverShoot, velocity.y(), (qreal)vmaxOverShoot));
-        } // overshoot
+            // -- don't get too slow if target was not yet reached
+            if (qAbs(velocity.x()) >= qreal(1.5))
+                velocity.rx() *= deceleration;
+            if (qAbs(velocity.y()) >= qreal(1.5))
+                velocity.ry() *= deceleration;
+
+        } else {
+            if (!lowFrictionMode || (qAbs(velocity.x()) < qreal(0.8) * maxVelocity))
+                velocity.rx() *= deceleration;
+            if (!lowFrictionMode || (qAbs(velocity.y()) < qreal(0.8) * maxVelocity))
+                velocity.ry() *= deceleration;
+
+            if ((qAbs(velocity.x()) < qreal(1.0)) && (qAbs(velocity.y()) < qreal(1.0))) {
+                velocity = QPointF(0, 0);
+                killTimer(idleTimerId);
+                idleTimerId = 0;
+                changeState(QAbstractKineticScroller::Inactive);
+            }
+        }
     } else if (mode == QAbstractKineticScroller::AutoMode) {
         killTimer(idleTimerId);
         idleTimerId = 0;
@@ -447,6 +449,10 @@ bool QAbstractKineticScrollerPrivate::handleMousePress(QMouseEvent *e)
     QPoint maxPos = q->maximumScrollPosition();
     bool canScrollX = (maxPos.x() > 0);
     bool canScrollY = (maxPos.y() > 0);
+
+    if ((!canScrollX || !canScrollY) && (overshootPolicy == QAbstractKineticScroller::OvershootAlwaysOn))
+        canScrollX = canScrollY = true;
+
     scrollTo = QPoint(-1, -1);
 
     pos = e->globalPos();
@@ -492,7 +498,9 @@ bool QAbstractKineticScrollerPrivate::handleMouseMove(QMouseEvent *e)
     qKSDebug() << "MM: pos: " << e->globalPos() << " - time: " << QTime::currentTime().msec();
     if (!(e->buttons() & Qt::LeftButton))
         return false;
-    if ((state != QAbstractKineticScroller::MousePressed) && (state != QAbstractKineticScroller::Pushing))
+    if ((state != QAbstractKineticScroller::MousePressed) &&
+        (state != QAbstractKineticScroller::Pushing) &&
+        (state != QAbstractKineticScroller::AutoScrolling))
         return false;
     if (moved && !lastTime.elapsed())
         return true;
@@ -538,21 +546,21 @@ bool QAbstractKineticScrollerPrivate::handleMouseRelease(QMouseEvent *e)
             if (scrollTimerId) {
                 killTimer(scrollTimerId);
                 scrollTimerId = 0;
-                setScrollPositionHelper(q->scrollPosition() - overShootDist - motion);
+                setScrollPositionHelper(q->scrollPosition() - overshootDist - motion);
                 motion = QPoint(0, 0);
             }
         }
     }
     // If overshoot has been initiated with a finger down,
     // on release set max speed
-    if (overShootDist.x()) {
-        overShooting = bounceSteps; // Hack to stop a bounce in the finger down case
-        velocity.setX(overShootDist.x() * qreal(0.9));
+    if (overshootDist.x()) {
+        overshooting = bounceSteps; // Hack to stop a bounce in the finger down case
+        velocity.setX(-overshootDist.x() * qreal(0.8));
 
     }
-    if (overShootDist.y()) {
-        overShooting = bounceSteps; // Hack to stop a bounce in the finger down case
-        velocity.setY(overShootDist.y() * qreal(0.9));
+    if (overshootDist.y()) {
+        overshooting = bounceSteps; // Hack to stop a bounce in the finger down case
+        velocity.setY(-overshootDist.y() * qreal(0.8));
     }
 
     bool forceFast = true;
@@ -610,10 +618,6 @@ bool QAbstractKineticScrollerPrivate::handleMouseRelease(QMouseEvent *e)
         changeState(QAbstractKineticScroller::AutoScrolling);
 
     } else {
-        if (centerOnChildFocusPending) {
-            centerOnChildFocus();
-        }
-
         if (moved) {
             // (opt) emit panningFinished()
         }
@@ -624,19 +628,18 @@ bool QAbstractKineticScrollerPrivate::handleMouseRelease(QMouseEvent *e)
     if (!idleTimerId
             && ((qAbs(velocity.x()) >= minVelocity)
                 || (qAbs(velocity.y()) >= minVelocity)
-                || overShootDist.x()
-                || overShootDist.y()) ) {
+                || overshootDist.x()
+                || overshootDist.y()) ) {
         idleTimerId = startTimer(1000 / scrollsPerSecond);
     }
 
-    centerOnChildFocusPending = false;
     lastTime.restart();
     lastType = e->type();
 
     bool wasMoved = moved;
     moved = false;
     qKSDebug("MR: end %d", wasMoved);
-    return wasMoved; // do not swallow the mouse releas, if we didn't move at all
+    return wasMoved; // do not swallow the mouse release, if we didn't move at all
 }
 
 void QAbstractKineticScrollerPrivate::checkMove(QMouseEvent *me, QPoint &delta)
@@ -655,6 +658,9 @@ void QAbstractKineticScrollerPrivate::checkMove(QMouseEvent *me, QPoint &delta)
             QPoint maxPos = q->maximumScrollPosition();
             bool canScrollX = (maxPos.x() > 0);
             bool canScrollY = (maxPos.y() > 0);
+
+            if ((!canScrollX || !canScrollY) && (overshootPolicy == QAbstractKineticScroller::OvershootAlwaysOn))
+                canScrollX = canScrollY = true;
 
             if (deltaXtoY < 0) {
                 if (!canScrollY && (!canScrollX || (-deltaXtoY >= directionErrorMargin)))
@@ -680,6 +686,27 @@ void QAbstractKineticScrollerPrivate::handleMove(QMouseEvent *me, QPoint &delta)
 {
     Q_Q(QAbstractKineticScroller);
 
+    if (mode == QAbstractKineticScroller::AccelerationMode) {
+        // we need delta to be the delta to ipos, not pos in this case
+        delta = me->globalPos() - ipos;
+    }
+
+    if (axisLockThreshold) {
+        int dx = qAbs(delta.x());
+        int dy = qAbs(delta.y());
+        if (dx || dy) {
+            bool vertical = (dy > dx);
+            qreal alpha = qreal(vertical ? dx : dy) / qreal(vertical ? dy : dx);
+            qKSDebug() << "axis lock: " << alpha << " / " << axisLockThreshold << " - isvertical: " << vertical << " - dx: " << dx << " - dy: " << dy;
+            if (alpha <= axisLockThreshold) {
+                if (vertical)
+                    delta.setX(0);
+                else
+                    delta.setY(0);
+            }
+        }
+    }
+
     switch (mode) {
     case QAbstractKineticScroller::PushMode:
         // Scroll by the amount of pixels the cursor has moved
@@ -690,21 +717,32 @@ void QAbstractKineticScrollerPrivate::handleMove(QMouseEvent *me, QPoint &delta)
 
     case QAbstractKineticScroller::AccelerationMode: {
         // Set acceleration relative to the initial click
-        // epos = me->globalPos(); //TODO: what the heck is epos?
         QSize size = q->viewportSize();
-        velocity.setX(qreal(delta.x() < 0 ? -1 : 1) * ((qreal(qAbs(delta.x())) / qreal(size.width()) * (maxVelocity - minVelocity)) + minVelocity));
-        velocity.setY(qreal(delta.y() < 0 ? -1 : 1) * ((qreal(qAbs(delta.y())) / qreal(size.height()) * (maxVelocity - minVelocity)) + minVelocity));
+        qreal signX = 0, signY = 0;
+        if (delta.x() < 0)
+            signX = -1;
+        else if (delta.x() > 0)
+            signX = 1;
+        if (delta.y() < 0)
+            signY = -1;
+        else if (delta.y() > 0)
+            signY = 1;
+
+        velocity.setX(signX * ((qreal(qAbs(delta.x())) / qreal(size.width()) * (maxVelocity - minVelocity)) + minVelocity));
+        velocity.setY(signY * ((qreal(qAbs(delta.y())) / qreal(size.height()) * (maxVelocity - minVelocity)) + minVelocity));
         break;
     }
     case QAbstractKineticScroller::AutoMode:
-        QPointF newVelocity = calculateVelocity(me->globalPos() - pos, lastTime.elapsed());
+        QPointF newVelocity = calculateVelocity(delta, lastTime.elapsed());
         QPoint maxPos = q->maximumScrollPosition();
 
-        if (!maxPos.x()) {
+        bool alwaysOvershoot = (overshootPolicy == QAbstractKineticScroller::OvershootAlwaysOn);
+
+        if (!maxPos.x() && !alwaysOvershoot) {
             delta.setX(0);
             newVelocity.setX(0);
         }
-        if (!maxPos.y()) {
+        if (!maxPos.y() && !alwaysOvershoot) {
             delta.setY(0);
             newVelocity.setY(0);
         }
@@ -712,9 +750,9 @@ void QAbstractKineticScrollerPrivate::handleMove(QMouseEvent *me, QPoint &delta)
 
         scrollUpdate(delta);
 
-        if (maxPos.x())
+        if (maxPos.x() || alwaysOvershoot)
             pos.setX(me->globalPos().x());
-        if (maxPos.y())
+        if (maxPos.y() || alwaysOvershoot)
             pos.setY(me->globalPos().y());
         break;
     }
@@ -728,7 +766,7 @@ QPointF QAbstractKineticScrollerPrivate::calculateVelocity(const QPointF &dPixel
 
     // faster than 25 pix / ms seems bogus (that's a screen height in ~20 ms)
     if ((dPixel / qreal(dTime)).manhattanLength() < 25) {
-        QPointF rawv = dPixel / qreal(dTime) * qreal(force);
+        QPointF rawv = dPixel / qreal(dTime) * qreal(1000) / qreal(scrollsPerSecond);
         newv = newv * (qreal(1) - dragInertia) + rawv * dragInertia;
     }
 
@@ -747,17 +785,12 @@ void QAbstractKineticScrollerPrivate::scrollUpdate(const QPoint &delta)
         motion += delta;
     } else {
         // we do not delay the first event but the next ones
-        setScrollPositionHelper(q->scrollPosition() - overShootDist - delta);
+        setScrollPositionHelper(q->scrollPosition() - overshootDist - delta);
         motion = QPoint(0, 0);
         scrollTimerId = startTimer(1000 / MotionEventsPerSecond);
     }
 }
 
-
-void QAbstractKineticScrollerPrivate::centerOnChildFocus()
-{
-    //TODO:
-}
 
 /*!
     If \a enable is true, enables the kinetic scroller; otherwise disables it.
@@ -828,6 +861,30 @@ void QAbstractKineticScroller::setLowFrictionEnabled(bool b)
     d->lowFrictionMode = b;
 }
 
+
+/*!
+    Returns the overshooting policy.
+
+    The default policy is OvershootWhenScrollable.
+
+    \sa setOvershootPolicy()
+*/
+QAbstractKineticScroller::OvershootPolicy QAbstractKineticScroller::overshootPolicy() const
+{
+    Q_D(const QAbstractKineticScroller);
+    return d->overshootPolicy;
+}
+
+/*!
+    Sets the overshooting policy to \a policy.
+
+    \sa overshootPolicy()
+*/
+void QAbstractKineticScroller::setOvershootPolicy(OvershootPolicy policy)
+{
+    Q_D(QAbstractKineticScroller);
+    d->overshootPolicy = policy;
+}
 
 /*!
     Returns the value of the drag inertia.
@@ -1022,6 +1079,69 @@ void QAbstractKineticScroller::setMaximumVelocity(qreal v)
 
 
 /*!
+    Returns the axis lock threshold.
+
+    On every mouse move, the scroller computes the angle between the vector
+    of the mouse movement the and the nearest X or Y axis.
+
+    If the tangens of this angle is less than the axis lock threshold, the
+    scroll direction is restricted to the nearest axis.
+
+    The threshold is a floating point value in the range \c 0.0 to \c 1.0.
+
+    The default value of \c 0.0 will not restrict the scroll direction at
+    all, while a value of \c 1.0 (wich corresponds to a 45 degree angle)
+    restricts the scroll direction to either the X or Y axis.
+
+    \sa setAxisLockThreshold()
+*/
+qreal QAbstractKineticScroller::axisLockThreshold() const
+{
+    Q_D(const QAbstractKineticScroller);
+    return d->axisLockThreshold;
+}
+
+/*!
+    Sets the axis lock \a threshold.
+
+    \sa axisLockThreshold()
+*/
+void QAbstractKineticScroller::setAxisLockThreshold(qreal threshold)
+{
+    Q_D(QAbstractKineticScroller);
+    d->axisLockThreshold = qBound(qreal(0), threshold, qreal(1));
+}
+
+
+/*!
+    Returns the number of scrolls (frames) per second.
+
+    This is the frame rate which will be used when the scroller is in the
+    AutoScrolling state.
+
+    The default value for Maemo 5 is \c 20.
+
+    \sa setScrollsPerSecond()
+*/
+int QAbstractKineticScroller::scrollsPerSecond() const
+{
+    Q_D(const QAbstractKineticScroller);
+    return d->scrollsPerSecond;
+}
+
+/*!
+    Sets the number of scrolls (frames) per second to \a sps.
+
+    \sa scrollsPerSecond()
+*/
+void QAbstractKineticScroller::setScrollsPerSecond(int sps)
+{
+    Q_D(QAbstractKineticScroller);
+    d->scrollsPerSecond = qBound(1, sps, 100);
+}
+
+
+/*!
     Starts scrolling the widget so that the point \a pos is visible inside
     the viewport.
 
@@ -1107,8 +1227,8 @@ void QAbstractKineticScroller::ensureVisible(const QPoint &pos, int xmargin, int
 }
 
 /*
-    Decomposes the position into a scroll and an overShoot part.
-    Also keeps track of the current over-shooting value in overShootDist.
+    Decomposes the position into a scroll and an overshoot part.
+    Also keeps track of the current over-shooting value in overshootDist.
 */
 void QAbstractKineticScrollerPrivate::setScrollPositionHelper(const QPoint &pos)
 {
@@ -1120,14 +1240,15 @@ void QAbstractKineticScrollerPrivate::setScrollPositionHelper(const QPoint &pos)
     clampedPos.setX(qBound(0, pos.x(), maxPos.x()));
     clampedPos.setY(qBound(0, pos.y(), maxPos.y()));
 
-    int overShootX = maxPos.x() ? clampedPos.x() - pos.x() : 0;
-    int overShootY = maxPos.y() ? clampedPos.y() - pos.y() : 0;
+    bool alwaysOvershoot = (overshootPolicy == QAbstractKineticScroller::OvershootAlwaysOn);
+    int overshootX = (maxPos.x() || alwaysOvershoot) ? clampedPos.x() - pos.x() : 0;
+    int overshootY = (maxPos.y() || alwaysOvershoot) ? clampedPos.y() - pos.y() : 0;
 
-    overShootDist.setX(qBound(-maxOverShoot.x(), overShootX, maxOverShoot.x()));
-    overShootDist.setY(qBound(-maxOverShoot.y(), overShootY, maxOverShoot.y()));
+    overshootDist.setX(qBound(-maxOvershoot.x(), overshootX, maxOvershoot.x()));
+    overshootDist.setY(qBound(-maxOvershoot.y(), overshootY, maxOvershoot.y()));
 
-    qKSDebug() << "setPosition raw: " << pos << ", clamped: " << clampedPos << ", overshoot: " << overShootDist;
-    q->setScrollPosition(clampedPos, overShootDist);
+    qKSDebug() << "setPosition raw: " << pos << ", clamped: " << clampedPos << ", overshoot: " << overshootDist;
+    q->setScrollPosition(clampedPos, overshootPolicy == QAbstractKineticScroller::OvershootAlwaysOff ? QPoint() : overshootDist);
 }
 
 /*!
@@ -1161,9 +1282,21 @@ void QAbstractKineticScroller::cancelLeftMouseButtonPress(const QPoint &globalPr
 }
 
 /*!
+    \enum QAbstractKineticScroller::OvershootPolicy
+
+    This enum describes the various modes of overshooting.
+
+    \value OvershootWhenScrollable Overshooting is when the content is scrollable. This is the default.
+
+    \value OvershootAlwaysOff Overshooting is never enabled (even when the content is scrollable).
+
+    \value OvershootAlwaysOn Overshooting is always enabled (even when the content is not scrollable).
+*/
+
+/*!
     \enum QAbstractKineticScroller::Mode
 
-    This enum contains the different modes for the QMaemo5KineticScroller.
+    This enum contains the different modes for the QAbstractKineticScroller.
 
     \value AutoMode The mode will allow both pushing and acceleration.
 
@@ -1217,12 +1350,12 @@ void QAbstractKineticScroller::stateChanged(State oldState)
 
 
 /*!
-    \fn void QAbstractKineticScroller::setScrollPosition(const QPoint &pos, const QPoint &overShoot)
+    \fn void QAbstractKineticScroller::setScrollPosition(const QPoint &pos, const QPoint &overshoot)
 
     Sets the scroll position of the widget to \a pos. This
     parameter will always be in the valid range returned by maximumScrollPosition().
 
-    In the case where overshooting is required, the \a overShoot parameter
+    In the case where overshooting is required, the \a overshoot parameter
     will give the direction and the absolute pixel distance to overshoot.
 
     \sa maximumScrollPosition()

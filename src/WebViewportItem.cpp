@@ -63,6 +63,8 @@ static const int s_defaultPreferredHeight = 768;
 
 static const unsigned s_tileSize = 35;
 
+static const qreal s_axisLockThreshold = .4;
+
 #define TILE_KEY(x,y) (x << 16 | y)
 
 class TileItem : public QObject {
@@ -156,6 +158,9 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     setFiltersChildEvents(true);
 
     setScrollsPerSecond(s_scrollsPerSecond);
+    setOvershootPolicy(YberHack_Qt::QAbstractKineticScroller::OvershootAlwaysOn);
+    setAxisLockThreshold(s_axisLockThreshold);
+    
 
     m_zoomAnim.setTimeLine(new QTimeLine(s_zoomAnimDurationMS));
     connect(m_zoomAnim.timeLine(), SIGNAL(stateChanged(QTimeLine::State)), this, SLOT(panAnimStateChanged(QTimeLine::State)));
@@ -164,8 +169,7 @@ WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     m_zoomCommitTimer.setSingleShot(true);
 
     resetState(true);
-    setDirectionErrorMargin(100);
-    
+
 }
 
 WebViewportItem::~WebViewportItem()

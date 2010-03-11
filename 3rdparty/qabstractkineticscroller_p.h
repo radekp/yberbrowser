@@ -89,7 +89,6 @@ private:
 
     QPointF calculateVelocity(const QPointF &dPixel, int dTime);
     void scrollUpdate(const QPoint &delta);
-    void centerOnChildFocus();
 
     void changeState(QAbstractKineticScroller::State);
 
@@ -101,7 +100,7 @@ private:
         FastClick = 125, // ms
         CursorStoppedTimeout = 200, // ms
         MotionEventsPerSecond =  25,
-        AccelFactor = 27, // WTF
+        AccelFactor = 27,
     };
 
     QAbstractKineticScroller *q_ptr;
@@ -117,20 +116,20 @@ private:
     bool moved;
     bool lastIn;
     bool firstDrag;
-    bool centerOnChildFocusPending;
     bool lowFrictionMode;
+    QAbstractKineticScroller::OvershootPolicy overshootPolicy;
 
     QPoint pos;
     QPoint ipos; // mouse-press position
     QPoint scrollTo; // the target in case somebody called scrollTo
-    QPoint motion; // ???
+    QPoint motion;
 
     // overshoot
     int bounceSteps;
-    QPoint maxOverShoot;
-    int vmaxOverShoot;
-    QPoint overShootDist;
-    int overShooting; // the overshooting time in idleTimer steps
+    QPoint maxOvershoot;
+    int vmaxOvershoot;
+    QPoint overshootDist;
+    int overshooting; // the overshooting time in idleTimer steps
 
     // velocity
     QPointF velocity;
@@ -140,15 +139,15 @@ private:
     qreal fastVelocityFactor;
     qreal deceleration;
     QPointF accelerationVelocity;
-    unsigned scrollsPerSecond;
+    int scrollsPerSecond;
     int panningThreshold;
     int directionErrorMargin;
-    qreal force;
     qreal dragInertia;
     int scrollTime;
+    qreal axisLockThreshold;
 
     // timer
-    int idleTimerId; // rename - what is "idle"?
+    int idleTimerId;
     int scrollTimerId;
 };
 
