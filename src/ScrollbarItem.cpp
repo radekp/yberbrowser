@@ -103,11 +103,12 @@ void ScrollbarItem::contentPositionUpdated(qreal contentPos, qreal contentLength
     thumbPosMax = qBound(s_thumbMinSize, thumbPosMax, thumbRange);
     qreal thumbLength = thumbPosMax - thumbPos;
 
-    // FIXME: What's the number 5 below?
     if (m_orientation == Qt::Horizontal)
-        setRect(QRectF(s_thumbMargin + thumbPos, viewSize.height() - s_thumbSize - 5, thumbLength, s_thumbSize));
+        setRect(QRectF(s_thumbMargin + thumbPos, viewSize.height() - s_thumbSize, thumbLength, s_thumbSize));
     else
-        setRect(QRectF(viewSize.width() - s_thumbSize - 5, s_thumbMargin + thumbPos, s_thumbSize,  thumbLength));
+        setRect(QRectF(viewSize.width() - s_thumbSize, s_thumbMargin + thumbPos, s_thumbSize,  thumbLength));
 
-    updateVisibilityAndFading(shouldFadeOut);
+    // show scrollbar only when scrolling is possible
+    if (thumbLength < thumbRange)
+        updateVisibilityAndFading(shouldFadeOut);
 }
