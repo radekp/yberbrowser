@@ -9,4 +9,7 @@ bison \
 libx11-dev \
 libxext-dev \
 zlib1g-dev \
-libexpat1-dev
+libexpat1-dev \
+libsqlite3-dev \
+libxrender-dev \
+libfontconfig1-dev
