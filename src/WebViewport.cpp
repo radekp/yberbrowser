@@ -9,14 +9,15 @@ namespace {
 const int s_zoomAnimDurationMS = 300;
 
 const float s_zoomScaleWheelStep = .2;
+const int s_doubleClickWaitTimeout = 100;
 }
+
 
 
 WebViewport::WebViewport(QGraphicsItem* parent)
     : PannableViewport(parent)
     , m_recognizer(this)
-    , m_pendingPress(QEvent::GraphicsSceneMousePress)
-    , m_pendingRelease(QEvent::GraphicsSceneMouseRelease)
+    , m_selfSentEvent(0)
     , m_zoomAnim(this)
 {
     m_recognizer.reset();
@@ -37,7 +38,7 @@ bool WebViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     qDebug() << __PRETTY_FUNCTION__ << e;
 
     // avoid filtering events that are self-sent
-    if (e == &m_pendingPress || e == &m_pendingRelease) {
+    if (e == m_selfSentEvent) {
         return false;
     }
 
@@ -67,36 +68,17 @@ bool WebViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneMousePress:
         // mouse press is not filtered before pan is recognized
         // apply own filtering
-        copyMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e), &m_pendingPress);
-        m_pendingPressValid = true;
-        // fallthrough
     case QEvent::GraphicsSceneMouseMove:
-        if (!doFilter)
-            mouseEventFromChild(static_cast<QGraphicsSceneMouseEvent *>(e));
-        doFilter = true;
-        break;
-
     case QEvent::GraphicsSceneMouseRelease:
+    case QEvent::GraphicsSceneMouseDoubleClick:
+        m_recognizer.filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
         doFilter = true;
-        mouseEventFromChild(static_cast<QGraphicsSceneMouseEvent *>(e));
-        if (m_pendingPressValid) {
-            // the mouse press was not cancelled by the superclass
-            // this means pan was not recognized and we should send click
-            copyMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e), &m_pendingRelease);
-            sendPendingMouseClick();
-        }
         break;
 
     case QEvent::GraphicsSceneWheel:
         // filter out wheel events that go directly to child.
         // divert the events to this object
         wheelEventFromChild(static_cast<QGraphicsSceneWheelEvent *>(e));
-        doFilter = true;
-        break;
-
-    case QEvent::GraphicsSceneMouseDoubleClick:
-        //mouseEventFromChild(static_cast<QGraphicsSceneMouseEvent *>(e));
-        mouseDoubleClickEventFromChild(static_cast<QGraphicsSceneMouseEvent *>(e));
         doFilter = true;
         break;
 
@@ -108,23 +90,13 @@ bool WebViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
 
 }
 
-void WebViewport::sendPendingMouseClick()
-{
-    m_pendingPressValid = false;
-
-    m_pendingPress.setAccepted(false);
-    m_pendingRelease.setAccepted(false);
-    QApplication::sendEvent(scene(), &m_pendingPress);
-    QApplication::sendEvent(scene(), &m_pendingRelease);
-}
-
 /*! \reimp reimplemented from \QAbstractKineticScroller
  */
 void WebViewport::cancelLeftMouseButtonPress(const QPoint &)
 {
-    // don't send the mouse press event after this callback,
-    // QAbstractCKineticScroller started scrolling
-    m_pendingPressValid = false;
+    // don't send the mouse press event after this callback.
+    // QAbstractCKineticScroller started panning
+    m_recognizer.clearDelayedPress();
 }
 
 void WebViewport::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
@@ -157,15 +129,30 @@ void WebViewport::mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * even
     mouseDoubleClickEvent(&mappedEvent);
 }
 
+void WebViewport::mousePressEventFromChild(QGraphicsSceneMouseEvent * event)
+{
+    m_selfSentEvent = event;
+    QApplication::sendEvent(scene(), event);
+    m_selfSentEvent = 0;
+}
+
+void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
+{
+    m_selfSentEvent = event;
+    QApplication::sendEvent(scene(), event);
+    m_selfSentEvent = 0;
+}
+
+
 void WebViewport::wheelEvent(QGraphicsSceneWheelEvent *event)
 {
     qDebug() << __PRETTY_FUNCTION__ << event;
 
     int adv = event->delta() / (15*8);
     qreal scale = 1;
-    if (adv > 0)
+    if (adv > 0) {
         scale += adv * s_zoomScaleWheelStep;
-    else {
+    } else {
         scale += (-adv) * s_zoomScaleWheelStep;
         scale = 1/scale;
     }
@@ -189,24 +176,7 @@ void WebViewport::wheelEventFromChild(QGraphicsSceneWheelEvent *event)
 
 bool WebViewport::mouseEventFromChild(QGraphicsSceneMouseEvent *event)
 {
-    QGraphicsSceneMouseEvent mappedEvent(event->type());
-    mapEventCommonProperties(this, event, mappedEvent);
-
-    for (int i = 0x1; i <= 0x10; i <<= 1) {
-        if (event->buttons() & i) {
-            Qt::MouseButton button = Qt::MouseButton(i);
-            mappedEvent.setButtonDownPos(button, mapFromScene(event->buttonDownPos(button)));
-            mappedEvent.setButtonDownScenePos(button, event->buttonDownScenePos(button));
-            mappedEvent.setButtonDownScreenPos(button, event->buttonDownScreenPos(button));
-        }
-    }
-
-    mappedEvent.setLastPos(mapFromScene(event->lastScenePos()));
-    mappedEvent.setLastScenePos(event->lastScenePos());
-    mappedEvent.setLastScreenPos(event->lastScreenPos());
-    mappedEvent.setButton(event->button());
-
-    return m_recognizer.filterMouseEvent(event);
+return m_recognizer.filterMouseEvent(event);
 }
 
 void WebViewport::zoomAnimStateChanged(QTimeLine::State newState)
@@ -287,3 +257,4 @@ bool WebViewport::isZoomedIn() const
 {
     return size().width() < viewportItem()->size().width();
 }
+

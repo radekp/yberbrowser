@@ -46,6 +46,28 @@ bool CommonGestureRecognizer::filterMouseEvent(QGraphicsSceneMouseEvent *event)
     if (m_delayedPressEvent == event || m_delayedReleaseEvent == event)
         return false;
 
+#if 0
+    // mapping is not needed at the moment, but
+    // this is here because it's so valuable and big piece of
+    // elegant code
+    QGraphicsSceneMouseEvent mappedEvent(event->type());
+    mapEventCommonProperties(this, event, mappedEvent);
+
+    for (int i = 0x1; i <= 0x10; i <<= 1) {
+        if (event->buttons() & i) {
+            Qt::MouseButton button = Qt::MouseButton(i);
+            mappedEvent.setButtonDownPos(button, mapFromScene(event->buttonDownPos(button)));
+            mappedEvent.setButtonDownScenePos(button, event->buttonDownScenePos(button));
+            mappedEvent.setButtonDownScreenPos(button, event->buttonDownScreenPos(button));
+        }
+    }
+
+    mappedEvent.setLastPos(mapFromScene(event->lastScenePos()));
+    mappedEvent.setLastScenePos(event->lastScenePos());
+    mappedEvent.setLastScreenPos(event->lastScreenPos());
+    mappedEvent.setButton(event->button());
+#endif
+
     bool accepted = false;
 
     switch(event->type()) {
@@ -106,7 +128,8 @@ void CommonGestureRecognizer::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == m_delayedPressTimer.timerId()) {
         m_delayedPressTimer.stop();
-        m_consumer->tapGesture(m_delayedPressEvent, m_delayedReleaseEvent);
+        m_consumer->mousePressEventFromChild(m_delayedPressEvent);
+        m_consumer->mouseReleaseEventFromChild(m_delayedReleaseEvent);
         clearDelayedPress();
     }
 }
@@ -118,7 +141,7 @@ bool CommonGestureRecognizer::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* ev
 #endif
 
     if (m_doubleClickFilter.elapsed() > s_doubleClickFilterDurationMS)
-        m_consumer->doubleTapGesture(event);
+        m_consumer->mouseDoubleClickEventFromChild(event);
     else
         mousePressEvent(event);
     return true;
@@ -138,9 +161,6 @@ bool CommonGestureRecognizer::mousePressEvent(QGraphicsSceneMouseEvent* event)
     if (!m_delayedPressEvent)
         capturePressOrRelease(event);
 
-    if (m_consumer)
-        m_consumer->touchGestureBegin(event->screenPos());
-
     return true;
 }
 
@@ -152,9 +172,6 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
     if (event->button() != Qt::LeftButton)
         return true;
-
-    if (m_consumer)
-        m_consumer->touchGestureEnd();
 
     if (m_delayedReleaseEvent) {
         // sometimes double click is lost if small mouse move occurs
@@ -185,4 +202,5 @@ void CommonGestureRecognizer::reset()
 {
     clearDelayedPress();
 }
+
 
