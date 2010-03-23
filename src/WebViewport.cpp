@@ -12,8 +12,17 @@ const float s_zoomScaleWheelStep = .2;
 const int s_doubleClickWaitTimeout = 100;
 }
 
+/*!
+  \class WebViewport class responsible for implementing user interaction that
+  a typical web view has
 
+  Responsibilities:
+   * Filters the child events of the viewport item and interprets them
+   * forwards some of the events to the viewport item
+   * Resizes (zooms) the viewport
 
+  Not used in DUI atm. Maybe needed someday
+*/
 WebViewport::WebViewport(QGraphicsItem* parent)
     : PannableViewport(parent)
     , m_recognizer(this)

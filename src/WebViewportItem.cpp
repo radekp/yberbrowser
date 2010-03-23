@@ -62,6 +62,9 @@ const qreal s_zoomRectAdjustWidth = 5.;
 /*!
  \class WebViewportItem graphics item representing the whole web page
  responsible for zooming the document when the item size changes
+
+ \WebViewportItem is a \GraphicsItem which is the size of the web page.
+ it scales the underlying \QGraphicsWebView to its own size.
  */
 
 /*!

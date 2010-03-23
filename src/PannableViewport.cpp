@@ -1,17 +1,3 @@
-/***************************************************************************
-**
-** Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies).
-** All rights reserved.
-** Contact: Nokia Corporation (directui@nokia.com)
-**
-** This library is free software; you can redistribute it and/or
-** modify it under the terms of the GNU Lesser General Public
-** License version 2.1 as published by the Free Software Foundation
-** and appearing in the file LICENSE.LGPL included in the packaging
-** of this file.
-**
-****************************************************************************/
-
 #include <QDebug>
 #include <QPointF>
 #include <QGraphicsSceneMouseEvent>
@@ -23,6 +9,17 @@
 static const unsigned s_scrollsPerSecond = 60;
 static const qreal s_axisLockThreshold = .4;
 
+/*!
+  \class PannableViewport \QGraphicsItem that acts as a viewport for its children.
+
+  Responsibilities:
+  * Implements panning interaction
+
+  Corresponds to DuiPannableViewport in DUI, but is implemented via
+  \QGraphicsItem::setFiltersChildEvents
+
+  Not used for DUI
+*/
 
 PannableViewport::PannableViewport(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)

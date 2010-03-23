@@ -3,6 +3,11 @@
 // timeout between clicking url bar and marking the url selected
 static const int s_urlTapSelectAllTimeout = 200;
 
+/*! \class AutoSelectLineEdit input element (\QLineEdit) that selects
+  its contents when focused in.
+
+  Needed, because I did not find the feature from stock Qt widgets.
+ */
 AutoSelectLineEdit::AutoSelectLineEdit(QWidget* parent)
     : QLineEdit(parent)
     , m_selectURLTimer(this)
