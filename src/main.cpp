@@ -121,12 +121,11 @@ int main(int argc, char** argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::ZoomTextOnly, false);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, true);
     QWebSettings::enablePersistentStorage();
-
-
+    
     QStringList args = app.arguments();
 
     settings->enableTileCache(true);
-
+    
 #if ENABLE(ENGINE_THREAD)
     settings->enableEngineThread(true);
 #else
@@ -179,6 +178,9 @@ int main(int argc, char** argv)
     if (settings->engineThreadEnabled())
         QWebSettings::enableEngineThread();
 #endif
+    
+    if (settings->tileCacheEnabled())
+        QWebSettings::globalSettings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, true);
 
     app.start();
     app.createMainView(urlFromUserInput(url));
