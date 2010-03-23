@@ -7,6 +7,7 @@
 #include <QGraphicsWidget>
 #include <QPropertyAnimation>
 #include <QTimeLine>
+#include <QTimer>
 
 #include "PannableViewport.h"
 #include "CommonGestureRecognizer.h"
@@ -15,6 +16,7 @@ class WebViewportItem;
 
 class WebViewport : public PannableViewport, private CommonGestureConsumer
 {
+    Q_OBJECT
 public:
     WebViewport(QGraphicsItem* parent = 0);
 
@@ -29,32 +31,31 @@ protected:
 
     void cancelLeftMouseButtonPress(const QPoint&);
 
-    void tapGesture(QGraphicsSceneMouseEvent* , QGraphicsSceneMouseEvent* ) {}
-    void doubleTapGesture(QGraphicsSceneMouseEvent* ) {}
-    void touchGestureBegin(const QPointF&) {}
-    void touchGestureEnd() {}
+    void mousePressEventFromChild(QGraphicsSceneMouseEvent * event);
+    void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event);
+    void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event);
 
 protected Q_SLOTS:
-    void commitZoom();
     void zoomAnimStateChanged(QTimeLine::State newState);
 
 private:
-    void sendPendingMouseClick();
+
     void resetZoomAnim();
     void wheelEventFromChild(QGraphicsSceneWheelEvent *event);
-    void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event);
     bool mouseEventFromChild(QGraphicsSceneMouseEvent *event);
 
     void transferAnimStateToView();
     bool isZoomedIn() const;
+    void startPendingMouseClickTimer();
 
     CommonGestureRecognizer m_recognizer;
-    QGraphicsSceneMouseEvent m_pendingPress;
-    QGraphicsSceneMouseEvent m_pendingRelease;
+    QEvent* m_selfSentEvent;
     bool m_pendingPressValid;
 
     qreal m_zoomScale;
     QGraphicsItemAnimation m_zoomAnim;
+    QTimer m_doubleClickWaitTimer;
+
 };
 
 

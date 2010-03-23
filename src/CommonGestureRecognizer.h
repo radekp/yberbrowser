@@ -13,18 +13,12 @@ class QPointF;
 class CommonGestureConsumer
 {
 
-    // interface "TapGestureConsumer"
 public:
-    virtual void tapGesture(QGraphicsSceneMouseEvent* pressEventLike, QGraphicsSceneMouseEvent* releaseEventLike) = 0;
-    virtual void doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike) = 0;
-
-    //interface "TouchGestureConsumer"
-public:
-    virtual void touchGestureBegin(const QPointF&) = 0;
-    virtual void touchGestureEnd() = 0;
+    virtual void mousePressEventFromChild(QGraphicsSceneMouseEvent*) = 0;
+    virtual void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* ) = 0;
+    virtual void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent*) = 0;
 
 };
-
 
 class CommonGestureRecognizer : public QObject
 {
@@ -37,12 +31,12 @@ public:
     bool filterMouseEvent(QGraphicsSceneMouseEvent *);
 
     void reset();
-    
+    void clearDelayedPress();
+
 protected:
     void timerEvent(QTimerEvent *event);
 
 private:
-    void clearDelayedPress();
     void capturePressOrRelease(QGraphicsSceneMouseEvent *event, bool wasRelease = false);
     void sendDelayedPress();
 
@@ -50,7 +44,6 @@ private:
     bool mousePressEvent(QGraphicsSceneMouseEvent* event);
     bool mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
     bool mouseMoveEvent(QGraphicsSceneMouseEvent* event);
-
 
 private:
     CommonGestureConsumer* m_consumer;
