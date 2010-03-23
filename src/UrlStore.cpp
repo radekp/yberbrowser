@@ -140,7 +140,7 @@ void UrlStore::accessed(const QUrl& url, const QString& title, QImage* thumbnail
             // move it up if needed
             int j = i;
             // '<=' is for the last access sorting, recently used items move up
-            while (--j >= 0 && item->m_refcount >= m_list.at(j)->m_refcount);
+            while (--j >= 0 && item->m_refcount >= m_list.at(j)->m_refcount) {}
             // position adjusting and check whether we really moved
             if (++j != i) 
                 m_list.move(i, j);
@@ -152,7 +152,7 @@ void UrlStore::accessed(const QUrl& url, const QString& title, QImage* thumbnail
     if (found == -1) {
         // insert to the top of the 1 refcount items. recently used sort
         int i = m_list.size();
-        while (--i >= 0 && m_list.at(i)->m_refcount == 1);
+        while (--i >= 0 && m_list.at(i)->m_refcount == 1) {}
         m_list.insert(++i, new UrlItem(url, title, thumbnail));
     } else if (thumbnail) {
         // add thumbnail if not there yet
