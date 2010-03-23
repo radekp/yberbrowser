@@ -33,8 +33,6 @@ public:
     void setRange(const QRectF&);
     void setAutoRange(bool) { }
 
-    void setWebViewPos(const QPointF& point);
-
     void updateScrollbars();
 
     void setWidget(QGraphicsWidget*);

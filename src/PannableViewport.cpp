@@ -42,7 +42,7 @@ PannableViewport::~PannableViewport()
 
 void PannableViewport::setPanPos(const QPointF& pos)
 {
-    setWebViewPos(pos);
+    setPannedWidgetGeometry(QRectF(pos, pannedWidget()->size()));
 }
 
 QPointF PannableViewport::panPos() const
@@ -108,7 +108,7 @@ void PannableViewport::updateScrollbars()
 void PannableViewport::setScrollPosition(const QPoint &pos, const QPoint &overShootDelta)
 {
     m_overShootDelta = overShootDelta;
-    setWebViewPos(-pos);
+    setPanPos(-pos);
 }
 
 void PannableViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState)
@@ -120,11 +120,6 @@ void PannableViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State
 bool PannableViewport::canStartScrollingAt(const QPoint &globalPos) const
 {
     return YberHack_Qt::QAbstractKineticScroller::canStartScrollingAt(globalPos);
-}
-
-void PannableViewport::setWebViewPos(const QPointF& point)
-{
-    setPannedWidgetGeometry(QRectF(point, pannedWidget()->size()));
 }
 
 bool PannableViewport::sceneEvent(QEvent* e)
