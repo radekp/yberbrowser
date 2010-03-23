@@ -62,6 +62,9 @@ const qreal s_zoomRectAdjustWidth = 5.;
 /*!
  \class WebViewportItem graphics item representing the whole web page
  responsible for zooming the document when the item size changes
+
+ \WebViewportItem is a \GraphicsItem which is the size of the web page.
+ it scales the underlying \QGraphicsWebView to its own size.
  */
 
 /*!
@@ -112,7 +115,6 @@ QGraphicsWebView* WebViewportItem::webView()
 void WebViewportItem::contentsSizeChanged(const QSize& sz)
 {
     Q_UNUSED(sz);
-    qDebug() << __PRETTY_FUNCTION__ << size() << " " << contentsSize();
     resize(contentsSize() * zoomScale());
 }
 
@@ -138,8 +140,6 @@ QSize WebViewportItem::contentsSize() const
 void WebViewportItem::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
     QGraphicsWidget::resizeEvent(event);
-    qDebug() << __PRETTY_FUNCTION__ << size() << " " << contentsSize();
-
     setZoomScale(size().width() / contentsSize().width());
 }
 
@@ -202,10 +202,9 @@ void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
 {
     value = qBound(s_minZoomScale, value, s_maxZoomScale);
     qreal curZoomScale = zoomScale();
-    qDebug() << value;
     if (value != curZoomScale) {
-//        QPointF p = m_webView->pos();
-
+        // fixme
+        // QPointF p = m_webView->pos();
         m_webView->setScale(value);
         //p *= value / curZoomScale;
         //setPos(p);

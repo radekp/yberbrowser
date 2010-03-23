@@ -3,11 +3,12 @@
 
 #include "yberconfig.h"
 
-#if USE(DUI)
+#if USE_DUI
 
 #include <DuiPannableViewport>
-class  PannableViewport : public DuiPannableViewport
+class PannableViewport : public DuiPannableViewport
 {
+    Q_OBJECT
 };
 
 #else
@@ -17,7 +18,7 @@ class  PannableViewport : public DuiPannableViewport
 
 class ScrollbarItem;
 
-class PannableViewport :  public QGraphicsWidget, public YberHack_Qt::QAbstractKineticScroller
+class PannableViewport : public QGraphicsWidget, public YberHack_Qt::QAbstractKineticScroller
 {
     Q_OBJECT
     Q_PROPERTY(QPointF panPos READ panPos WRITE setPanPos);
@@ -39,8 +40,6 @@ public:
     void setWidget(QGraphicsWidget*);
 
 protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent* ev) { qDebug() << __PRETTY_FUNCTION__ << ev; }
-
     bool sceneEventFilter(QGraphicsItem *i, QEvent *e);
 
     QSize viewportSize() const;

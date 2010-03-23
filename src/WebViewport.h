@@ -2,6 +2,9 @@
 #define WebViewport_h_
 
 #include "yberconfig.h"
+#if USE_DUI
+#error should not be used in DUI
+#endif
 #include <QGraphicsItemAnimation>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsWidget>

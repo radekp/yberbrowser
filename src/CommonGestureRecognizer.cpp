@@ -25,6 +25,12 @@ static const int s_minTimeHoldForClick = 100;
       on device.
  */
 
+/*!
+  \class CommonGestureRecognizer class that filters unreliable mouse input and
+  forwards them to the consumer.
+
+  Called from \QGraphicsItem::sceneEventFilter
+*/
 CommonGestureRecognizer::CommonGestureRecognizer(CommonGestureConsumer* consumer)
     : m_consumer(consumer)
     , m_delayedPressEvent(0)

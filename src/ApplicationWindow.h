@@ -3,7 +3,7 @@
 
 #include "yberconfig.h"
 
-#if USE(DUI)
+#if USE_DUI
 
 #include <DuiApplicationWindow>
 class ApplicationWindow :  public DuiApplicationWindow 

@@ -14,6 +14,8 @@ BINDIR = $$PREFIX/bin
 dui {
     CONFIG+=dui
     DEFINES+=USE_DUI=1
+} else {
+    DEFINES+=USE_DUI=0
 }
 
 QMAKE_CXXFLAGS += -Werror
@@ -109,8 +111,6 @@ target.path = $$BINDIR
 INSTALLS += target
 
 HEADERS = \
-  3rdparty/qabstractkineticscroller.h \
-  3rdparty/qabstractkineticscroller_p.h \
   src/ApplicationWindow.h \
   src/ApplicationWindowHost.h \
   src/AutoSelectLineEdit.h \
@@ -131,11 +131,9 @@ HEADERS = \
   src/WebPage.h \
   src/WebView.h \
   src/WebViewportItem.h \
-  src/WebViewport.h \
   src/YberApplication.h
 
 SOURCES = \
-  3rdparty/qabstractkineticscroller.cpp \
   src/AutoSelectLineEdit.cpp \
   src/BackingStoreVisualizerWidget.cpp \
   src/BrowsingView.cpp \
@@ -151,16 +149,23 @@ SOURCES = \
   src/UrlStore.cpp \
   src/WebPage.cpp \
   src/WebView.cpp \
-  src/WebViewport.cpp \
   src/WebViewportItem.cpp \
   src/YberApplication.cpp \
   src/main.cpp
 
 !dui {
+HEADERS += \
+  3rdparty/qabstractkineticscroller.h \
+  3rdparty/qabstractkineticscroller_p.h \
+  src/WebViewport.h
+
 SOURCES += \
   src/ApplicationWindowHost.cpp \
   src/PannableViewport.cpp \
+  src/WebViewport.cpp \
+  3rdparty/qabstractkineticscroller.cpp \
   src/ApplicationWindow.cpp
+
 }
 
 

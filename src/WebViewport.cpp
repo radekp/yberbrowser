@@ -12,8 +12,17 @@ const float s_zoomScaleWheelStep = .2;
 const int s_doubleClickWaitTimeout = 100;
 }
 
+/*!
+  \class WebViewport class responsible for implementing user interaction that
+  a typical web view has
 
+  Responsibilities:
+   * Filters the child events of the viewport item and interprets them
+   * forwards some of the events to the viewport item
+   * Resizes (zooms) the viewport
 
+  Not used in DUI atm. Maybe needed someday
+*/
 WebViewport::WebViewport(QGraphicsItem* parent)
     : PannableViewport(parent)
     , m_recognizer(this)
@@ -35,8 +44,6 @@ WebViewportItem* WebViewport::viewportItem() const
 
 bool WebViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
 {
-    qDebug() << __PRETTY_FUNCTION__ << e;
-
     // avoid filtering events that are self-sent
     if (e == m_selfSentEvent) {
         return false;
@@ -108,7 +115,6 @@ void WebViewport::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
         startZoomAnimToItemHotspot(QPointF(0, -vi->pos().y()), size().width() / vi->size().width());
     } else {
         QPointF p = vi->mapFromScene(event->scenePos());
-        qDebug() << "POS" << p;
         target = vi->findZoomableRectForPoint(p);
         if (!target.isValid()) {
             // fixme
@@ -146,8 +152,6 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
 
 void WebViewport::wheelEvent(QGraphicsSceneWheelEvent *event)
 {
-    qDebug() << __PRETTY_FUNCTION__ << event;
-
     int adv = event->delta() / (15*8);
     qreal scale = 1;
     if (adv > 0) {
@@ -211,8 +215,6 @@ void WebViewport::startZoomAnimToItemHotspot(const QPointF& hotspot, qreal scale
     QPointF newViewportOrigo = newHotspot - p;
 
     QRectF r(- newViewportOrigo, vi->size() * scale);
-
-    qDebug() << "target:" << hotspot << "p:"  << p << "newHot:" <<newHotspot << " current origo:" << vi->mapToParent(QPoint()) <<" newOrigo:"<<newViewportOrigo << " calc:" << r << " scaling: " << scale;
 
     viewportItem()->setGeometry(r);
 
