@@ -119,7 +119,6 @@ QGraphicsWebView* WebViewportItem::webView()
 void WebViewportItem::contentsSizeChanged(const QSize& sz)
 {
     Q_UNUSED(sz);
-    qDebug() << __PRETTY_FUNCTION__ << size() << " " << contentsSize();
     resize(contentsSize() * zoomScale());
 }
 
@@ -145,8 +144,6 @@ QSize WebViewportItem::contentsSize() const
 void WebViewportItem::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
     QGraphicsWidget::resizeEvent(event);
-    qDebug() << __PRETTY_FUNCTION__ << size() << " " << contentsSize();
-
     setZoomScale(size().width() / contentsSize().width());
 }
 
@@ -209,10 +206,9 @@ void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
 {
     value = qBound(s_minZoomScale, value, s_maxZoomScale);
     qreal curZoomScale = zoomScale();
-    qDebug() << value;
     if (value != curZoomScale) {
-//        QPointF p = m_webView->pos();
-
+        // fixme
+        // QPointF p = m_webView->pos();
         m_webView->setScale(value);
         //p *= value / curZoomScale;
         //setPos(p);

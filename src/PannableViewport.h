@@ -40,8 +40,6 @@ public:
     void setWidget(QGraphicsWidget*);
 
 protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent* ev) { qDebug() << __PRETTY_FUNCTION__ << ev; }
-
     bool sceneEventFilter(QGraphicsItem *i, QEvent *e);
 
     QSize viewportSize() const;

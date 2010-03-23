@@ -130,8 +130,6 @@ void PannableViewport::setWebViewPos(const QPointF& point)
 
 bool PannableViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
 {
-    qDebug() << __PRETTY_FUNCTION__;
-
     if (!isVisible())
         return QGraphicsItem::sceneEventFilter(i, e);
 
