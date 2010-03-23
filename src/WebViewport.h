@@ -26,6 +26,8 @@ public:
     WebViewportItem* viewportItem() const;
 
     void startZoomAnimToItemHotspot(const QPointF& hotspot, qreal scale);
+public Q_SLOTS:
+    void reset();
 
 protected:
     bool sceneEventFilter(QGraphicsItem*, QEvent*);

@@ -260,3 +260,8 @@ bool WebViewport::isZoomedIn() const
     return size().width() < viewportItem()->size().width();
 }
 
+void WebViewport::reset()
+{
+    viewportItem()->setGeometry(QRectF(QPointF(), viewportItem()->contentsSize()));
+}
+

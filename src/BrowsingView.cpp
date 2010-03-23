@@ -87,6 +87,10 @@ void BrowsingView::connectSignals()
     connect(m_webView->page(), SIGNAL(loadStarted()), m_progressBox, SLOT(loadStarted()));
     connect(m_webView->page(), SIGNAL(loadProgress(int)), m_progressBox, SLOT(progressChanged(int)));
     connect(m_webView->page(), SIGNAL(loadFinished(bool)), m_progressBox, SLOT(loadFinished(bool)));
+#if !USE_DUI
+    connect(m_webView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
+#endif
+
 }
 
 
