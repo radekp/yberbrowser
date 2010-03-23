@@ -11,7 +11,12 @@ isEmpty(PREFIX) {
 DATADIR = $$PREFIX/share
 BINDIR = $$PREFIX/bin
 
+dui {
+    CONFIG+=dui
+    DEFINES+=USE_DUI=1
+}
 
+QMAKE_CXXFLAGS += -Werror
 
 QT += network opengl
 QT += xml xmlpatterns
@@ -26,16 +31,10 @@ contains(QT_CONFIG, maemo5)  {
     QT += maemo5 dbus
 }
 
-disable_tile_cache {
-    DEFINES+=WEBKIT_SUPPORTS_TILE_CACHE=0
+disable_engine_thread {
+    DEFINES+=ENABLE_ENGINE_THREAD=0
 } else {
-    DEFINES+=WEBKIT_SUPPORTS_TILE_CACHE=1
-}
-
-disable_engine_thread|disable_tile_cache {
-    DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=0
-} else {
-    DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=1
+    DEFINES+=ENABLE_ENGINE_THREAD=1
 }
 
 
@@ -106,40 +105,62 @@ symbian {
     TARGET.CAPABILITY = ReadUserData WriteUserData NetworkServices
 }
 
-
-
 target.path = $$BINDIR
 INSTALLS += target
 
 HEADERS = \
-  src/MainWindow.h \
-  src/WebViewportItem.h \
-  src/HistoryViewportItem.h \
+  3rdparty/qabstractkineticscroller.h \
+  3rdparty/qabstractkineticscroller_p.h \
+  src/ApplicationWindow.h \
+  src/ApplicationWindowHost.h \
+  src/AutoSelectLineEdit.h \
+  src/BackingStoreVisualizerWidget.h \
+  src/BrowsingView.h \
   src/CommonGestureRecognizer.h \
+  src/EnvHttpProxyFactory.h \
   src/EventHelpers.h \
-  src/MainView.h \
+  src/Helpers.h \
   src/HistoryItem.h \
-  src/UrlStore.h \
-  src/UrlItem.h \
-  src/Settings.h \
+  src/HistoryView.h \
+  src/PannableViewport.h \
   src/ProgressWidget.h \
   src/ScrollbarItem.h \
-  3rdparty/qabstractkineticscroller.h \
-  3rdparty/qabstractkineticscroller_p.h
+  src/Settings.h \
+  src/UrlItem.h \
+  src/UrlStore.h \
+  src/WebPage.h \
+  src/WebView.h \
+  src/WebViewportItem.h \
+  src/WebViewport.h \
+  src/YberApplication.h
 
 SOURCES = \
-  src/main.cpp \
-  src/MainWindow.cpp \
-  src/WebViewportItem.cpp \
-  src/HistoryViewportItem.cpp \
+  3rdparty/qabstractkineticscroller.cpp \
+  src/AutoSelectLineEdit.cpp \
+  src/BackingStoreVisualizerWidget.cpp \
+  src/BrowsingView.cpp \
   src/CommonGestureRecognizer.cpp \
+  src/EnvHttpProxyFactory.cpp\
   src/EventHelpers.cpp \
-  src/MainView.cpp \
+  src/Helpers.cpp \
   src/HistoryItem.cpp \
-  src/UrlStore.cpp \
-  src/UrlItem.cpp \
+  src/HistoryView.cpp \
   src/ProgressWidget.cpp \
   src/ScrollbarItem.cpp \
-  3rdparty/qabstractkineticscroller.cpp
+  src/UrlItem.cpp \
+  src/UrlStore.cpp \
+  src/WebPage.cpp \
+  src/WebView.cpp \
+  src/WebViewport.cpp \
+  src/WebViewportItem.cpp \
+  src/YberApplication.cpp \
+  src/main.cpp
+
+!dui {
+SOURCES += \
+  src/ApplicationWindowHost.cpp \
+  src/PannableViewport.cpp \
+  src/ApplicationWindow.cpp
+}
 
 

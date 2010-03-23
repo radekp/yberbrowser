@@ -39,7 +39,8 @@ fi
 # most people have dual-cores..
 makeargs=${makeargs:-"-j3"}
 
-build_webkit_args="--engine-thread --no-video"
+build_webkit_args="--engine-thread --no-video --no-svg"
+build_webkit_args="--no-video --no-svg"
 
 
 webkit_release=

@@ -1,28 +1,32 @@
-#ifndef HistoryViewportItem_h_
-#define HistoryViewportItem_h_
+#ifndef HistoryView_h_
+#define HistoryView_h_
 
 #include <QGraphicsWidget>
 #include <QList>
 
 class HistoryItem;
-class MainView;
 class TileBackground;
 class QParallelAnimationGroup;
 class UrlItem;
+class ApplicationWindow;
 
-class HistoryViewportItem : public QGraphicsWidget {
+class HistoryView : public QGraphicsWidget {
     Q_OBJECT
 public:
-    HistoryViewportItem(MainView& view, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
-    ~HistoryViewportItem();
+    HistoryView(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    ~HistoryView();
 
     void setGeometry(const QRectF& rect);
     void mousePressEvent(QGraphicsSceneMouseEvent* event);
-    void toggleHistory();
+
     bool isActive() const { return m_active; }
 
+    void appear(ApplicationWindow *window);
+    void disappear();
+
 Q_SIGNALS:
-    void hideHistory();
+    void disappeared();
+    void urlSelected(const QUrl&);
 
 public Q_SLOTS:
     void animFinished();
@@ -34,7 +38,6 @@ private:
     void startAnimation(bool in);
 
 private:
-    MainView* m_view;
     TileBackground* m_bckg;
     QList<HistoryItem*> m_historyList;
     QParallelAnimationGroup* m_animGroup;

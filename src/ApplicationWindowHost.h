@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies)
+ * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
  *
  * All rights reserved.
  *
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY APPLE COMPUTER, INC. ``AS IS'' AND ANY
+ * THIS SOFTWARE IS PROVIDED BY NOKIA CORPORATION ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
  * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE COMPUTER, INC. OR
@@ -25,55 +25,43 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WebViewportItem_h_
-#define WebViewportItem_h_
+#ifndef ApplicationWindowHost_h
+#define ApplicationWindowHost_h
 
-#include "yberconfig.h"
+#include <QMainWindow>
 
-#include <QGraphicsWidget>
-#include <QTimer>
+class ApplicationWindow;
 
-class QGraphicsWebView;
-
-class WebViewportItem : public QGraphicsWidget
+class ApplicationWindowHost : public QMainWindow
 {
-    Q_OBJECT
-    Q_PROPERTY(qreal zoomScale READ zoomScale WRITE setZoomScale)
+    friend class ApplicationWindow;
 
 public:
-    WebViewportItem(QGraphicsWebView*, QGraphicsWidget* parent = 0, Qt::WindowFlags wFlags = 0);
-    ~WebViewportItem();
+    ~ApplicationWindowHost();
 
-    QGraphicsWebView* webView();
 
-    QSize contentsSize() const;
-
-    void disableContentUpdates();
-    void enableContentUpdates();
-
-    QRectF findZoomableRectForPoint(const QPointF&);
-
-    void setZoomScale(qreal, bool=false);
-    qreal zoomScale() const;
-
+#if defined(Q_WS_MAEMO_5)
 protected:
-    void resizeEvent(QGraphicsSceneResizeEvent* event);
-
-#if defined(ENABLE_PAINT_DEBUG)
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
+    bool event(QEvent *ev);
+protected Q_SLOTS:
+    void orientationChanged(const QString &newOrientation);
 #endif
 
-protected Q_SLOTS:
-    void contentsSizeChanged(const QSize &size);
-    void commitZoom();
-    
 private:
-    Q_DISABLE_COPY(WebViewportItem);
-    void updatePreferredSize();
+    ApplicationWindowHost();
 
-    QGraphicsWebView* m_webView;
-    QTimer m_zoomCommitTimer;
+    void setApplicationWindow(ApplicationWindow* item);
 
+#if defined(Q_WS_MAEMO_5)
+    void setLandscape();
+    void setPortrait();
+    void grabIncreaseDecreaseKeys(QWidget* window, bool grab);
+#endif
+
+private:
+    ApplicationWindow* m_mainView;
 };
+
+
 
 #endif

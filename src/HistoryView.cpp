@@ -4,14 +4,16 @@
 #include <QGraphicsRectItem>
 #include <QDebug>
 
-#include "HistoryViewportItem.h"
-#include "MainView.h"
-#include "MainWindow.h"
+#include "HistoryView.h"
 #include "HistoryItem.h"
 #include "UrlStore.h"
+#include "ApplicationWindow.h"
 
 #include <QPropertyAnimation>
 #include <QParallelAnimationGroup>
+#if USE(DUI)
+#include <DuiScene>
+#endif
 
 class TileBackground : public QObject, public QGraphicsRectItem {
     Q_OBJECT
@@ -20,9 +22,8 @@ public:
     TileBackground(const QRectF& rect, QGraphicsItem* parent) : QGraphicsRectItem(rect, parent) {}
 };
 
-HistoryViewportItem::HistoryViewportItem(MainView& view, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+HistoryView::HistoryView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_view(&view)
     , m_bckg(0)
     , m_animGroup(new QParallelAnimationGroup)
     , m_active(false)
@@ -31,19 +32,19 @@ HistoryViewportItem::HistoryViewportItem(MainView& view, QGraphicsItem* parent, 
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
-    
+
     connect(m_animGroup, SIGNAL(finished()), this, SLOT(animFinished()));
 }
 
-HistoryViewportItem::~HistoryViewportItem()
+HistoryView::~HistoryView()
 {
     delete m_animGroup;
     destroyHistoryTiles();
 }
 
-void HistoryViewportItem::setGeometry(const QRectF& rect)
+void HistoryView::setGeometry(const QRectF& rect)
 {
-    if (rect == geometry())    
+    if (rect == geometry())
         return;
 
     QGraphicsWidget::setGeometry(rect);
@@ -51,22 +52,15 @@ void HistoryViewportItem::setGeometry(const QRectF& rect)
         createHistoryTiles();
 }
 
-void HistoryViewportItem::toggleHistory()
+void HistoryView::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
 {
-    m_active = !m_active;
-    if (m_active)
-        createHistoryTiles();
-    startAnimation(m_active);
-}
 
-void HistoryViewportItem::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
-{
     // turn history view off
-    if (m_active)
-        m_view->toggleHistory();
+//     if (m_active)
+//         m_view->toggleHistory();
 }
 
-void HistoryViewportItem::createHistoryTiles()
+void HistoryView::createHistoryTiles()
 {
     // background first
     if (!m_bckg) {
@@ -74,7 +68,7 @@ void HistoryViewportItem::createHistoryTiles()
         m_bckg->setPen(QPen(QBrush(QColor(10, 10, 10)), 3));
         m_bckg->setBrush(QColor(20, 20, 20));
     }
-    else 
+    else
         m_bckg->setRect(rect());
 
     int width = rect().width();
@@ -107,7 +101,7 @@ void HistoryViewportItem::createHistoryTiles()
         tileHeight = height / --vTileNum;
 
     tileHeight = qMin(tileHeight, maxHeight);
-    
+
     UrlList& list = UrlStore::instance()->list();
     // move tiles to the middle
     int y = (height - (vTileNum * tileHeight)) / 2;
@@ -125,7 +119,7 @@ void HistoryViewportItem::createHistoryTiles()
             if (itemIndex < m_historyList.size())
                 item = m_historyList.at(itemIndex);
             else {
-                item = new HistoryItem(this, urlItem);  
+                item = new HistoryItem(this, urlItem);
                 connect(item, SIGNAL(itemActivated(UrlItem*)), this, SLOT(historyItemActivated(UrlItem*)));
                 m_historyList.append(item);
             }
@@ -142,7 +136,7 @@ void HistoryViewportItem::createHistoryTiles()
     }
 }
 
-void HistoryViewportItem::destroyHistoryTiles()
+void HistoryView::destroyHistoryTiles()
 {
     for (int i = m_historyList.size() - 1; i >= 0; --i)
         delete m_historyList.takeAt(i);
@@ -150,12 +144,12 @@ void HistoryViewportItem::destroyHistoryTiles()
     m_bckg = 0;
 }
 
-void HistoryViewportItem::animFinished()
+void HistoryView::animFinished()
 {
     m_ongoing = false;
     // destroy thumbs when animation finished (outbound)
     if (!m_active) {
-        emit hideHistory();
+        emit disappeared();
         destroyHistoryTiles();
     } else {
         // add dropshadow when slide in anim finished to avoid rendering artifacts
@@ -164,19 +158,19 @@ void HistoryViewportItem::animFinished()
     }
 }
 
-void HistoryViewportItem::historyItemActivated(UrlItem* item)
+void HistoryView::historyItemActivated(UrlItem* item)
 {
-    toggleHistory();
+    disappear();
     if (item)
-        m_view->mainWindow()->load(item->m_url.toString());
+        emit urlSelected(item->m_url);
 }
 
-void HistoryViewportItem::startAnimation(bool in)
+void HistoryView::startAnimation(bool in)
 {
     if (!m_historyList.size()) {
         // keep the state sane, even where there is no items
         if (!m_active)
-            emit hideHistory();
+            emit disappeared();
         return;
     }
 
@@ -193,7 +187,7 @@ void HistoryViewportItem::startAnimation(bool in)
         m_active = true;
         m_animGroup->clear();
         m_active = false;
-    } else 
+    } else
         m_animGroup->clear();
 
     for (int i = 0; i < m_historyList.size(); ++i) {
@@ -204,10 +198,10 @@ void HistoryViewportItem::startAnimation(bool in)
         animation->setEndValue(endPos);
 
         animation->setEasingCurve(curve);
-        
+
         m_animGroup->addAnimation(animation);
     }
-    
+
     QPropertyAnimation* animation = new QPropertyAnimation(m_bckg, "opacity");
     animation->setDuration(800);
 
@@ -215,11 +209,32 @@ void HistoryViewportItem::startAnimation(bool in)
     animation->setEndValue(in ? 0.8 : 0.0);
 
     animation->setEasingCurve(QEasingCurve::InQuad);
-    
+
     m_animGroup->addAnimation(animation);
 
     m_ongoing = true;
     m_animGroup->start();
 }
 
-#include "HistoryViewportItem.moc"
+void HistoryView::appear(ApplicationWindow *window)
+{
+    // FIXME: how to test if historyview is already in correct view?
+    if (!scene()) {
+        window->scene()->addItem(this);
+        setZValue(100);
+    }
+    scene()->setActiveWindow(this);
+
+    m_active = true;
+    createHistoryTiles();
+    startAnimation(m_active);
+}
+
+void HistoryView::disappear()
+{
+    m_active = false;
+    startAnimation(m_active);
+}
+
+
+#include "HistoryView.moc"

@@ -1,9 +1,8 @@
-#include "ProgressWidget.h"
 #include <QDebug>
-#include <qgraphicswebview.h>
 #include <QPropertyAnimation>
+#include <QPainter>
 
-#include "WebViewportItem.h"
+#include "ProgressWidget.h"
 
 static QString s_initialProgressText("Loading...");
 static qreal s_progressbarOpacity = 0.8;
@@ -25,18 +24,15 @@ private:
     QRectF m_rect;
 };
 
-ProgressWidget::ProgressWidget(WebViewportItem* parent)
+ProgressWidget::ProgressWidget(QGraphicsItem* parent)
     : QGraphicsRectItem(parent)
     , m_slider(new QPropertyAnimation(this, "pos"))
     , m_lastPercentage(0)
     , m_slideAnimState(0)
 {
-    connect(parent->webView()->page(), SIGNAL(loadStarted()), this, SLOT(loadStarted()));
-    connect(parent->webView()->page(), SIGNAL(loadProgress(int)), this, SLOT(progressChanged(int)));
-    connect(parent->webView()->page(), SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
     connect(m_slider, SIGNAL(finished()), this, SLOT(slideFinished()));
-    udpateGeometry(parentWidget()->rect());
     hide();
+
     // setup gradients
     // background
     QGradientStops stops;
@@ -168,7 +164,7 @@ void ProgressWidget::slideFinished()
     update();
 }
 
-void ProgressWidget::udpateGeometry(const QRectF& rect)
+void ProgressWidget::updateGeometry(const QRectF& rect)
 {
     const QFont f = QFont();
     QFontMetrics fm(f);
