@@ -11,7 +11,7 @@
 
 #include <QPropertyAnimation>
 #include <QParallelAnimationGroup>
-#if USE(DUI)
+#if USE_DUI
 #include <DuiScene>
 #endif
 

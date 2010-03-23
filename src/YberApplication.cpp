@@ -52,7 +52,7 @@ void YberApplication::createMainView(const QUrl& url)
 {
     BrowsingView* page = new BrowsingView(*this);
 
-#if USE(DUI)
+#if USE_DUI
     page->appear(appwin.data(), DuiSceneWindow::DestroyWhenDone);
 #else
     page->appear(appwin.data());

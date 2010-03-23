@@ -3,7 +3,7 @@
 
 #include "yberconfig.h"
 
-#if USE(DUI)
+#if USE_DUI
 #include <DuiApplicationPage>
 
 typedef DuiApplicationPage BrowsingViewBase;
@@ -33,7 +33,7 @@ class ProgressWidget;
 class BrowsingView : public BrowsingViewBase
 {
     Q_OBJECT
-#if USE(DUI)
+#if USE_DUI
     typedef DuiTextEdit UrlEditWidget;
 #else
     typedef AutoSelectLineEdit UrlEditWidget;
@@ -43,14 +43,14 @@ public:
     BrowsingView(YberApplication&, QGraphicsItem* parent = 0);
 
 
-#if !USE(DUI)
+#if !USE_DUI
     ApplicationWindow* applicationWindow() { return m_appWin; }
     void appear(ApplicationWindow* window);
     YberWidget* centralWidget()  { return m_centralWidget; }
 #endif
 public Q_SLOTS:
     void load(const QUrl&);
-#if !USE(DUI)
+#if !USE_DUI
     void setTitle(const QString&);
 #endif
 
@@ -88,11 +88,11 @@ private:
     void connectSignals();
     void hideHistoryView();
     void updateHistoryView();
-#if !USE(DUI)
+#if !USE_DUI
     QMenuBar* createMenu(QWidget* parent);
 #endif
 
-#if !USE(DUI)
+#if !USE_DUI
     ApplicationWindow *m_appWin;
     YberWidget* m_centralWidget;
 #endif

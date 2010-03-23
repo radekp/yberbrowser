@@ -48,7 +48,7 @@
 #include <qwebpage.h>
 #include <qwebsettings.h>
 #include <qwebview.h>
-#if defined(ENABLE_DUI) && ENABLE_DUI
+#if USE_DUI
 #include <DuiApplication>
 #include <DuiApplicationPage>
 #include <DuiApplicationWindow>
@@ -96,7 +96,7 @@ int main(int argc, char** argv)
     YberApplication app(argc, argv);
     app.setApplicationName("yberbrowser");
 
-#if USE(DUI)
+#if USE_DUI
     qInstallMsgHandler(debugMessageOutput);
 #endif
 

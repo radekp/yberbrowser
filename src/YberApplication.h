@@ -5,7 +5,7 @@
 
 #include "ApplicationWindow.h"
 
-#if USE(DUI)
+#if USE_DUI
 #include <DuiApplication>
 typedef DuiApplication YberApplicationBase;
 #else

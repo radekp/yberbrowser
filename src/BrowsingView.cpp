@@ -4,7 +4,6 @@
 #include "WebPage.h"
 #include "WebViewportItem.h"
 #include "YberApplication.h"
-#include "WebViewport.h"
 #include "ApplicationWindow.h"
 #include "Settings.h"
 #include "BackingStoreVisualizerWidget.h"
@@ -14,8 +13,7 @@
 #include <QAction>
 #include <QGraphicsLinearLayout>
 
-#if USE(DUI)
-//#include <DuiLinearLayout>
+#if USE_DUI
 #include <DuiTextEdit>
 #include <DuiToolBar>
 #include <DuiToolBarView>
@@ -23,10 +21,13 @@
 #include <DuiButton>
 #include <QToolBar>
 #else
-#include <QToolBar>
 #include "AutoSelectLineEdit.h"
+#include "WebViewport.h"
+
+#include <QToolBar>
 #include <QStyle>
 #include <QMenuBar>
+
 
 #endif
 
@@ -39,7 +40,7 @@
 
 BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     : BrowsingViewBase(parent)
-#if !USE(DUI)
+#if !USE_DUI
     , m_appWin(0)
     , m_centralWidget(new QGraphicsWidget(this))
 #endif
@@ -47,7 +48,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_historyView(0)
 
 {
-#if USE(DUI)
+#if USE_DUI
     setPannableAreaInteractive(false);
 #endif
     m_webView = new WebView();
@@ -55,7 +56,12 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     m_webView->setPage(m_page);
     WebViewportItem* webInteractionProxy = new WebViewportItem(m_webView);
 
+#if USE_DUI
+    m_browsingViewport = new PannableViewport();
+#else
     m_browsingViewport = new WebViewport();
+#endif
+
     m_browsingViewport->setAutoRange(false);
     m_browsingViewport->setWidget(webInteractionProxy);
 
@@ -86,7 +92,7 @@ void BrowsingView::connectSignals()
 
 YberWidget* BrowsingView::createNavigationToolBar()
 {
-#if USE(DUI)
+#if USE_DUI
     DuiWidget* naviToolbar = new DuiWidget();
     naviToolbar->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
 
@@ -152,7 +158,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     updateHistoryView();
     m_progressBox->updateGeometry(m_browsingViewport->rect());
 
-#if !USE(DUI)
+#if !USE_DUI
     if (!applicationWindow()->updatesEnabled()) {
         QSizeF dsz = m_browsingViewport->size() - m_sizeBeforeResize;
         QPointF d(dsz.width(), dsz.height());
@@ -174,7 +180,7 @@ void BrowsingView::load(const QUrl& url)
 */
 }
 
-#if !USE(DUI)
+#if !USE_DUI
 
 void BrowsingView::appear(ApplicationWindow *window)
 {
@@ -274,7 +280,7 @@ void BrowsingView::toggleHistoryView()
     if (m_historyView->isActive()) {
         m_historyView->disappear();
     } else {
-#if USE(DUI)
+#if USE_DUI
         m_historyView->appear(0);
 #else
         m_historyView->appear(applicationWindow());
@@ -365,7 +371,7 @@ void BrowsingView::updateURL()
     urlChanged(m_webView->url());
 }
 
-#if !USE(DUI)
+#if !USE_DUI
 void BrowsingView::setTitle(const QString& title)
 {
     QString t(title.trimmed());
@@ -380,7 +386,7 @@ void BrowsingView::setTitle(const QString& title)
 
 void BrowsingView::toggleFullScreen()
 {
-#if USE(DUI)
+#if USE_DUI
     if (componentDisplayMode(DuiApplicationPage::AllComponents) == DuiApplicationPageModel::Show)
         setComponentsDisplayMode(DuiApplicationPage::AllComponents, DuiApplicationPageModel::Hide);
     else
@@ -403,7 +409,7 @@ void BrowsingView::updateHistoryView()
 
 void BrowsingView::prepareForResize()
 {
-#if !USE(DUI)
+#if !USE_DUI
     applicationWindow()->setUpdatesEnabled(false);
     m_sizeBeforeResize = m_browsingViewport->size();
 #endif
