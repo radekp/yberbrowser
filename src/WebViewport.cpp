@@ -216,7 +216,8 @@ void WebViewport::startZoomAnimToItemHotspot(const QPointF& hotspot, qreal scale
 
     QRectF r(- newViewportOrigo, vi->size() * scale);
 
-    viewportItem()->setGeometry(r);
+    setPannedWidgetGeometry(r);
+
 
 #if 0
     m_zoomAnim.timeLine()->stop();
@@ -262,6 +263,5 @@ bool WebViewport::isZoomedIn() const
 
 void WebViewport::reset()
 {
-    viewportItem()->setGeometry(QRectF(QPointF(), viewportItem()->contentsSize()));
+    setPannedWidgetGeometry(QRectF(QPointF(), viewportItem()->contentsSize()));
 }
-

@@ -40,6 +40,7 @@ public:
     void setWidget(QGraphicsWidget*);
 
 protected:
+    bool sceneEvent(QEvent* e);
     bool sceneEventFilter(QGraphicsItem *i, QEvent *e);
 
     QSize viewportSize() const;
@@ -52,12 +53,14 @@ protected:
     QPointF clipPointToViewport(const QPointF& p) const;
 
     QGraphicsWidget* pannedWidget() const { return m_pannedWidget; }
+    void setPannedWidgetGeometry(const QRectF& r);
 
 private:
     QGraphicsWidget* m_pannedWidget;
     ScrollbarItem* m_vScrollbar;
     ScrollbarItem* m_hScrollbar;
     QPointF m_overShootDelta;
+    QPointF m_extraPos;
 };
 
 #endif

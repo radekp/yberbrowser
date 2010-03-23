@@ -47,14 +47,14 @@ void PannableViewport::setPanPos(const QPointF& pos)
 
 QPointF PannableViewport::panPos() const
 {
-    return m_pannedWidget->pos();
+    return m_pannedWidget->pos() - m_extraPos - m_overShootDelta;
 }
 
 void PannableViewport::setRange(const QRectF& )
 {
 
 }
-
+#include <QGraphicsLinearLayout>
 void PannableViewport::setWidget(QGraphicsWidget* view)
 {
     if (view == m_pannedWidget)
@@ -86,7 +86,7 @@ QSize PannableViewport::viewportSize() const
 
 QPoint PannableViewport::scrollPosition() const
 {
-    return (-(panPos() - m_overShootDelta)).toPoint();
+    return (-panPos()).toPoint();
 }
 
 void PannableViewport::updateScrollbars()
@@ -94,7 +94,7 @@ void PannableViewport::updateScrollbars()
 {
     if (!m_vScrollbar || !m_hScrollbar)
         return;
-    QPointF contentPos = m_pannedWidget->pos();
+    QPointF contentPos = panPos();
     QSizeF contentSize = m_pannedWidget->size();
 
     QSizeF viewSize = size();
@@ -108,7 +108,7 @@ void PannableViewport::updateScrollbars()
 void PannableViewport::setScrollPosition(const QPoint &pos, const QPoint &overShootDelta)
 {
     m_overShootDelta = overShootDelta;
-    setWebViewPos(-(pos - overShootDelta));
+    setWebViewPos(-pos);
 }
 
 void PannableViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState)
@@ -124,8 +124,24 @@ bool PannableViewport::canStartScrollingAt(const QPoint &globalPos) const
 
 void PannableViewport::setWebViewPos(const QPointF& point)
 {
-    m_pannedWidget->setPos(point);
-    updateScrollbars();
+    setPannedWidgetGeometry(QRectF(point, pannedWidget()->size()));
+}
+
+bool PannableViewport::sceneEvent(QEvent* e)
+{
+    bool doFilter = false;
+
+    switch (e->type()) {
+    case QEvent::GraphicsSceneMouseDoubleClick:
+    case QEvent::GraphicsSceneMousePress:
+    case QEvent::GraphicsSceneMouseMove:
+    case QEvent::GraphicsSceneMouseRelease:
+        doFilter = handleMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
+        break;
+    default:
+        break;
+    }
+    return doFilter;
 }
 
 bool PannableViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
@@ -164,6 +180,39 @@ QPointF PannableViewport::clipPointToViewport(const QPointF& p) const
                    qBound(minY, p.y(), static_cast<qreal>(0.)));
 }
 
+void PannableViewport::setPannedWidgetGeometry(const QRectF& g)
+{
+    QRectF gg(g);
 
+    QSizeF sz = g.size();
+    QSizeF vsz = size();
 
+    qreal w = vsz.width() - sz.width();
+    qreal h = vsz.height() - sz.height();
 
+    if ( w > 0 ) {
+        m_extraPos.setX(w/2);
+        gg.moveLeft(0);
+    } else {
+        m_extraPos.setX(0);
+        if (gg.x() < w)
+            gg.moveLeft(w);
+        if (gg.x() > 0)
+            gg.moveLeft(0);
+    }
+
+    if ( h > 0 ) {
+        m_extraPos.setY(h/2);
+        gg.moveTop(0);
+    } else {
+        m_extraPos.setY(0);
+        if (gg.y() < h)
+            gg.moveTop(h);
+        if (gg.y() > 0)
+            gg.moveTop(0);
+    }
+    gg.translate(m_extraPos);
+    gg.translate(m_overShootDelta);
+    pannedWidget()->setGeometry(gg);
+    updateScrollbars();
+}
