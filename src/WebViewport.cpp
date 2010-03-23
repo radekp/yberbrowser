@@ -120,7 +120,7 @@ void WebViewport::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
             // fixme
             return;
         }
-        startZoomAnimToItemHotspot(p, vi->size().width() / target.size().width());
+        startZoomAnimToItemHotspot(p, size().width() / target.size().width());
     }
 }
 
