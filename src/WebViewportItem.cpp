@@ -82,8 +82,7 @@ WebViewportItem::WebViewportItem(QGraphicsWebView* view, QGraphicsWidget* parent
 
     setFiltersChildEvents(true);
 
-    m_webView->setResizesToContent(true);
-    m_webView->page()->mainFrame()->setTileCacheEnabled(true);
+    m_webView->setResizesToContents(true);
 
     m_webView->setParentItem(this);
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
@@ -102,10 +101,7 @@ WebViewportItem::~WebViewportItem()
 
 void WebViewportItem::commitZoom()
 {
-    qreal s = m_webView->scale();
-    m_webView->setTileCacheZoomFactorX(s);
-    m_webView->setTileCacheZoomFactorY(s);
-    m_webView->setTileCacheState(QWebFrame::TileCacheNormal);
+    m_webView->setTiledBackingStoreFrozen(false);
 }
 
 QGraphicsWebView* WebViewportItem::webView()
@@ -149,7 +145,7 @@ void WebViewportItem::resizeEvent(QGraphicsSceneResizeEvent* event)
 
 void WebViewportItem::disableContentUpdates()
 {
-    m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
+    m_webView->setTiledBackingStoreFrozen(true);
 }
 
 void WebViewportItem::enableContentUpdates()
