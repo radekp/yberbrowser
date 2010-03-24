@@ -249,7 +249,6 @@ void PannableViewport::geomAnimStateChanged(QAbstractAnimation::State newState,Q
 {
     switch(newState) {
     case QAbstractAnimation::Running:
-        //viewportItem()->disableContentUpdates();
         break;
 
     case QAbstractAnimation::Stopped: {

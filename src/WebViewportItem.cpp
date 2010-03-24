@@ -106,6 +106,7 @@ WebViewportItem::~WebViewportItem()
 void WebViewportItem::commitZoom()
 {
     m_webView->setTiledBackingStoreFrozen(false);
+    m_zoomCommitTimer.stop();
 }
 
 QGraphicsWebView* WebViewportItem::webView()
@@ -223,7 +224,6 @@ void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
         //p *= value / curZoomScale;
         //setPos(p);
     }
-
     if (commitInstantly)
         commitZoom();
     else

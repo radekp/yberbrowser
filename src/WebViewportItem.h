@@ -65,6 +65,9 @@ public:
     void setResizeMode(ResizeMode);
     ResizeMode resizeMode() const { return m_resizeMode; }
 
+public Q_SLOTS:
+    void commitZoom();
+
 Q_SIGNALS:
     void contentsSizeChangeCausedResize();
 
@@ -77,7 +80,7 @@ protected:
 
 protected Q_SLOTS:
     void webViewContentsSizeChanged(const QSize &size);
-    void commitZoom();
+
 
 private:
     Q_DISABLE_COPY(WebViewportItem);

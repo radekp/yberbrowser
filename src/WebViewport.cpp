@@ -227,7 +227,8 @@ void WebViewport::reset()
     stopPannedWidgetGeomAnim();
     // mark that interaction has not happened
     viewportWidget()->setResizeMode(WebViewportItem::ResizeWidgetHeightToContent);
-    viewportWidget()->resize(viewportWidget()->contentsSize() * (size().width() / viewportWidget()->contentsSize().width()));
+    setPannedWidgetGeometry(QRectF(QPointF(), viewportWidget()->contentsSize() * (size().width() / viewportWidget()->contentsSize().width())));
+    viewportWidget()->commitZoom();
 }
 
 void WebViewport::contentsSizeChangeCausedResize()
