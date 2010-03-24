@@ -53,7 +53,7 @@ const int s_defaultPreferredHeight = 768;
 const qreal s_minZoomScale = .01; // arbitrary
 const qreal s_maxZoomScale = 10.; // arbitrary
 const int s_minDoubleClickZoomTargetWidth = 100; // in document coords, aka CSS pixels
-const int s_zoomCommitTimerDurationMS = 500;
+const int s_zoomCommitTimerDurationMS = 100;
 const qreal s_zoomableContentMinWidth = 300.;
 const qreal s_zoomRectAdjustHeight = 5.;
 const qreal s_zoomRectAdjustWidth = 5.;
@@ -74,6 +74,7 @@ WebViewportItem::WebViewportItem(QGraphicsWebView* view, QGraphicsWidget* parent
     : QGraphicsWidget(parent, wFlags)
     , m_webView(view)
     , m_zoomCommitTimer(this)
+    , m_resizeMode(WebViewportItem::ResizeWidgetHeightToContent)
 {
     Q_ASSERT(m_webView);
 
@@ -116,13 +117,14 @@ QGraphicsWebView* WebViewportItem::webView()
 \fn void WebViewportItem::contentsSizeChangeCausedResize()
 This signal is emitted when contents size has changed and vieport item is resized due to this
 */
-
-
-
 void WebViewportItem::webViewContentsSizeChanged(const QSize& sz)
 {
     Q_UNUSED(sz);
-    resize(contentsSize() * zoomScale());
+    qreal scale = zoomScale();
+    if (m_resizeMode == WebViewportItem::ResizeWidgetHeightToContent) {
+        scale = size().width() / contentsSize().width();
+    }
+    resize(contentsSize() * scale);
     emit contentsSizeChangeCausedResize();
 }
 
@@ -208,6 +210,10 @@ qreal WebViewportItem::zoomScale() const
 
 void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
 {
+    if (!commitInstantly) {
+        disableContentUpdates();
+    }
+
     value = qBound(s_minZoomScale, value, s_maxZoomScale);
     qreal curZoomScale = zoomScale();
     if (value != curZoomScale) {
@@ -218,11 +224,18 @@ void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
         //setPos(p);
     }
 
-    if (commitInstantly) {
+    if (commitInstantly)
         commitZoom();
-    } else {
-        disableContentUpdates();
+    else
         m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
-    }
 }
 
+void WebViewportItem::setGeometry(const QRectF&r)
+{
+    QGraphicsWidget::setGeometry(r);
+}
+
+void WebViewportItem::setResizeMode(WebViewportItem::ResizeMode mode)
+{
+    m_resizeMode = mode;
+}

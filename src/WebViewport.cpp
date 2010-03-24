@@ -75,6 +75,8 @@ bool WebViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneMouseMove:
     case QEvent::GraphicsSceneMouseRelease:
     case QEvent::GraphicsSceneMouseDoubleClick:
+        // FIXME: detect interaction properly
+        viewportWidget()->setResizeMode(WebViewportItem::ResizeWidgetToContent);
         m_recognizer.filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
         doFilter = true;
         break;
@@ -208,7 +210,11 @@ void WebViewport::startZoomAnimToItemHotspot(const QPointF& hotspot, const QPoin
 
     QRectF r(- newViewportOrigo, vi->size() * scale);
 
+    // mark that interaction has happened
+    viewportWidget()->setResizeMode(WebViewportItem::ResizeWidgetToContent);
+
     startPannedWidgetGeomAnim(r);
+
 }
 
 bool WebViewport::isZoomedIn() const
@@ -218,12 +224,15 @@ bool WebViewport::isZoomedIn() const
 
 void WebViewport::reset()
 {
-    setPannedWidgetGeometry(QRectF(QPointF(), viewportWidget()->contentsSize()));
+    stopPannedWidgetGeomAnim();
+    // mark that interaction has not happened
+    viewportWidget()->setResizeMode(WebViewportItem::ResizeWidgetHeightToContent);
+    viewportWidget()->resize(viewportWidget()->contentsSize() * (size().width() / viewportWidget()->contentsSize().width()));
 }
 
 void WebViewport::contentsSizeChangeCausedResize()
 {
     stopPannedWidgetGeomAnim();
-    // restart animation
 }
+
 

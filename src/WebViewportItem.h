@@ -55,6 +55,15 @@ public:
 
     void setZoomScale(qreal, bool=false);
     qreal zoomScale() const;
+    void setGeometry(const QRectF&r);
+
+    enum ResizeMode {
+        ResizeWidgetToContent,
+        ResizeWidgetHeightToContent
+    };
+
+    void setResizeMode(ResizeMode);
+    ResizeMode resizeMode() const { return m_resizeMode; }
 
 Q_SIGNALS:
     void contentsSizeChangeCausedResize();
@@ -69,13 +78,14 @@ protected:
 protected Q_SLOTS:
     void webViewContentsSizeChanged(const QSize &size);
     void commitZoom();
-    
+
 private:
     Q_DISABLE_COPY(WebViewportItem);
     void updatePreferredSize();
 
     QGraphicsWebView* m_webView;
     QTimer m_zoomCommitTimer;
+    ResizeMode m_resizeMode;
 
 };
 
