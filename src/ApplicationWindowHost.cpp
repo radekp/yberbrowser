@@ -39,10 +39,15 @@ ApplicationWindowHost::ApplicationWindowHost()
     resize(s_applicationWindowHostWidth, s_applicationWindowHostHeight);
 
 #if defined(Q_WS_MAEMO_5)
+
+#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 2)
+    setAttribute(Qt::WA_Maemo5AutoOrientation, true);
+#else
     QDBusConnection::systemBus().connect(QString(), MCE_SIGNAL_PATH, MCE_SIGNAL_IF,
                                          MCE_DEVICE_ORIENTATION_SIG,
                                          this,
                                          SLOT(orientationChanged(QString)));
+#endif
     grabIncreaseDecreaseKeys(this, true);
 #endif
 
@@ -83,8 +88,11 @@ ApplicationWindowHost::~ApplicationWindowHost()
 }
 
 #if defined(Q_WS_MAEMO_5)
+#if QT_VERSION < QT_VERSION_CHECK(4, 6, 2)
 bool ApplicationWindowHost::event(QEvent *ev)
 {
+    qDebug() << ev;
+
     switch (ev->type()) {
     case QEvent::WindowActivate:
         QDBusConnection::systemBus().call(
@@ -108,28 +116,12 @@ bool ApplicationWindowHost::event(QEvent *ev)
 void ApplicationWindowHost::orientationChanged(const QString &newOrientation)
 {
     if (newOrientation == QLatin1String(MCE_ORIENTATION_PORTRAIT))
-        setPortrait();
-    else
-        setLandscape();
-}
-
-void ApplicationWindowHost::setLandscape()
-{
-#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 2)
-        setAttribute(Qt::WA_Maemo5LandscapeOrientation, true);
-#else
-        setAttribute(Qt::WA_Maemo5ForceLandscapeOrientation, true);
-#endif
-}
-
-void ApplicationWindowHost::setPortrait()
-{
-#if QT_VERSION >= QT_VERSION_CHECK(4, 6, 2)
-        setAttribute(Qt::WA_Maemo5PortraitOrientation, true);
-#else
         setAttribute(Qt::WA_Maemo5ForcePortraitOrientation, true);
-#endif
+    else
+        setAttribute(Qt::WA_Maemo5ForceLandscapeOrientation, true);
 }
+
+#endif
 
 void ApplicationWindowHost::grabIncreaseDecreaseKeys(QWidget* window, bool grab)
 {

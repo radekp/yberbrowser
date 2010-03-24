@@ -41,20 +41,19 @@ public:
 
 
 #if defined(Q_WS_MAEMO_5)
+#if QT_VERSION < QT_VERSION_CHECK(4, 6, 2)
 protected:
     bool event(QEvent *ev);
 protected Q_SLOTS:
-    void orientationChanged(const QString &newOrientation);
+    void orientationChanged();
 #endif
-
+#endif
 private:
     ApplicationWindowHost();
 
     void setApplicationWindow(ApplicationWindow* item);
 
 #if defined(Q_WS_MAEMO_5)
-    void setLandscape();
-    void setPortrait();
     void grabIncreaseDecreaseKeys(QWidget* window, bool grab);
 #endif
 
