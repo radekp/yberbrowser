@@ -11,10 +11,7 @@ class WebView : public QGraphicsWebView {
 public:
     WebView(QGraphicsItem* parent = 0);
 
-    void paint(QPainter* p, const QStyleOptionGraphicsItem* i, QWidget* w= 0) {
-        m_fpsTicks++;
-        QGraphicsWebView::paint(p, i, w);
-    }
+    void paint(QPainter* p, const QStyleOptionGraphicsItem* i, QWidget* w= 0);
 
     unsigned int fpsTicks() const { return m_fpsTicks; }
 
