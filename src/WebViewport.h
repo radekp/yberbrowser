@@ -8,8 +8,6 @@
 #include <QGraphicsItemAnimation>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsWidget>
-#include <QPropertyAnimation>
-#include <QTimeLine>
 #include <QTimer>
 
 #include "PannableViewport.h"
@@ -21,11 +19,12 @@ class WebViewport : public PannableViewport, private CommonGestureConsumer
 {
     Q_OBJECT
 public:
-    WebViewport(QGraphicsItem* parent = 0);
+    WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent = 0);
 
-    WebViewportItem* viewportItem() const;
+    WebViewportItem* viewportWidget() const;
 
-    void startZoomAnimToItemHotspot(const QPointF& hotspot, qreal scale);
+    void startZoomAnimToItemHotspot(const QPointF& hotspot,  const QPointF& viewTargetHotspot, qreal scale);
+
 public Q_SLOTS:
     void reset();
 
@@ -41,26 +40,18 @@ protected:
     void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event);
 
 protected Q_SLOTS:
-    void zoomAnimStateChanged(QTimeLine::State newState);
+    void contentsSizeChangeCausedResize();
 
 private:
-
     void resetZoomAnim();
     void wheelEventFromChild(QGraphicsSceneWheelEvent *event);
     bool mouseEventFromChild(QGraphicsSceneMouseEvent *event);
-
-    void transferAnimStateToView();
     bool isZoomedIn() const;
-    void startPendingMouseClickTimer();
 
     CommonGestureRecognizer m_recognizer;
     QEvent* m_selfSentEvent;
-    bool m_pendingPressValid;
 
-    qreal m_zoomScale;
-    QGraphicsItemAnimation m_zoomAnim;
     QTimer m_doubleClickWaitTimer;
-
 };
 
 

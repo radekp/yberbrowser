@@ -14,6 +14,8 @@ class PannableViewport : public DuiPannableViewport
 #else
 
 #include <QGraphicsWidget>
+#include <QPropertyAnimation>
+
 #include "3rdparty/qabstractkineticscroller.h"
 
 class ScrollbarItem;
@@ -53,12 +55,23 @@ protected:
     QGraphicsWidget* pannedWidget() const { return m_pannedWidget; }
     void setPannedWidgetGeometry(const QRectF& r);
 
+    void startPannedWidgetGeomAnim(const QRectF& geom);
+    void stopPannedWidgetGeomAnim();
+
+protected Q_SLOTS:
+    void geomAnimStateChanged(QAbstractAnimation::State newState, QAbstractAnimation::State);
+
 private:
+    void transferAnimStateToView();
+    QRectF adjustRectForPannedWidgetGeometry(const QRectF&);
+
     QGraphicsWidget* m_pannedWidget;
     ScrollbarItem* m_vScrollbar;
     ScrollbarItem* m_hScrollbar;
     QPointF m_overShootDelta;
     QPointF m_extraPos;
+    QRectF m_geomAnimEndValue;
+    QPropertyAnimation m_geomAnim;
 };
 
 #endif

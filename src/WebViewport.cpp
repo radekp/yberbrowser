@@ -3,7 +3,6 @@
 #include "WebViewport.h"
 #include "WebViewportItem.h"
 #include "EventHelpers.h"
-#include <QDebug>
 
 namespace {
 const int s_zoomAnimDurationMS = 300;
@@ -23,20 +22,18 @@ const int s_doubleClickWaitTimeout = 100;
 
   Not used in DUI atm. Maybe needed someday
 */
-WebViewport::WebViewport(QGraphicsItem* parent)
+WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
     : PannableViewport(parent)
     , m_recognizer(this)
     , m_selfSentEvent(0)
-    , m_zoomAnim(this)
 {
     m_recognizer.reset();
 
-    m_zoomAnim.setTimeLine(new QTimeLine(s_zoomAnimDurationMS));
-    connect(m_zoomAnim.timeLine(), SIGNAL(stateChanged(QTimeLine::State)), this, SLOT(zoomAnimStateChanged(QTimeLine::State)));
-
+    setWidget(viewportWidget);
+    connect(viewportWidget, SIGNAL(contentsSizeChangeCausedResize()), this, SLOT(contentsSizeChangeCausedResize()));
 }
 
-WebViewportItem* WebViewport::viewportItem() const
+WebViewportItem* WebViewport::viewportWidget() const
 {
     // fixme: dont use upcast
     return qobject_cast<WebViewportItem*>(pannedWidget());
@@ -109,10 +106,13 @@ void WebViewport::cancelLeftMouseButtonPress(const QPoint &)
 void WebViewport::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
     QRectF target;
-    WebViewportItem* vi = viewportItem();
+    WebViewportItem* vi = viewportWidget();
+
+    // viewport is center is the target hotspot
+    QPointF viewTargetHotspot(size().width() / 2, size().height() / 2);
 
     if (isZoomedIn()) {
-        startZoomAnimToItemHotspot(QPointF(0, -vi->pos().y()), size().width() / vi->size().width());
+        startZoomAnimToItemHotspot(QPointF(0, -vi->pos().y()), viewTargetHotspot, size().width() / vi->size().width());
     } else {
         QPointF p = vi->mapFromScene(event->scenePos());
         target = vi->findZoomableRectForPoint(p);
@@ -120,7 +120,13 @@ void WebViewport::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
             // fixme
             return;
         }
-        startZoomAnimToItemHotspot(p, size().width() / target.size().width());
+
+        // hotspot is the center of the identified rect x-wise
+        // y-wise it's the place user touched
+        QPointF hotspot(target.center().x(), p.y());
+
+
+        startZoomAnimToItemHotspot(hotspot, viewTargetHotspot, size().width() / target.size().width());
     }
 }
 
@@ -161,7 +167,13 @@ void WebViewport::wheelEvent(QGraphicsSceneWheelEvent *event)
         scale = 1/scale;
     }
 
-    startZoomAnimToItemHotspot(viewportItem()->mapFromScene(event->scenePos()), scale);
+    // zoom hotspot is the point where user had the mouse
+    QPointF hotspot(viewportWidget()->mapFromScene(event->scenePos()));
+
+    // maintain that spot in the same point on the viewport
+    QPointF viewTargetHotspot(viewportWidget()->mapToParent(hotspot));
+
+    startZoomAnimToItemHotspot(hotspot, viewTargetHotspot, scale);
     event->accept();
 }
 
@@ -180,88 +192,38 @@ void WebViewport::wheelEventFromChild(QGraphicsSceneWheelEvent *event)
 
 bool WebViewport::mouseEventFromChild(QGraphicsSceneMouseEvent *event)
 {
-return m_recognizer.filterMouseEvent(event);
+    return m_recognizer.filterMouseEvent(event);
 }
 
-void WebViewport::zoomAnimStateChanged(QTimeLine::State newState)
-{
-    switch(newState) {
-    case QTimeLine::Running:
-        viewportItem()->disableContentUpdates();
-        break;
-
-    case QTimeLine::NotRunning: {
-        transferAnimStateToView();
-        break;
-    }
-    case QTimeLine::Paused:
-        // FIXME: what to do?
-        break;
-    default:
-        break;
-    }
-}
 /*!
   \targetRect in viewport item coords
 */
-void WebViewport::startZoomAnimToItemHotspot(const QPointF& hotspot, qreal scale)
+void WebViewport::startZoomAnimToItemHotspot(const QPointF& hotspot, const QPointF& viewTargetHotspot, qreal scale)
 {
-    WebViewportItem* vi = viewportItem();
-
-    QPointF p(vi->mapToParent(hotspot));
+    WebViewportItem* vi = viewportWidget();
 
     QPointF newHotspot = (hotspot * scale);
 
-    QPointF newViewportOrigo = newHotspot - p;
+    QPointF newViewportOrigo = newHotspot - viewTargetHotspot;
 
     QRectF r(- newViewportOrigo, vi->size() * scale);
 
-    setPannedWidgetGeometry(r);
-
-
-#if 0
-    m_zoomAnim.timeLine()->stop();
-    qreal step = m_zoomAnim.timeLine()->currentValue();
-
-    qreal curScale = m_zoomAnim.horizontalScaleAt(step) * m_webView->scale();
-    QPointF curPos = m_zoomAnim.posAt(step) + m_webView->pos();
-
-    setWebViewPos(QPointF(0,0));
-    m_webView->setScale(1.);
-
-    m_zoomAnim.setPosAt(0, curPos);
-    m_zoomAnim.setPosAt(1, targetPoint);
-    m_zoomAnim.setScaleAt(0, curScale, curScale);
-    m_zoomAnim.setScaleAt(1, targetScale, targetScale);
-    m_zoomAnim.setStep(0);
-    m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
-    m_zoomAnim.timeLine()->start();
-#endif
-}
-
-void WebViewport::transferAnimStateToView()
-{
-#if 0
-    Q_ASSERT(m_zoomAnim.timeLine()->state() == QTimeLine::NotRunning);
-
-    qreal step = m_zoomAnim.timeLine()->currentValue();
-
-    qreal s = m_zoomAnim.horizontalScaleAt(step);
-    QPointF p = m_zoomAnim.posAt(step);
-
-    resetZoomAnim();
-
-    setWebViewPos(p);
-    m_webView->setScale(s);
-#endif
+    startPannedWidgetGeomAnim(r);
 }
 
 bool WebViewport::isZoomedIn() const
 {
-    return size().width() < viewportItem()->size().width();
+    return size().width() < viewportWidget()->size().width();
 }
 
 void WebViewport::reset()
 {
-    setPannedWidgetGeometry(QRectF(QPointF(), viewportItem()->contentsSize()));
+    setPannedWidgetGeometry(QRectF(QPointF(), viewportWidget()->contentsSize()));
 }
+
+void WebViewport::contentsSizeChangeCausedResize()
+{
+    stopPannedWidgetGeomAnim();
+    // restart animation
+}
+

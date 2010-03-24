@@ -92,7 +92,7 @@ WebViewportItem::WebViewportItem(QGraphicsWebView* view, QGraphicsWidget* parent
 
     updatePreferredSize();
 
-    connect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(contentsSizeChanged(const QSize&)));
+    connect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
 
     connect(&m_zoomCommitTimer, SIGNAL(timeout()), this, SLOT(commitZoom()));
     m_zoomCommitTimer.setSingleShot(true);
@@ -112,10 +112,18 @@ QGraphicsWebView* WebViewportItem::webView()
     return m_webView;
 }
 
-void WebViewportItem::contentsSizeChanged(const QSize& sz)
+/*!
+\fn void WebViewportItem::contentsSizeChangeCausedResize()
+This signal is emitted when contents size has changed and vieport item is resized due to this
+*/
+
+
+
+void WebViewportItem::webViewContentsSizeChanged(const QSize& sz)
 {
     Q_UNUSED(sz);
     resize(contentsSize() * zoomScale());
+    emit contentsSizeChangeCausedResize();
 }
 
 #if defined(ENABLE_PAINT_DEBUG)

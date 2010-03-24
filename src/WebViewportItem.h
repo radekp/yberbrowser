@@ -56,6 +56,9 @@ public:
     void setZoomScale(qreal, bool=false);
     qreal zoomScale() const;
 
+Q_SIGNALS:
+    void contentsSizeChangeCausedResize();
+
 protected:
     void resizeEvent(QGraphicsSceneResizeEvent* event);
 
@@ -64,7 +67,7 @@ protected:
 #endif
 
 protected Q_SLOTS:
-    void contentsSizeChanged(const QSize &size);
+    void webViewContentsSizeChanged(const QSize &size);
     void commitZoom();
     
 private:

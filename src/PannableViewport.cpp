@@ -1,4 +1,3 @@
-#include <QDebug>
 #include <QPointF>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsScene>
@@ -6,8 +5,11 @@
 #include "ScrollbarItem.h"
 #include "EventHelpers.h"
 
-static const unsigned s_scrollsPerSecond = 60;
-static const qreal s_axisLockThreshold = .4;
+namespace {
+const unsigned s_scrollsPerSecond = 60;
+const qreal s_axisLockThreshold = .4;
+const int s_geomAnimDuration = 300;
+}
 
 /*!
   \class PannableViewport \QGraphicsItem that acts as a viewport for its children.
@@ -47,14 +49,14 @@ void PannableViewport::setPanPos(const QPointF& pos)
 
 QPointF PannableViewport::panPos() const
 {
-    return m_pannedWidget->pos() - m_extraPos - m_overShootDelta;
+    return pannedWidget()->pos() - m_extraPos - m_overShootDelta;
 }
 
 void PannableViewport::setRange(const QRectF& )
 {
 
 }
-#include <QGraphicsLinearLayout>
+
 void PannableViewport::setWidget(QGraphicsWidget* view)
 {
     if (view == m_pannedWidget)
@@ -68,6 +70,12 @@ void PannableViewport::setWidget(QGraphicsWidget* view)
     m_pannedWidget = view;
     m_pannedWidget->setParentItem(this);
     m_pannedWidget->stackBefore(m_vScrollbar);
+
+    m_geomAnim.setTargetObject(m_pannedWidget);
+    m_geomAnim.setDuration(s_geomAnimDuration);
+    m_geomAnim.setPropertyName("geometry");
+    connect(&m_geomAnim, SIGNAL(stateChanged(QAbstractAnimation::State,QAbstractAnimation::State)), this, SLOT(geomAnimStateChanged(QAbstractAnimation::State,QAbstractAnimation::State)));
+
 }
 
 QPoint PannableViewport::maximumScrollPosition() const
@@ -90,7 +98,6 @@ QPoint PannableViewport::scrollPosition() const
 }
 
 void PannableViewport::updateScrollbars()
-
 {
     if (!m_vScrollbar || !m_hScrollbar)
         return;
@@ -161,8 +168,6 @@ bool PannableViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     return doFilter ? true : QGraphicsItem::sceneEventFilter(i, e);
 }
 
-
-
 QPointF PannableViewport::clipPointToViewport(const QPointF& p) const
 {
     QSizeF contentsSize = size();
@@ -175,8 +180,10 @@ QPointF PannableViewport::clipPointToViewport(const QPointF& p) const
                    qBound(minY, p.y(), static_cast<qreal>(0.)));
 }
 
-void PannableViewport::setPannedWidgetGeometry(const QRectF& g)
+QRectF PannableViewport::adjustRectForPannedWidgetGeometry(const QRectF& g)
 {
+    stopPannedWidgetGeomAnim();
+
     QRectF gg(g);
 
     QSizeF sz = g.size();
@@ -208,6 +215,50 @@ void PannableViewport::setPannedWidgetGeometry(const QRectF& g)
     }
     gg.translate(m_extraPos);
     gg.translate(m_overShootDelta);
-    pannedWidget()->setGeometry(gg);
+    return gg;
+}
+
+void PannableViewport::setPannedWidgetGeometry(const QRectF& g)
+{
+    pannedWidget()->setGeometry(adjustRectForPannedWidgetGeometry(g));
     updateScrollbars();
+}
+
+void PannableViewport::startPannedWidgetGeomAnim(const QRectF& geom)
+{
+    m_geomAnim.setStartValue(pannedWidget()->geometry());
+    m_geomAnimEndValue = adjustRectForPannedWidgetGeometry(geom);
+    m_geomAnim.setEndValue(m_geomAnimEndValue);
+    m_geomAnim.start();
+}
+
+void PannableViewport::stopPannedWidgetGeomAnim()
+{
+    m_geomAnimEndValue = QRectF();
+    m_geomAnim.stop();
+}
+
+void PannableViewport::transferAnimStateToView()
+{
+    if (m_geomAnimEndValue.isValid())
+        pannedWidget()->setGeometry(m_geomAnimEndValue);
+}
+
+void PannableViewport::geomAnimStateChanged(QAbstractAnimation::State newState,QAbstractAnimation::State)
+{
+    switch(newState) {
+    case QAbstractAnimation::Running:
+        //viewportItem()->disableContentUpdates();
+        break;
+
+    case QAbstractAnimation::Stopped: {
+        transferAnimStateToView();
+        break;
+    }
+    case QAbstractAnimation::Paused:
+        // FIXME: what to do?
+        break;
+    default:
+        break;
+    }
 }

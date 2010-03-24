@@ -58,12 +58,11 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
 
 #if USE_DUI
     m_browsingViewport = new PannableViewport();
-#else
-    m_browsingViewport = new WebViewport();
-#endif
-
-    m_browsingViewport->setAutoRange(false);
     m_browsingViewport->setWidget(webInteractionProxy);
+#else
+    m_browsingViewport = new WebViewport(webInteractionProxy);
+#endif
+    m_browsingViewport->setAutoRange(false);
 
     YberWidget* w = centralWidget();
     QGraphicsLinearLayout *layout = new QGraphicsLinearLayout(Qt::Vertical, w);
