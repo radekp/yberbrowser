@@ -242,6 +242,7 @@ void PannableViewport::transferAnimStateToView()
 {
     if (m_geomAnimEndValue.isValid())
         pannedWidget()->setGeometry(m_geomAnimEndValue);
+    updateScrollbars();
 }
 
 void PannableViewport::geomAnimStateChanged(QAbstractAnimation::State newState,QAbstractAnimation::State)
