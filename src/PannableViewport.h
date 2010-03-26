@@ -53,7 +53,7 @@ protected:
     QPointF clipPointToViewport(const QPointF& p) const;
 
     QGraphicsWidget* pannedWidget() const { return m_pannedWidget; }
-    void setPannedWidgetGeometry(const QRectF& r);
+    virtual void setPannedWidgetGeometry(const QRectF& r);
 
     void startPannedWidgetGeomAnim(const QRectF& geom);
     void stopPannedWidgetGeomAnim();

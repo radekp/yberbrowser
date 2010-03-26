@@ -3,12 +3,65 @@
 #include "WebViewport.h"
 #include "WebViewportItem.h"
 #include "EventHelpers.h"
+#include "qwebframe.h"
+#include "qgraphicswebview.h"
+#include "qwebelement.h"
+
+#include <QSequentialAnimationGroup>
+#include <QGraphicsBlurEffect>
 
 namespace {
 const int s_zoomAnimDurationMS = 300;
 
 const float s_zoomScaleWheelStep = .2;
 const int s_doubleClickWaitTimeout = 100;
+}
+
+class LinkSelectionItem : public QObject, public QGraphicsRectItem {
+    Q_OBJECT
+    Q_PROPERTY(QRectF rect READ rect WRITE setRect)
+    Q_PROPERTY(qreal opacity READ opacity WRITE setOpacity)
+public:
+    LinkSelectionItem(QGraphicsItem*);
+    void show(const QPointF&, const QRectF&);
+
+private:
+    QSequentialAnimationGroup m_linkSelectiogroup;
+};
+
+LinkSelectionItem::LinkSelectionItem(QGraphicsItem* parent) 
+    : QGraphicsRectItem(QRect(0, 0, 0, 0), parent) 
+{
+    setBrush(QBrush(QColor(10, 10, 80)));
+    setOpacity(0.7);
+}
+
+void LinkSelectionItem::show(const QPointF& mousePos, const QRectF& linkRect) 
+{
+    QGraphicsBlurEffect* blur = new QGraphicsBlurEffect();
+    blur->setBlurHints(QGraphicsBlurEffect::PerformanceHint);
+    blur->setBlurRadius(15);
+    setGraphicsEffect(blur);
+
+    QPropertyAnimation* rectAnimation = new QPropertyAnimation(this, "rect");
+    rectAnimation->setDuration(350);
+
+    rectAnimation->setStartValue(QRectF(mousePos, QSize(3, 3)));
+    rectAnimation->setEndValue(linkRect);    
+
+    rectAnimation->setEasingCurve(QEasingCurve::OutExpo);
+
+    QPropertyAnimation* opacityAnimation = new QPropertyAnimation(this, "opacity");
+    opacityAnimation->setDuration(650);
+
+    opacityAnimation->setStartValue(0.7);
+    opacityAnimation->setEndValue(0.0);
+
+    opacityAnimation->setEasingCurve(QEasingCurve::InExpo);
+    
+    m_linkSelectiogroup.addAnimation(rectAnimation);
+    m_linkSelectiogroup.addAnimation(opacityAnimation);
+    m_linkSelectiogroup.start();
 }
 
 /*!
@@ -26,11 +79,19 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
     : PannableViewport(parent)
     , m_recognizer(this)
     , m_selfSentEvent(0)
+    , m_linkSelectionItem(0)
+    , m_delayedMouseReleaseEvent(0)
 {
     m_recognizer.reset();
 
     setWidget(viewportWidget);
     connect(viewportWidget, SIGNAL(contentsSizeChangeCausedResize()), this, SLOT(contentsSizeChangeCausedResize()));
+}
+
+WebViewport::~WebViewport()
+{
+    delete m_delayedMouseReleaseEvent;
+    delete m_linkSelectionItem;
 }
 
 WebViewportItem* WebViewport::viewportWidget() const
@@ -152,11 +213,44 @@ void WebViewport::mousePressEventFromChild(QGraphicsSceneMouseEvent * event)
 
 void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
 {
+    delete m_linkSelectionItem;
+    m_linkSelectionItem = 0;
+    delete m_delayedMouseReleaseEvent;
+    m_delayedMouseReleaseEvent = 0;
+
+    QPointF p = event->pos();
+    QWebHitTestResult result = viewportWidget()->webView()->page()->mainFrame()->hitTestContent(QPoint(p.x(), p.y()));
+    if (!result.linkElement().isNull()) {
+        QPoint linkPoint = result.boundingRect().topLeft();
+        QWebFrame* frame = result.frame();
+        while (frame) {
+            linkPoint+=frame->pos();
+            frame = frame->parentFrame();
+        }
+        m_linkSelectionItem = new LinkSelectionItem(this);
+        m_linkSelectionItem->show(viewportWidget()->webView()->mapToScene(p), viewportWidget()->webView()->mapToScene(QRect(linkPoint, result.boundingRect().size())).boundingRect());   
+        // delayed click
+        m_delayedMouseReleaseEvent = new QGraphicsSceneMouseEvent(event->type());
+        copyMouseEvent(event, m_delayedMouseReleaseEvent);
+        QTimer::singleShot(500, this, SLOT(startLinkSelection()));
+        return;
+    } 
     m_selfSentEvent = event;
     QApplication::sendEvent(scene(), event);
     m_selfSentEvent = 0;
 }
 
+void WebViewport::startLinkSelection()
+{
+    if (!m_delayedMouseReleaseEvent)
+        return;
+
+    m_selfSentEvent = m_delayedMouseReleaseEvent;
+    QApplication::sendEvent(scene(), m_delayedMouseReleaseEvent);
+    m_selfSentEvent = 0;
+    delete m_delayedMouseReleaseEvent;
+    m_delayedMouseReleaseEvent = 0;
+}
 
 void WebViewport::wheelEvent(QGraphicsSceneWheelEvent *event)
 {
@@ -195,6 +289,16 @@ void WebViewport::wheelEventFromChild(QGraphicsSceneWheelEvent *event)
 bool WebViewport::mouseEventFromChild(QGraphicsSceneMouseEvent *event)
 {
     return m_recognizer.filterMouseEvent(event);
+}
+
+void WebViewport::setPannedWidgetGeometry(const QRectF& r)
+{
+    QRectF current = viewportWidget()->geometry();
+    PannableViewport::setPannedWidgetGeometry(r);
+    if (!m_linkSelectionItem)
+        return;
+    QPointF delta = viewportWidget()->geometry().topLeft() - current.topLeft();
+    m_linkSelectionItem->moveBy(delta.x(), delta.y());
 }
 
 /*!
@@ -236,4 +340,4 @@ void WebViewport::contentsSizeChangeCausedResize()
     stopPannedWidgetGeomAnim();
 }
 
-
+#include "WebViewport.moc"

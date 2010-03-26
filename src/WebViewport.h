@@ -14,12 +14,15 @@
 #include "CommonGestureRecognizer.h"
 
 class WebViewportItem;
+class LinkSelectionItem;
+class QGraphicsSceneMouseEvent;
 
 class WebViewport : public PannableViewport, private CommonGestureConsumer
 {
     Q_OBJECT
 public:
     WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent = 0);
+    ~WebViewport();
 
     WebViewportItem* viewportWidget() const;
 
@@ -38,9 +41,11 @@ protected:
     void mousePressEventFromChild(QGraphicsSceneMouseEvent * event);
     void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event);
     void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event);
+    void setPannedWidgetGeometry(const QRectF& r);
 
 protected Q_SLOTS:
     void contentsSizeChangeCausedResize();
+    void startLinkSelection();
 
 private:
     void resetZoomAnim();
@@ -52,6 +57,8 @@ private:
     QEvent* m_selfSentEvent;
 
     QTimer m_doubleClickWaitTimer;
+    LinkSelectionItem* m_linkSelectionItem;
+    QGraphicsSceneMouseEvent* m_delayedMouseReleaseEvent;
 };
 
 
