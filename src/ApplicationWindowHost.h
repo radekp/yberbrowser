@@ -45,7 +45,7 @@ public:
 protected:
     bool event(QEvent *ev);
 protected Q_SLOTS:
-    void orientationChanged();
+    void orientationChanged(const QString&);
 #endif
 #endif
 private:
