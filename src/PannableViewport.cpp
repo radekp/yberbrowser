@@ -7,7 +7,7 @@
 
 namespace {
 const unsigned s_scrollsPerSecond = 60;
-const qreal s_axisLockThreshold = .4;
+const qreal s_axisLockThreshold = .7;
 const int s_geomAnimDuration = 300;
 }
 
