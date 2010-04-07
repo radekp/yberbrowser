@@ -108,6 +108,11 @@ void CommonGestureRecognizer::capturePressOrRelease(QGraphicsSceneMouseEvent *ev
     delayedEvent->setAccepted(false);
 
     if (wasRelease) {
+        // let the client do link finding on release event
+        QPointF pos = m_delayedPressEvent->scenePos();
+        m_consumer->adjustClickPosition(pos);
+        // FIXME FIXME
+        m_delayedPressEvent->setScenePos(pos);
         m_delayedReleaseEvent = delayedEvent;
         // mouse press is more reliable than mouse release
         // we must send release with same coords as press

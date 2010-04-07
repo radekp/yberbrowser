@@ -13,9 +13,15 @@
 #include "PannableViewport.h"
 #include "CommonGestureRecognizer.h"
 
+#define ENABLE_LINK_SELECTION_VISUAL_DEBUG
+
 class WebViewportItem;
 class LinkSelectionItem;
 class QGraphicsSceneMouseEvent;
+#if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
+class QGraphicsRectItem;
+class QGraphicsEllipseItem;
+#endif
 
 class WebViewport : public PannableViewport, private CommonGestureConsumer
 {
@@ -41,6 +47,7 @@ protected:
     void mousePressEventFromChild(QGraphicsSceneMouseEvent * event);
     void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event);
     void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event);
+    void adjustClickPosition(QPointF& pos);
     void setPannedWidgetGeometry(const QRectF& r);
 
 protected Q_SLOTS:
@@ -59,6 +66,10 @@ private:
     QTimer m_doubleClickWaitTimer;
     LinkSelectionItem* m_linkSelectionItem;
     QGraphicsSceneMouseEvent* m_delayedMouseReleaseEvent;
+#if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
+    QGraphicsRectItem* m_searchRectItem;
+    QGraphicsEllipseItem* m_clickablePointItem;
+#endif
 };
 
 

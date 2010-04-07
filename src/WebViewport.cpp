@@ -10,11 +10,16 @@
 #include <QSequentialAnimationGroup>
 #include <QGraphicsBlurEffect>
 
+//#define ENABLE_LINK_SELECTION_DEBUG
+
 namespace {
 const int s_zoomAnimDurationMS = 300;
 
 const float s_zoomScaleWheelStep = .2;
 const int s_doubleClickWaitTimeout = 100;
+const int s_edgeMarginForLinkSelectionRetry = 50;
+const int s_minSearchRectSize = 8;
+const int s_maxSearchRectSize = 25;
 }
 
 class LinkSelectionItem : public QObject, public QGraphicsRectItem {
@@ -81,6 +86,10 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
     , m_selfSentEvent(0)
     , m_linkSelectionItem(0)
     , m_delayedMouseReleaseEvent(0)
+#if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
+    , m_searchRectItem(0)
+    , m_clickablePointItem(0)
+#endif
 {
     m_recognizer.reset();
 
@@ -92,6 +101,10 @@ WebViewport::~WebViewport()
 {
     delete m_delayedMouseReleaseEvent;
     delete m_linkSelectionItem;
+#if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
+    delete m_searchRectItem;
+    delete m_clickablePointItem;
+#endif
 }
 
 WebViewportItem* WebViewport::viewportWidget() const
@@ -206,9 +219,92 @@ void WebViewport::mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * even
 
 void WebViewport::mousePressEventFromChild(QGraphicsSceneMouseEvent * event)
 {
+    // FIXME: setpos for release event should be adjusted somewhere else
+    event->setPos(viewportWidget()->webView()->mapFromScene(event->scenePos()));
+#if defined(ENABLE_LINK_SELECTION_DEBUG)
+    qDebug() << __FUNCTION__ << " mouse press pos:" << event->pos() << " scene pos: " << event->scenePos();
+#endif
     m_selfSentEvent = event;
     QApplication::sendEvent(scene(), event);
     m_selfSentEvent = 0;
+}
+
+QWebFrame* findFrame(const QPoint& pos, QWebFrame* frame)
+{
+    if (!frame)
+        return 0;
+    QList<QWebFrame*> children = frame->childFrames();
+    for (int i = 0; i < children.size(); ++i) {
+        if (findFrame(pos, children.at(i)))
+            return children.at(i);
+    }
+    
+    if (frame->geometry().contains(pos))
+        return frame;
+    return 0;
+}
+
+void WebViewport::adjustClickPosition(QPointF& pos)
+{
+    QPointF localPos = viewportWidget()->webView()->mapFromScene(pos);
+#if defined(ENABLE_LINK_SELECTION_DEBUG)
+    qDebug() << __FUNCTION__ << " click pos:" << localPos << " scene pos:" << pos;
+#endif
+	QPoint pp(localPos.x(), localPos.y());
+    QWebFrame* qframe = findFrame(pp, viewportWidget()->webView()->page()->mainFrame());
+    if (!qframe)
+        return;
+
+    QPoint resultPoint;
+    // zoom dependent search rect size
+    int searchDist = qMin(qMax(s_minSearchRectSize, (int)(10 / viewportWidget()->zoomScale())), s_maxSearchRectSize);
+    // non-square shape search rect
+    QRect searchRect(pp.x() - searchDist, pp.y() - 2*searchDist, 2*searchDist, 4*searchDist);
+
+#if defined(ENABLE_LINK_SELECTION_DEBUG)
+    qDebug() << "clicked frame found:"<< qframe << " zoomscale:" << viewportWidget()->zoomScale() << " search rect:" << searchRect;
+#endif
+
+#if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
+    delete m_searchRectItem;
+    m_searchRectItem = new QGraphicsRectItem(QRectF(viewportWidget()->webView()->mapToScene(searchRect).boundingRect()), this);
+    delete m_clickablePointItem; m_clickablePointItem = 0;
+#endif
+
+    if (qframe->findClickableNode(searchRect, resultPoint)) {
+        pos = viewportWidget()->webView()->mapToScene(resultPoint);
+#if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
+        m_clickablePointItem = new QGraphicsEllipseItem(viewportWidget()->webView()->mapToScene(QRect(resultPoint.x() - 3, resultPoint.y() - 3, 6, 6)).boundingRect(), this);
+#endif
+#if defined(ENABLE_LINK_SELECTION_DEBUG)
+        qDebug() << "clickable node found at:" << resultPoint;
+#endif
+    } else {
+#if defined(ENABLE_LINK_SELECTION_DEBUG)
+        qDebug() << "clickable node NOT found, see if we need to go closer to the edge";
+#endif
+        // vertical adjust
+        if (pos.y() < s_edgeMarginForLinkSelectionRetry)
+            searchRect.moveTop(searchRect.top() - pos.y());
+        else if (pos.y() > rect().bottom() - s_edgeMarginForLinkSelectionRetry)
+            searchRect.moveBottom(searchRect.bottom() + (rect().bottom() - pos.y()));
+        else
+            return;
+#if defined(ENABLE_LINK_SELECTION_DEBUG)
+        qDebug() << "search again:" << searchRect;
+#endif
+        // search again
+        qframe = findFrame(searchRect.center(), viewportWidget()->webView()->page()->mainFrame());
+        if (qframe && qframe->findClickableNode(searchRect, resultPoint)) {
+            pos = viewportWidget()->webView()->mapToScene(resultPoint);
+#if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
+        m_clickablePointItem = new QGraphicsEllipseItem(viewportWidget()->webView()->mapToScene(QRect(resultPoint.x() - 3, resultPoint.y() - 3, 6, 6)).boundingRect(), this);
+#endif
+#if defined(ENABLE_LINK_SELECTION_DEBUG)
+            qDebug() << "clickable node found at :" << resultPoint;
+#endif
+        }
+    }
 }
 
 void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
@@ -218,9 +314,15 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
     delete m_delayedMouseReleaseEvent;
     m_delayedMouseReleaseEvent = 0;
 
+    // FIXME: setpos for release event should be adjusted somewhere else
+    event->setPos(viewportWidget()->webView()->mapFromScene(event->scenePos()));
     QPointF p = event->pos();
+
     QWebHitTestResult result = viewportWidget()->webView()->page()->mainFrame()->hitTestContent(QPoint(p.x(), p.y()));
     if (!result.linkElement().isNull()) {
+#if defined(ENABLE_LINK_SELECTION_DEBUG)
+        qDebug() << "hittest found" << p;
+#endif
         QPoint linkPoint = result.boundingRect().topLeft();
         QWebFrame* frame = result.frame();
         while (frame) {
@@ -234,7 +336,11 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
         copyMouseEvent(event, m_delayedMouseReleaseEvent);
         QTimer::singleShot(500, this, SLOT(startLinkSelection()));
         return;
-    } 
+    } else {
+#if defined(ENABLE_LINK_SELECTION_DEBUG)
+        qDebug() << "hittest NOT found" << p;
+#endif
+    }
     m_selfSentEvent = event;
     QApplication::sendEvent(scene(), event);
     m_selfSentEvent = 0;
