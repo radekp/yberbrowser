@@ -62,6 +62,8 @@ protected Q_SLOTS:
     void urlTextEdited(const QString& newText);
     void urlChanged(const QUrl& url);
 
+    void updateUrlStore();
+
     void setLoadInProgress(bool);
     void loadStarted();
     void loadFinished(bool success);
@@ -104,6 +106,7 @@ private:
     UrlEditWidget* m_urlEdit;
     ProgressWidget* m_progressBox;
     QSizeF m_sizeBeforeResize;
+    QString m_lastEnteredText;
 };
 
 

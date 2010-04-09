@@ -10,6 +10,7 @@
 #include "HistoryView.h"
 #include "Helpers.h"
 #include "ProgressWidget.h"
+#include "UrlStore.h"
 #include <QAction>
 #include <QGraphicsLinearLayout>
 
@@ -308,14 +309,13 @@ void BrowsingView::hideHistoryView()
 void BrowsingView::changeLocation()
 {
     // nullify on hitting enter. end  of editing.
-    //m_lastEnteredText.resize(0);
+    m_lastEnteredText.resize(0);
     hideHistoryView();
     load(urlFromUserInput(m_urlEdit->text()));
 }
 
-void BrowsingView::urlTextEdited(const QString& )
+void BrowsingView::urlTextEdited(const QString& newText)
 {
-#if 0
     if (!Settings::instance()->autoCompleteEnabled())
         return;
 
@@ -333,10 +333,8 @@ void BrowsingView::urlTextEdited(const QString& )
         }
     }
     m_lastEnteredText = text;
-#endif
 }
 
-#if 0
 void BrowsingView::updateUrlStore()
 {
     // render thumbnail
@@ -350,10 +348,8 @@ void BrowsingView::updateUrlStore()
         QPainter p(thumbnail);
         m_page->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
     }
-    UrlStore::instance()->accessed(m_webViewItem->url(), m_webViewItem->title(), thumbnail);
+    UrlStore::instance()->accessed(m_page->mainFrame()->url(), m_page->mainFrame()->title(), thumbnail);
 }
-
-#endif
 
 void BrowsingView::setLoadInProgress(bool)
 {
