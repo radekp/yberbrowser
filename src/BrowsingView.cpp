@@ -46,7 +46,6 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
 #endif
     , m_backingStoreVisualizer(0)
     , m_historyView(0)
-
 {
 #if USE_DUI
     setPannableAreaInteractive(false);
@@ -91,7 +90,6 @@ void BrowsingView::connectSignals()
 #endif
 
 }
-
 
 YberWidget* BrowsingView::createNavigationToolBar()
 {
@@ -183,6 +181,16 @@ void BrowsingView::load(const QUrl& url)
 */
 }
 
+void BrowsingView::showHistoryView()
+{
+    createHistoryView();
+#if USE_DUI
+    m_historyView->appear(0);
+#else
+    m_historyView->appear(applicationWindow());
+#endif
+}
+
 #if !USE_DUI
 
 void BrowsingView::appear(ApplicationWindow *window)
@@ -264,6 +272,17 @@ BrowsingView* BrowsingView::newWindow(const QString &)
     return 0;
 }
 
+void BrowsingView::createHistoryView() 
+{
+    if (m_historyView)
+        return;
+    // FIXME: history view invokes should be moved to app framework
+    m_historyView = new HistoryView();
+    updateHistoryView();
+    connect(m_historyView, SIGNAL(disappeared()), this, SLOT(deleteHistoryView()));
+    connect(m_historyView, SIGNAL(urlSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+}
+
 void BrowsingView::deleteHistoryView()
 {
     delete m_historyView;
@@ -272,23 +291,12 @@ void BrowsingView::deleteHistoryView()
 
 void BrowsingView::toggleHistoryView()
 {
-    if (!m_historyView) {
-        // FIXME: history view invokes should be moved to app framework
-        m_historyView = new HistoryView();
-        updateHistoryView();
-        connect(m_historyView, SIGNAL(disappeared()), this, SLOT(deleteHistoryView()));
-        connect(m_historyView, SIGNAL(urlSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
-    }
+    createHistoryView();
 
-    if (m_historyView->isActive()) {
+    if (m_historyView->isActive())
         m_historyView->disappear();
-    } else {
-#if USE_DUI
-        m_historyView->appear(0);
-#else
-        m_historyView->appear(applicationWindow());
-#endif
-    }
+    else
+        showHistoryView();
 }
 
 void BrowsingView::hideHistoryView()

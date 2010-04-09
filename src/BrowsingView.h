@@ -42,19 +42,17 @@ class BrowsingView : public BrowsingViewBase
 public:
     BrowsingView(YberApplication&, QGraphicsItem* parent = 0);
 
-
 #if !USE_DUI
     ApplicationWindow* applicationWindow() { return m_appWin; }
     void appear(ApplicationWindow* window);
     YberWidget* centralWidget()  { return m_centralWidget; }
+    void showHistoryView();
 #endif
 public Q_SLOTS:
     void load(const QUrl&);
 #if !USE_DUI
     void setTitle(const QString&);
 #endif
-
-
 
 protected:
     void resizeEvent(QGraphicsSceneResizeEvent* event);
@@ -76,8 +74,9 @@ protected Q_SLOTS:
 
     void toggleFullScreen();
 
-    void toggleHistoryView();
+    void createHistoryView();
     void deleteHistoryView();
+    void toggleHistoryView();
 
     void prepareForResize();
 
