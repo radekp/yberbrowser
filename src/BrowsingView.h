@@ -29,6 +29,7 @@ class ApplicationWindow;
 class HistoryView;
 class BackingStoreVisualizerWidget;
 class ProgressWidget;
+class QAction;
 
 class BrowsingView : public BrowsingViewBase
 {
@@ -58,6 +59,8 @@ protected:
     void resizeEvent(QGraphicsSceneResizeEvent* event);
 
 protected Q_SLOTS:
+    void stopLoad();
+    void pageBack();
     void changeLocation();
     void urlTextEdited(const QString& newText);
     void urlChanged(const QUrl& url);
@@ -85,10 +88,14 @@ protected Q_SLOTS:
 private:
     Q_DISABLE_COPY(BrowsingView);
     YberWidget* createNavigationToolBar();
+    YberWidget* navigationToolbar();
     void setFPSCalculation(bool fpsOn);
     void connectSignals();
     void hideHistoryView();
     void updateHistoryView();
+
+    void toggleStopBackIcon();
+
 #if !USE_DUI
     QMenuBar* createMenu(QWidget* parent);
 #endif
@@ -107,6 +114,8 @@ private:
     ProgressWidget* m_progressBox;
     QSizeF m_sizeBeforeResize;
     QString m_lastEnteredText;
+    QAction* m_stopbackAction;
+    bool m_loadIndProgress;
 };
 
 

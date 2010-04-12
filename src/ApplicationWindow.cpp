@@ -1,6 +1,7 @@
 #include <QGraphicsWidget>
 #include "ApplicationWindow.h"
 #include "ApplicationWindowHost.h"
+#include <QMenuBar>
 
 /*!
   \class ApplicationWindow is the top-level application container

@@ -47,6 +47,8 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
 #endif
     , m_backingStoreVisualizer(0)
     , m_historyView(0)
+    , m_stopbackAction(0)
+    , m_loadIndProgress(false)
 {
 #if USE_DUI
     setPannableAreaInteractive(false);
@@ -65,7 +67,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     m_browsingViewport->setAutoRange(false);
 
     YberWidget* w = centralWidget();
-    QGraphicsLinearLayout *layout = new QGraphicsLinearLayout(Qt::Vertical, w);
+    QGraphicsLinearLayout* layout = new QGraphicsLinearLayout(Qt::Vertical, w);
     layout->setContentsMargins(0,0,0,0);
     layout->setSpacing(0.);
     layout->addItem(m_browsingViewport);
@@ -98,7 +100,7 @@ YberWidget* BrowsingView::createNavigationToolBar()
     DuiWidget* naviToolbar = new DuiWidget();
     naviToolbar->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
 
-    QGraphicsLinearLayout *toolbarLayout = new QGraphicsLinearLayout(Qt::Horizontal);
+    QGraphicsLinearLayout* toolbarLayout = new QGraphicsLinearLayout(Qt::Horizontal);
 
 #define DEFINE_TOOLBAR_ITEM(text)  \
     {                              \
@@ -140,14 +142,20 @@ YberWidget* BrowsingView::createNavigationToolBar()
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
     connect(m_urlEdit, SIGNAL(editCancelled()), SLOT(updateURL()));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
-    qtoolbar->addAction(style()->standardIcon(QStyle::SP_FileIcon), "APP");
-    qtoolbar->addAction(style()->standardIcon(QStyle::SP_FileIcon), "History", this, SLOT(toggleHistoryView()));
+    qtoolbar->addAction(QIcon("history_48.png"), "History", this, SLOT(toggleHistoryView()));
     qtoolbar->addWidget(m_urlEdit);
-    qtoolbar->addAction(m_page->action(QWebPage::Back));
-    qtoolbar->addAction(style()->standardIcon(QStyle::SP_FileIcon), "Fullscreen", this, SLOT(toggleFullScreen()));
+    m_stopbackAction = new QAction(QIcon("back_48.png"), "Back", 0);
+    connect(m_stopbackAction, SIGNAL(triggered()), this, SLOT(pageBack()));
+    qtoolbar->addAction(m_stopbackAction);
+    qtoolbar->addAction(QIcon("screen_toggle_48.png"), "Fullscreen", this, SLOT(toggleFullScreen()));
     naviToolbar->setWidget(qtoolbar);
 #endif
     return naviToolbar;
+}
+
+YberWidget* BrowsingView::navigationToolbar()
+{
+    return (YberWidget*)centralWidget()->layout()->itemAt(1);
 }
 
 void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
@@ -182,6 +190,16 @@ void BrowsingView::load(const QUrl& url)
 */
 }
 
+void BrowsingView::stopLoad()
+{
+    m_webView->triggerPageAction(QWebPage::Stop);
+}
+
+void BrowsingView::pageBack()
+{
+    m_webView->triggerPageAction(QWebPage::Back);
+}
+
 void BrowsingView::showHistoryView()
 {
     createHistoryView();
@@ -204,7 +222,7 @@ void BrowsingView::appear(ApplicationWindow *window)
 QMenuBar* BrowsingView::createMenu(QWidget* parent)
 {
     QWebPage* page = m_page;
-    QMenuBar *menuBar = new QMenuBar(parent);
+    QMenuBar* menuBar = new QMenuBar(parent);
 
     QMenu* fileMenu = menuBar->addMenu("&File");
     fileMenu->addAction(new QAction("New Window", this));
@@ -351,8 +369,10 @@ void BrowsingView::updateUrlStore()
     UrlStore::instance()->accessed(m_page->mainFrame()->url(), m_page->mainFrame()->title(), thumbnail);
 }
 
-void BrowsingView::setLoadInProgress(bool)
+void BrowsingView::setLoadInProgress(bool loadInProgress)
 {
+    m_loadIndProgress = loadInProgress;
+    toggleStopBackIcon();
 }
 
 void BrowsingView::loadStarted()
@@ -421,3 +441,13 @@ void BrowsingView::prepareForResize()
     m_sizeBeforeResize = m_browsingViewport->size();
 #endif
 }
+
+void BrowsingView::toggleStopBackIcon()
+{
+    m_stopbackAction->setIcon(QIcon(m_loadIndProgress ? "stop_48.png" : "back_48.png"));
+    m_stopbackAction->setIconText(m_loadIndProgress ? "Stop" : "Back");
+    
+    disconnect(m_stopbackAction, SIGNAL(triggered()), this, m_loadIndProgress ? SLOT(pageBack()) : SLOT(stopLoad()));
+    connect(m_stopbackAction, SIGNAL(triggered()), this, m_loadIndProgress ? SLOT(stopLoad()) : SLOT(pageBack()));
+}
+
