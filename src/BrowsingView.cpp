@@ -142,12 +142,12 @@ YberWidget* BrowsingView::createNavigationToolBar()
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
     connect(m_urlEdit, SIGNAL(editCancelled()), SLOT(updateURL()));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
-    qtoolbar->addAction(QIcon("history_48.png"), "History", this, SLOT(toggleHistoryView()));
+    qtoolbar->addAction(QIcon(":/data/icon/48x48/history_48.png"), "History", this, SLOT(toggleHistoryView()));
     qtoolbar->addWidget(m_urlEdit);
-    m_stopbackAction = new QAction(QIcon("back_48.png"), "Back", 0);
+    m_stopbackAction = new QAction(QIcon(":/data/icon/48x48/back_48.png"), "Back", 0);
     connect(m_stopbackAction, SIGNAL(triggered()), this, SLOT(pageBack()));
     qtoolbar->addAction(m_stopbackAction);
-    qtoolbar->addAction(QIcon("screen_toggle_48.png"), "Fullscreen", this, SLOT(toggleFullScreen()));
+    qtoolbar->addAction(QIcon(":/data/icon/48x48/screen_toggle_48.png"), "Fullscreen", this, SLOT(toggleFullScreen()));
     naviToolbar->setWidget(qtoolbar);
 #endif
     return naviToolbar;
@@ -444,7 +444,7 @@ void BrowsingView::prepareForResize()
 
 void BrowsingView::toggleStopBackIcon()
 {
-    m_stopbackAction->setIcon(QIcon(m_loadIndProgress ? "stop_48.png" : "back_48.png"));
+    m_stopbackAction->setIcon(QIcon(m_loadIndProgress ? ":/data/icon/48x48/stop_48.png" : ":/data/icon/48x48/back_48.png"));
     m_stopbackAction->setIconText(m_loadIndProgress ? "Stop" : "Back");
     
     disconnect(m_stopbackAction, SIGNAL(triggered()), this, m_loadIndProgress ? SLOT(pageBack()) : SLOT(stopLoad()));

@@ -109,6 +109,7 @@ symbian {
 
 target.path = $$BINDIR
 INSTALLS += target
+RESOURCES = yberbrowser.qrc
 
 HEADERS = \
   src/ApplicationWindow.h \
