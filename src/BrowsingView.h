@@ -30,6 +30,7 @@ class HistoryView;
 class BackingStoreVisualizerWidget;
 class ProgressWidget;
 class QAction;
+class AutoScrollTest;
 
 class BrowsingView : public BrowsingViewBase
 {
@@ -42,12 +43,15 @@ class BrowsingView : public BrowsingViewBase
 
 public:
     BrowsingView(YberApplication&, QGraphicsItem* parent = 0);
+    ~BrowsingView();
 
 #if !USE_DUI
     ApplicationWindow* applicationWindow() { return m_appWin; }
     void appear(ApplicationWindow* window);
     YberWidget* centralWidget()  { return m_centralWidget; }
+    PannableViewport* pannableViewport() { return m_browsingViewport; }
     void showHistoryView();
+    void hideHistoryView();
 #endif
 public Q_SLOTS:
     void load(const QUrl&);
@@ -85,13 +89,15 @@ protected Q_SLOTS:
 
     void prepareForResize();
 
+    void startAutoScrollTest();
+    void finishedAutoScrollTest();
+
 private:
     Q_DISABLE_COPY(BrowsingView);
     YberWidget* createNavigationToolBar();
     YberWidget* navigationToolbar();
     void setFPSCalculation(bool fpsOn);
     void connectSignals();
-    void hideHistoryView();
     void updateHistoryView();
 
     void toggleStopBackIcon();
@@ -116,6 +122,7 @@ private:
     QString m_lastEnteredText;
     QAction* m_stopbackAction;
     bool m_loadIndProgress;
+    AutoScrollTest* m_autoScrollTest;
 };
 
 

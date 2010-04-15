@@ -17,7 +17,6 @@ public:
     ~HistoryView();
 
     void setGeometry(const QRectF& rect);
-    void mousePressEvent(QGraphicsSceneMouseEvent* event);
 
     bool isActive() const { return m_active; }
 

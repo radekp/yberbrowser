@@ -115,6 +115,7 @@ HEADERS = \
   src/ApplicationWindow.h \
   src/ApplicationWindowHost.h \
   src/AutoSelectLineEdit.h \
+  src/AutoScrollTest.h \
   src/BackingStoreVisualizerWidget.h \
   src/BrowsingView.h \
   src/CommonGestureRecognizer.h \
@@ -136,6 +137,7 @@ HEADERS = \
 
 SOURCES = \
   src/AutoSelectLineEdit.cpp \
+  src/AutoScrollTest.cpp \
   src/BackingStoreVisualizerWidget.cpp \
   src/BrowsingView.cpp \
   src/CommonGestureRecognizer.cpp \

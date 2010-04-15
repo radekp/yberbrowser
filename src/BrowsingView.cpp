@@ -14,6 +14,8 @@
 #include <QAction>
 #include <QGraphicsLinearLayout>
 
+#include "AutoScrollTest.h"
+
 #if USE_DUI
 #include <DuiTextEdit>
 #include <DuiToolBar>
@@ -49,6 +51,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_historyView(0)
     , m_stopbackAction(0)
     , m_loadIndProgress(false)
+    , m_autoScrollTest(0)
 {
 #if USE_DUI
     setPannableAreaInteractive(false);
@@ -75,6 +78,11 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
 
     m_progressBox = new ProgressWidget(m_browsingViewport);
     connectSignals();
+}
+
+BrowsingView::~BrowsingView()
+{
+    delete m_autoScrollTest;
 }
 
 void BrowsingView::connectSignals()
@@ -210,6 +218,12 @@ void BrowsingView::showHistoryView()
 #endif
 }
 
+void BrowsingView::hideHistoryView()
+{
+    if (m_historyView && m_historyView->isActive())
+        m_historyView->disappear();
+}
+
 #if !USE_DUI
 
 void BrowsingView::appear(ApplicationWindow *window)
@@ -235,6 +249,10 @@ QMenuBar* BrowsingView::createMenu(QWidget* parent)
     viewMenu->addAction(page->action(QWebPage::Reload));
 
     QMenu* developerMenu = menuBar->addMenu("&Developer");
+
+    QAction* fpsTestAction = new QAction("FPS test", this);
+    developerMenu->addAction(fpsTestAction);
+    connect(fpsTestAction, SIGNAL(triggered(bool)), this, SLOT(startAutoScrollTest()));
     
     // fps
     QAction* fpsAction = new QAction("Show FPS", this);
@@ -316,12 +334,6 @@ void BrowsingView::toggleHistoryView()
         m_historyView->disappear();
     else
         showHistoryView();
-}
-
-void BrowsingView::hideHistoryView()
-{
-    if (m_historyView && m_historyView->isActive())
-        m_historyView->disappear();
 }
 
 void BrowsingView::changeLocation()
@@ -440,6 +452,20 @@ void BrowsingView::prepareForResize()
     applicationWindow()->setUpdatesEnabled(false);
     m_sizeBeforeResize = m_browsingViewport->size();
 #endif
+}
+
+void BrowsingView::startAutoScrollTest()
+{
+    delete m_autoScrollTest;
+    m_autoScrollTest = new AutoScrollTest(this);
+    connect(m_autoScrollTest, SIGNAL(finished()), this, SLOT(finishedAutoScrollTest()));
+    m_autoScrollTest->starScrollTest();
+}
+
+void BrowsingView::finishedAutoScrollTest()
+{
+    delete m_autoScrollTest;
+    m_autoScrollTest = 0;
 }
 
 void BrowsingView::toggleStopBackIcon()

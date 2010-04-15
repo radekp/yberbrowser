@@ -52,14 +52,6 @@ void HistoryView::setGeometry(const QRectF& rect)
         createHistoryTiles();
 }
 
-void HistoryView::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
-{
-
-    // turn history view off
-//     if (m_active)
-//         m_view->toggleHistory();
-}
-
 void HistoryView::createHistoryTiles()
 {
     // background first
