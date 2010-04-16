@@ -15,31 +15,28 @@
 #include <DuiScene>
 #endif
 
-class TileBackground : public QObject, public QGraphicsRectItem {
-    Q_OBJECT
-    Q_PROPERTY(qreal opacity READ opacity WRITE setOpacity)
-public:
-    TileBackground(const QRectF& rect, QGraphicsItem* parent) : QGraphicsRectItem(rect, parent) {}
-};
-
 HistoryView::HistoryView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_bckg(0)
-    , m_animGroup(new QParallelAnimationGroup)
+    , m_bckg(new QGraphicsRectItem(rect(), this))
+    , m_tileContainer(new QGraphicsWidget(this))
+    , m_slideAnim(new QPropertyAnimation(m_tileContainer, "geometry"))
     , m_active(false)
-    // fixme: remove m_ongoing, it is hack anyway
-    , m_ongoing(false)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
 
-    connect(m_animGroup, SIGNAL(finished()), this, SLOT(animFinished()));
+    m_bckg->setPen(QPen(QBrush(QColor(10, 10, 10)), 3));
+    m_bckg->setBrush(QColor(20, 20, 20));
+
+    connect(m_slideAnim, SIGNAL(finished()), this, SLOT(animFinished()));
 }
 
 HistoryView::~HistoryView()
 {
-    delete m_animGroup;
     destroyHistoryTiles();
+    delete m_slideAnim;
+    delete m_tileContainer;
+    delete m_bckg;
 }
 
 void HistoryView::setGeometry(const QRectF& rect)
@@ -48,21 +45,16 @@ void HistoryView::setGeometry(const QRectF& rect)
         return;
 
     QGraphicsWidget::setGeometry(rect);
+
+    m_bckg->setRect(rect);
+    m_tileContainer->setGeometry(rect);
+
     if (m_active)
         createHistoryTiles();
 }
 
 void HistoryView::createHistoryTiles()
 {
-    // background first
-    if (!m_bckg) {
-        m_bckg = new TileBackground(rect(), this);
-        m_bckg->setPen(QPen(QBrush(QColor(10, 10, 10)), 3));
-        m_bckg->setBrush(QColor(20, 20, 20));
-    }
-    else
-        m_bckg->setRect(rect());
-
     int width = rect().width();
 
     int minWidth = 170;
@@ -111,7 +103,7 @@ void HistoryView::createHistoryTiles()
             if (itemIndex < m_historyList.size())
                 item = m_historyList.at(itemIndex);
             else {
-                item = new HistoryItem(this, urlItem);
+                item = new HistoryItem(m_tileContainer, urlItem);
                 connect(item, SIGNAL(itemActivated(UrlItem*)), this, SLOT(historyItemActivated(UrlItem*)));
                 m_historyList.append(item);
             }
@@ -132,19 +124,17 @@ void HistoryView::destroyHistoryTiles()
 {
     for (int i = m_historyList.size() - 1; i >= 0; --i)
         delete m_historyList.takeAt(i);
-    delete m_bckg;
-    m_bckg = 0;
 }
 
 void HistoryView::animFinished()
 {
-    m_ongoing = false;
     // destroy thumbs when animation finished (outbound)
     if (!m_active) {
         emit disappeared();
         destroyHistoryTiles();
     } else {
-        // add dropshadow when slide in anim finished to avoid rendering artifacts
+        // set transparency and dropshadow only when anim is finished to avoid rendering artifacts
+        m_bckg->setOpacity(0.8);
         for (int i = 0; i < m_historyList.size(); ++i)
             m_historyList.at(i)->addDropshadow();
     }
@@ -159,53 +149,22 @@ void HistoryView::historyItemActivated(UrlItem* item)
 
 void HistoryView::startAnimation(bool in)
 {
-    if (!m_historyList.size()) {
-        // keep the state sane, even where there is no items
-        if (!m_active)
-            emit disappeared();
-        return;
-    }
+    // ongoing?
+    m_slideAnim->stop();
+    m_slideAnim->setDuration(800);
 
-    // get the topmost item and calculate the slide distance accordingly
-    unsigned dist = rect().height() - m_historyList.at(0)->rect().y();
-    QPoint startPos(0, in ? dist : 0);
-    QPoint endPos(0, in ? 0 : dist);
-    QEasingCurve::Type curve = in ? QEasingCurve::OutBack : QEasingCurve::OutQuint;
+    QRectF r(in ? rect() : m_tileContainer->geometry());
+    QRectF hidden(r); hidden.moveTop(r.bottom());
 
-    // ongoing animation?
-    m_animGroup->stop();
-    // fixme big hack just beacuse i cant manage states
-    if (m_ongoing && !m_active) {
-        m_active = true;
-        m_animGroup->clear();
-        m_active = false;
-    } else
-        m_animGroup->clear();
+    m_slideAnim->setStartValue(in ?  hidden : r);
+    m_slideAnim->setEndValue(in ? r : hidden);
 
-    for (int i = 0; i < m_historyList.size(); ++i) {
-        QPropertyAnimation* animation = new QPropertyAnimation(m_historyList.at(i), "pos");
-        animation->setDuration(800);
-
-        animation->setStartValue(startPos);
-        animation->setEndValue(endPos);
-
-        animation->setEasingCurve(curve);
-
-        m_animGroup->addAnimation(animation);
-    }
-
-    QPropertyAnimation* animation = new QPropertyAnimation(m_bckg, "opacity");
-    animation->setDuration(800);
-
-    animation->setStartValue(in ? 0.0 : 0.8);
-    animation->setEndValue(in ? 0.8 : 0.0);
-
-    animation->setEasingCurve(QEasingCurve::InQuad);
-
-    m_animGroup->addAnimation(animation);
-
-    m_ongoing = true;
-    m_animGroup->start();
+    m_slideAnim->setEasingCurve(in ? QEasingCurve::OutBack : QEasingCurve::InCubic);
+    m_slideAnim->start(QAbstractAnimation::KeepWhenStopped);
+    
+    // hide the container
+    if (in)
+        m_tileContainer->setGeometry(hidden);
 }
 
 void HistoryView::appear(ApplicationWindow *window)

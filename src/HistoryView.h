@@ -5,8 +5,8 @@
 #include <QList>
 
 class HistoryItem;
-class TileBackground;
-class QParallelAnimationGroup;
+class QGraphicsRectItem;
+class QPropertyAnimation;
 class UrlItem;
 class ApplicationWindow;
 
@@ -37,11 +37,11 @@ private:
     void startAnimation(bool in);
 
 private:
-    TileBackground* m_bckg;
+    QGraphicsRectItem* m_bckg;
+    QGraphicsWidget* m_tileContainer;
     QList<HistoryItem*> m_historyList;
-    QParallelAnimationGroup* m_animGroup;
+    QPropertyAnimation* m_slideAnim;
     bool m_active;
-    bool m_ongoing;
 };
 
 #endif
