@@ -187,5 +187,3 @@ void HistoryView::disappear()
     startAnimation(m_active);
 }
 
-
-#include "HistoryView.moc"

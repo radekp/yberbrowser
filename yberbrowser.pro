@@ -33,10 +33,10 @@ contains(QT_CONFIG, maemo5)  {
     QT += maemo5 dbus
 }
 
-disable_engine_thread {
-    DEFINES+=ENABLE_ENGINE_THREAD=0
-} else {
+enable_engine_thread {
     DEFINES+=ENABLE_ENGINE_THREAD=1
+} else {
+    DEFINES+=ENABLE_ENGINE_THREAD=0
 }
 
 

@@ -37,6 +37,8 @@
 #include <QGraphicsProxyWidget>
 #include <QGLWidget>
 
+#include "qwebframe.h"
+
 /*!
    \class BrowsingView view displaying the web page, e.g the main browser UI.
 */
