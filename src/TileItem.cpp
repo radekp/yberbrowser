@@ -59,6 +59,8 @@ void TileItem::setGeometry(const QRectF& rect)
 
 void TileItem::addDropshadow()
 {
+    //FIXME figure out why it doesnt perform well on n900
+    return;
     if (graphicsEffect())
         setGraphicsEffect(0);
 

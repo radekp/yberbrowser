@@ -21,7 +21,7 @@ const int s_maxTileWidth = 200;
 const int s_defaultTileNumH = 3;
 const int s_defaultTileNumV = 6;
 const int s_tilePadding = 20;
-const int s_bookmarkStripeHeight = 40;
+const int s_bookmarkStripeHeight = 60;
 const int s_bookmarksTileWidth = 120;
 const QColor s_TitleTextColor(0xFA, 0xFA, 0xFA);
 }
