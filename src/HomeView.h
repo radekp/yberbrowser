@@ -95,6 +95,9 @@ public:
     BookmarkContainer(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
 
     void createTiles();
+
+private:
+    UrlList m_list;
 };
 
 #endif

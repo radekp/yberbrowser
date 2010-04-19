@@ -275,8 +275,17 @@ void HistoryContainer::createTiles()
 }
 
 BookmarkContainer::BookmarkContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileContainer(UrlStore::instance()->list(), parent, wFlags)
+    : TileContainer(m_list, parent, wFlags)
 {
+    // FIXME : hardcoded static items in the bookmarks view until bookmark management is added.
+    m_list.append(new UrlItem(QUrl("http://cnn.com/"), "CNN.com - Breaking News, U.S., World, Weather, Entertainment &amp; Video News"));
+    m_list.append(new UrlItem(QUrl("http://news.bbc.co.uk/"), "BBC NEWS | News Front Page"));
+    m_list.append(new UrlItem(QUrl("http://news.google.com/"), "Google News"));
+    m_list.append(new UrlItem(QUrl("http://nokia.com/"), "Nokia - Nokia on the Web"));
+    m_list.append(new UrlItem(QUrl("http://qt.nokia.com/"), "Qt - A cross-platform application and UI framework"));
+    m_list.append(new UrlItem(QUrl("http://ovi.com/"), "Ovi by Nokia"));
+    m_list.append(new UrlItem(QUrl("http://nytimes.com/"), "The New York Times - Breaking News, World News Multimedia"));
+    m_list.append(new UrlItem(QUrl("http://google.com/"), "Google"));
 }
 
 void BookmarkContainer::createTiles()
