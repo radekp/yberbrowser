@@ -122,8 +122,8 @@ HEADERS = \
   src/EnvHttpProxyFactory.h \
   src/EventHelpers.h \
   src/Helpers.h \
-  src/HistoryItem.h \
-  src/HistoryView.h \
+  src/TileItem.h \
+  src/HomeView.h \
   src/PannableViewport.h \
   src/ProgressWidget.h \
   src/ScrollbarItem.h \
@@ -144,8 +144,8 @@ SOURCES = \
   src/EnvHttpProxyFactory.cpp\
   src/EventHelpers.cpp \
   src/Helpers.cpp \
-  src/HistoryItem.cpp \
-  src/HistoryView.cpp \
+  src/TileItem.cpp \
+  src/HomeView.cpp \
   src/ProgressWidget.cpp \
   src/ScrollbarItem.cpp \
   src/UrlItem.cpp \

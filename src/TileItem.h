@@ -1,5 +1,5 @@
-#ifndef HistortItem_h_
-#define HistortItem_h_
+#ifndef TileItem_h_
+#define TileItem_h_
 
 #include <QObject>
 #include <QRectF>
@@ -8,12 +8,12 @@
 class QGraphicsWidget;
 class UrlItem;
 
-class HistoryItem : public QObject, public QGraphicsRectItem {
+class TileItem : public QObject, public QGraphicsRectItem {
     Q_OBJECT
     Q_PROPERTY(QPointF pos READ pos WRITE setPos)
 public:
-    HistoryItem(QGraphicsWidget* parent, UrlItem* urlItem);
-    ~HistoryItem();
+    TileItem(QGraphicsWidget* parent, UrlItem* urlItem, bool textOnly);
+    ~TileItem();
     
     void setGeometry(const QRectF& rect);
     void addDropshadow();
@@ -31,6 +31,7 @@ private:
     UrlItem* m_urlItem;
     QRect m_thumbnailRect;
     QString m_title;
+    bool m_textOnly;
 };
 
 #endif

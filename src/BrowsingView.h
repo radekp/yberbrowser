@@ -26,7 +26,7 @@ class YberApplication;
 class WebViewportItem;
 class PannableViewport;
 class ApplicationWindow;
-class HistoryView;
+class HomeView;
 class BackingStoreVisualizerWidget;
 class ProgressWidget;
 class QAction;
@@ -50,8 +50,8 @@ public:
     void appear(ApplicationWindow* window);
     YberWidget* centralWidget()  { return m_centralWidget; }
     PannableViewport* pannableViewport() { return m_browsingViewport; }
-    void showHistoryView();
-    void hideHistoryView();
+    void showHomeView();
+    void hideHomeView();
 #endif
 public Q_SLOTS:
     void load(const QUrl&);
@@ -83,9 +83,9 @@ protected Q_SLOTS:
 
     void toggleFullScreen();
 
-    void createHistoryView();
-    void deleteHistoryView();
-    void toggleHistoryView();
+    void createHomeView();
+    void deleteHomeView();
+    void toggleHomeView();
 
     void prepareForResize();
 
@@ -98,7 +98,7 @@ private:
     YberWidget* navigationToolbar();
     void setFPSCalculation(bool fpsOn);
     void connectSignals();
-    void updateHistoryView();
+    void updateHomeView();
 
     void toggleStopBackIcon();
 
@@ -115,7 +115,7 @@ private:
     WebPage* m_page;
     PannableViewport* m_browsingViewport;
     BackingStoreVisualizerWidget* m_backingStoreVisualizer;
-    HistoryView* m_historyView;
+    HomeView* m_homeView;
     UrlEditWidget* m_urlEdit;
     ProgressWidget* m_progressBox;
     QSizeF m_sizeBeforeResize;

@@ -7,7 +7,7 @@
 #include "ApplicationWindow.h"
 #include "Settings.h"
 #include "BackingStoreVisualizerWidget.h"
-#include "HistoryView.h"
+#include "HomeView.h"
 #include "Helpers.h"
 #include "ProgressWidget.h"
 #include "UrlStore.h"
@@ -48,7 +48,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_centralWidget(new QGraphicsWidget(this))
 #endif
     , m_backingStoreVisualizer(0)
-    , m_historyView(0)
+    , m_homeView(0)
     , m_stopbackAction(0)
     , m_loadIndProgress(false)
     , m_autoScrollTest(0)
@@ -123,7 +123,7 @@ YberWidget* BrowsingView::createNavigationToolBar()
     }
 
     DEFINE_TOOLBAR_ITEM("R");
-    DEFINE_TOOLBAR_ITEM_CB("H", this, SLOT(toggleHistoryView()));
+    DEFINE_TOOLBAR_ITEM_CB("H", this, SLOT(toggleHomeView()));
 
     m_urlEdit = new DuiTextEdit(DuiTextEditModel::SingleLine, QString(), naviToolbar);
     m_urlEdit->setViewType("toolbar");
@@ -150,7 +150,7 @@ YberWidget* BrowsingView::createNavigationToolBar()
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
     connect(m_urlEdit, SIGNAL(editCancelled()), SLOT(updateURL()));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
-    qtoolbar->addAction(QIcon(":/data/icon/48x48/history_48.png"), "History", this, SLOT(toggleHistoryView()));
+    qtoolbar->addAction(QIcon(":/data/icon/48x48/history_48.png"), "Home", this, SLOT(toggleHomeView()));
     qtoolbar->addWidget(m_urlEdit);
     m_stopbackAction = new QAction(QIcon(":/data/icon/48x48/back_48.png"), "Back", 0);
     connect(m_stopbackAction, SIGNAL(triggered()), this, SLOT(pageBack()));
@@ -173,7 +173,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     YberWidget* w = centralWidget();
     w->setGeometry(QRectF(w->pos(), size()));
     w->setPreferredSize(size());
-    updateHistoryView();
+    updateHomeView();
     m_progressBox->updateGeometry(m_browsingViewport->rect());
 
 #if !USE_DUI
@@ -208,20 +208,20 @@ void BrowsingView::pageBack()
     m_webView->triggerPageAction(QWebPage::Back);
 }
 
-void BrowsingView::showHistoryView()
+void BrowsingView::showHomeView()
 {
-    createHistoryView();
+    createHomeView();
 #if USE_DUI
-    m_historyView->appear(0);
+    m_homeView->appear(0);
 #else
-    m_historyView->appear(applicationWindow());
+    m_homeView->appear(applicationWindow());
 #endif
 }
 
-void BrowsingView::hideHistoryView()
+void BrowsingView::hideHomeView()
 {
-    if (m_historyView && m_historyView->isActive())
-        m_historyView->disappear();
+    if (m_homeView && m_homeView->isActive())
+        m_homeView->disappear();
 }
 
 #if !USE_DUI
@@ -309,38 +309,38 @@ BrowsingView* BrowsingView::newWindow(const QString &)
     return 0;
 }
 
-void BrowsingView::createHistoryView() 
+void BrowsingView::createHomeView() 
 {
-    if (m_historyView)
+    if (m_homeView)
         return;
-    // FIXME: history view invokes should be moved to app framework
-    m_historyView = new HistoryView();
-    updateHistoryView();
-    connect(m_historyView, SIGNAL(disappeared()), this, SLOT(deleteHistoryView()));
-    connect(m_historyView, SIGNAL(urlSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+    // FIXME: home view invokes should be moved to app framework
+    m_homeView = new HomeView();
+    updateHomeView();
+    connect(m_homeView, SIGNAL(disappeared()), this, SLOT(deleteHomeView()));
+    connect(m_homeView, SIGNAL(urlSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
 }
 
-void BrowsingView::deleteHistoryView()
+void BrowsingView::deleteHomeView()
 {
-    delete m_historyView;
-    m_historyView = 0;
+    delete m_homeView;
+    m_homeView = 0;
 }
 
-void BrowsingView::toggleHistoryView()
+void BrowsingView::toggleHomeView()
 {
-    createHistoryView();
+    createHomeView();
 
-    if (m_historyView->isActive())
-        m_historyView->disappear();
+    if (m_homeView->isActive())
+        m_homeView->disappear();
     else
-        showHistoryView();
+        showHomeView();
 }
 
 void BrowsingView::changeLocation()
 {
     // nullify on hitting enter. end  of editing.
     m_lastEnteredText.resize(0);
-    hideHistoryView();
+    hideHomeView();
     load(urlFromUserInput(m_urlEdit->text()));
 }
 
@@ -440,10 +440,10 @@ void BrowsingView::toggleFullScreen()
 #endif
 }
 
-void BrowsingView::updateHistoryView()
+void BrowsingView::updateHomeView()
 {
-    if (m_historyView)
-        m_historyView->setGeometry(m_browsingViewport->geometry());
+    if (m_homeView)
+        m_homeView->setGeometry(m_browsingViewport->geometry());
 }
 
 void BrowsingView::prepareForResize()
