@@ -2,6 +2,7 @@
 #define HomeView_h_
 
 #include "PannableViewport.h"
+#include "CommonGestureRecognizer.h"
 #include <QList>
 #include "UrlStore.h"
 
@@ -13,8 +14,9 @@ class ApplicationWindow;
 class HomeContainer;
 class HistoryContainer;
 class BookmarkContainer;
+class QGraphicsSceneMouseEvent;
 
-class HomeView : public PannableViewport {
+class HomeView : public PannableViewport, private CommonGestureConsumer {
     Q_OBJECT
 public:
     HomeView(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
@@ -35,6 +37,15 @@ public Q_SLOTS:
     void animFinished();
     void tileItemActivated(UrlItem*);
 
+protected:
+    bool sceneEventFilter(QGraphicsItem*, QEvent*);
+    void cancelLeftMouseButtonPress(const QPoint&);
+
+    void mousePressEventFromChild(QGraphicsSceneMouseEvent*);
+    void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* event);
+    void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent*) {}
+    void adjustClickPosition(QPointF&) {}
+
 private:
     void startAnimation(bool);
 
@@ -43,6 +54,8 @@ private:
     HomeContainer* m_homeContainer;
     QPropertyAnimation* m_slideAnim;
     bool m_active;
+    CommonGestureRecognizer m_recognizer;
+    QGraphicsSceneMouseEvent* m_selfSentEvent;
 };
 
 class HomeContainer : public QGraphicsWidget {
@@ -71,10 +84,7 @@ public:
     void destroyTiles();
 
 protected:
-    void addTiles(int vTileNum, int tileWidth, int hTileNum, int tileHeight, int padding, bool textOnly);
-
-private Q_SLOTS:
-    void appeared();
+    void addTiles(int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY, bool textOnly);
 
 private:
     UrlList* m_urlList;

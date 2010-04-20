@@ -29,11 +29,15 @@ void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     QFont f("Times", 10);
     painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
 
+    // QGraphicsDropShadowEffect doesnt perform well on n900.
     if (textOnly) {
-        painter->setPen(QColor(240, 240, 240));
-        painter->setBrush(QColor(140, 140, 140));
+        addDropShadow(*painter, rect());
+
+        painter->setPen(QColor(140, 140, 140));
+        painter->setBrush(QColor(240, 240, 240));
         painter->drawRoundedRect(rect(), 5, 5);
     } else {    
+        addDropShadow(*painter, m_thumbnailRect);
         painter->drawImage(m_thumbnailRect, *m_urlItem->thumbnail(), m_urlItem->thumbnail()->rect());
     }
 
@@ -48,8 +52,10 @@ void TileItem::setGeometry(const QRectF& rect)
     
     // reposition items
     m_title = "";
-    if (m_urlItem)
-        m_title = QFontMetrics(QFont()).elidedText(m_urlItem->m_title, Qt::ElideRight, rect.width());
+    if (m_urlItem) {
+        QFont f("Times", 10);
+        m_title = QFontMetrics(f).elidedText(m_urlItem->m_title, Qt::ElideRight, rect.width());
+    }
     
     if (!m_textOnly) {
         m_thumbnailRect = rect.toRect();
@@ -57,19 +63,12 @@ void TileItem::setGeometry(const QRectF& rect)
     }
 }
 
-void TileItem::addDropshadow()
+void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
 {
-    //FIXME figure out why it doesnt perform well on n900
-    return;
-    if (graphicsEffect())
-        setGraphicsEffect(0);
-
-    QGraphicsDropShadowEffect* d = new QGraphicsDropShadowEffect(this);
-    d->setColor(QColor(20, 20, 20));
-    d->setOffset(QPoint(2, 2));
-    d->setBlurRadius(5);
-    setGraphicsEffect(d);
-    update();
+    painter.setPen(QColor(40, 40, 40));
+    painter.setBrush(QColor(20, 20, 20));
+    QRectF r(rect); r.moveTopLeft(r.topLeft() + QPointF(2,2));
+    painter.drawRoundedRect(r, 5, 5);
 }
 
 void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)

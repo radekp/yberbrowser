@@ -1,8 +1,10 @@
+#include <QApplication>
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QGraphicsWidget>
 #include <QGraphicsRectItem>
 #include <QDebug>
+#include <QGraphicsSceneMouseEvent>
 
 #include "HomeView.h"
 #include "TileItem.h"
@@ -15,13 +17,16 @@
 #include <DuiScene>
 #endif
 
+// FIXME: HomeView should be either a top level view, or just a central widget of the browsingview, probably the first one
+// also, LAF is not finalized yet.
+
 namespace {
 const int s_minTileWidth = 170;
 const int s_maxTileWidth = 200;
 const int s_defaultTileNumH = 3;
 const int s_defaultTileNumV = 6;
 const int s_tilePadding = 20;
-const int s_bookmarkStripeHeight = 60;
+const int s_bookmarkStripeHeight = 65;
 const int s_bookmarksTileWidth = 120;
 const QColor s_TitleTextColor(0xFA, 0xFA, 0xFA);
 }
@@ -32,7 +37,11 @@ HomeView::HomeView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_homeContainer(new HomeContainer(this, wFlags))
     , m_slideAnim(new QPropertyAnimation(m_homeContainer, "geometry"))
     , m_active(false)
+    , m_recognizer(this)
+    , m_selfSentEvent(0)
 {
+    m_recognizer.reset();
+
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
 
@@ -127,6 +136,55 @@ void HomeView::startAnimation(bool in)
         m_homeContainer->setGeometry(hidden);
 }
 
+bool HomeView::sceneEventFilter(QGraphicsItem *i, QEvent *e)
+{
+    if (e == m_selfSentEvent)
+        return false;
+    /* Apply super class event filter. This will capture mouse
+    move for panning.  it will return true when applies panning
+    but false until pan events are recognized
+    */
+    bool doFilter = PannableViewport::sceneEventFilter(i, e);
+
+    if (!isVisible())
+        return doFilter;
+
+    switch (e->type()) {
+    case QEvent::GraphicsSceneMousePress:
+    case QEvent::GraphicsSceneMouseMove:
+    case QEvent::GraphicsSceneMouseRelease:
+    case QEvent::GraphicsSceneMouseDoubleClick:
+        m_recognizer.filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
+        doFilter = true;
+        break;
+    default:
+        break;
+    }
+
+    return doFilter;
+}
+
+void HomeView::cancelLeftMouseButtonPress(const QPoint&)
+{
+    // don't send the mouse press event after this callback.
+    // QAbstractCKineticScroller started panning
+    m_recognizer.clearDelayedPress();
+}
+
+void HomeView::mousePressEventFromChild(QGraphicsSceneMouseEvent* event)
+{
+    m_selfSentEvent = event;
+    QApplication::sendEvent(scene(), event);
+    m_selfSentEvent = 0;
+}
+
+void HomeView::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* event)
+{
+    m_selfSentEvent = event;
+    QApplication::sendEvent(scene(), event);
+    m_selfSentEvent = 0;
+}
+
 //-------------------------
 
 HomeContainer::HomeContainer(HomeView* parent, Qt::WindowFlags wFlags)
@@ -134,8 +192,6 @@ HomeContainer::HomeContainer(HomeView* parent, Qt::WindowFlags wFlags)
     , m_historyContainer(new HistoryContainer(this, wFlags))
     , m_bookmarkContainer(new BookmarkContainer(this, wFlags))
 {
-    connect(parent, SIGNAL(appeared()), m_historyContainer, SLOT(appeared()));
-    connect(parent, SIGNAL(appeared()), m_bookmarkContainer, SLOT(appeared()));
 }
 
 HomeContainer::~HomeContainer()
@@ -179,7 +235,6 @@ void HomeContainer::destroyViewItems()
     m_bookmarkContainer->destroyTiles();
 }
 
-
 TileContainer::TileContainer(UrlList& urlList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_urlList(&urlList)
@@ -191,14 +246,14 @@ TileContainer::~TileContainer()
     destroyTiles();
 }
 
-void TileContainer::addTiles(int hTileNum, int tileWidth, int vTileNum, int tileHeight, int padding, bool textOnly)
+void TileContainer::addTiles(int hTileNum, int tileWidth, int vTileNum, int tileHeight, int paddingX, int paddingY, bool textOnly)
 {
     QGraphicsWidget* parentView = parentWidget()->parentWidget();
     if (m_tileList.size())
         return;
 
     int width = rect().width();
-    int y = padding;
+    int y = paddingY;
     for (int i = 0; i < vTileNum; ++i) {
         // move tiles to the middle
         int x = (width - (hTileNum * tileWidth)) / 2;
@@ -212,7 +267,7 @@ void TileContainer::addTiles(int hTileNum, int tileWidth, int vTileNum, int tile
             TileItem* item = new TileItem(this, m_urlList->at(itemIndex), textOnly);
             connect(item, SIGNAL(itemActivated(UrlItem*)), parentView, SLOT(tileItemActivated(UrlItem*)));
             // padding
-            item->setGeometry(QRectF(x + padding, y + padding, tileWidth - (2*padding), tileHeight  - (2*padding)));
+            item->setGeometry(QRectF(x + paddingX, y + paddingY, tileWidth - (2*paddingX), tileHeight  - (2*paddingY)));
             m_tileList.append(item);
             x+=(tileWidth);
         }
@@ -224,13 +279,6 @@ void TileContainer::destroyTiles()
 {
     for (int i = m_tileList.size() - 1; i >= 0; --i)
         delete m_tileList.takeAt(i);
-}
-
-void TileContainer::appeared()
-{
-    // add  dropshadow only when anim is finished to avoid rendering artifacts
-    for (int i = 0; i < m_tileList.size(); ++i)
-        m_tileList.at(i)->addDropshadow();
 }
 
 HistoryContainer::HistoryContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
@@ -271,7 +319,7 @@ void HistoryContainer::createTiles()
 
     tileHeight = qMin(tileHeight, maxHeight);
 
-    addTiles(hTileNum, tileWidth, vTileNum, tileHeight, s_tilePadding, false);
+    addTiles(hTileNum, tileWidth, vTileNum, tileHeight, s_tilePadding, s_tilePadding, false);
 }
 
 BookmarkContainer::BookmarkContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
@@ -290,6 +338,6 @@ BookmarkContainer::BookmarkContainer(QGraphicsItem* parent, Qt::WindowFlags wFla
 
 void BookmarkContainer::createTiles()
 {
-    addTiles(rect().width() / s_bookmarksTileWidth, s_bookmarksTileWidth, 1, rect().height(), 5,  true);
+    addTiles(rect().width() / s_bookmarksTileWidth, s_bookmarksTileWidth, 1, rect().height(), 5, 10, true);
 }
 
