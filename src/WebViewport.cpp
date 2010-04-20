@@ -6,9 +6,7 @@
 #include "qwebframe.h"
 #include "qgraphicswebview.h"
 #include "qwebelement.h"
-
-#include <QSequentialAnimationGroup>
-#include <QGraphicsBlurEffect>
+#include "LinkSelectionItem.h"
 
 //#define ENABLE_LINK_SELECTION_DEBUG
 
@@ -20,53 +18,6 @@ const int s_doubleClickWaitTimeout = 100;
 const int s_edgeMarginForLinkSelectionRetry = 50;
 const int s_minSearchRectSize = 8;
 const int s_maxSearchRectSize = 25;
-}
-
-class LinkSelectionItem : public QObject, public QGraphicsRectItem {
-    Q_OBJECT
-    Q_PROPERTY(QRectF rect READ rect WRITE setRect)
-    Q_PROPERTY(qreal opacity READ opacity WRITE setOpacity)
-public:
-    LinkSelectionItem(QGraphicsItem*);
-    void show(const QPointF&, const QRectF&);
-
-private:
-    QSequentialAnimationGroup m_linkSelectiogroup;
-};
-
-LinkSelectionItem::LinkSelectionItem(QGraphicsItem* parent) 
-    : QGraphicsRectItem(QRect(0, 0, 0, 0), parent) 
-{
-    setBrush(QBrush(QColor(10, 10, 80)));
-    setOpacity(0.7);
-}
-
-void LinkSelectionItem::show(const QPointF& mousePos, const QRectF& linkRect) 
-{
-    QGraphicsBlurEffect* blur = new QGraphicsBlurEffect();
-    blur->setBlurHints(QGraphicsBlurEffect::PerformanceHint);
-    blur->setBlurRadius(15);
-    setGraphicsEffect(blur);
-
-    QPropertyAnimation* rectAnimation = new QPropertyAnimation(this, "rect");
-    rectAnimation->setDuration(350);
-
-    rectAnimation->setStartValue(QRectF(mousePos, QSize(3, 3)));
-    rectAnimation->setEndValue(linkRect);    
-
-    rectAnimation->setEasingCurve(QEasingCurve::OutExpo);
-
-    QPropertyAnimation* opacityAnimation = new QPropertyAnimation(this, "opacity");
-    opacityAnimation->setDuration(650);
-
-    opacityAnimation->setStartValue(0.7);
-    opacityAnimation->setEndValue(0.0);
-
-    opacityAnimation->setEasingCurve(QEasingCurve::InExpo);
-    
-    m_linkSelectiogroup.addAnimation(rectAnimation);
-    m_linkSelectiogroup.addAnimation(opacityAnimation);
-    m_linkSelectiogroup.start();
 }
 
 /*!
@@ -336,7 +287,7 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
             frame = frame->parentFrame();
         }
         m_linkSelectionItem = new LinkSelectionItem(this);
-        m_linkSelectionItem->show(viewportWidget()->webView()->mapToScene(p), viewportWidget()->webView()->mapToScene(QRect(linkPoint, result.boundingRect().size())).boundingRect());   
+        m_linkSelectionItem->appear(viewportWidget()->webView()->mapToScene(p), viewportWidget()->webView()->mapToScene(QRect(linkPoint, result.boundingRect().size())).boundingRect());   
         // delayed click
         m_delayedMouseReleaseEvent = new QGraphicsSceneMouseEvent(event->type());
         copyMouseEvent(event, m_delayedMouseReleaseEvent);
@@ -452,4 +403,3 @@ void WebViewport::contentsSizeChangeCausedResize()
     stopPannedWidgetGeomAnim();
 }
 
-#include "WebViewport.moc"

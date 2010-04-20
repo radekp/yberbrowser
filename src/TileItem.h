@@ -32,6 +32,7 @@ private:
     QRect m_thumbnailRect;
     QString m_title;
     bool m_textOnly;
+    bool m_selected;
 };
 
 #endif

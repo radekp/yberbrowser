@@ -14,6 +14,7 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem* urlItem, bool textOnly)
     : QGraphicsRectItem(parent)
     , m_urlItem(urlItem)
     , m_textOnly(textOnly)
+    , m_selected(false)
 {
     if (m_urlItem)
         connect(m_urlItem, SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
@@ -44,6 +45,11 @@ void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     painter->setFont(f);
     painter->setPen(textOnly ? QColor(22, 22, 22) : QColor(220, 220, 220));
     painter->drawText(rect(), Qt::AlignHCenter|(textOnly ? Qt::AlignVCenter : Qt::AlignBottom), m_title);
+
+    if (m_selected) {
+        painter->setBrush(QColor(80, 80, 80, 160));
+        painter->drawRoundRect(rect(), 5, 5);
+    }
 }
 
 void TileItem::setGeometry(const QRectF& rect)
@@ -73,6 +79,7 @@ void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
 
 void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
 {
+    m_selected = true;
     emit itemActivated(m_urlItem);
 }
 

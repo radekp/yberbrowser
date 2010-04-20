@@ -124,6 +124,7 @@ HEADERS = \
   src/Helpers.h \
   src/TileItem.h \
   src/HomeView.h \
+  src/LinkSelectionItem.h \
   src/PannableViewport.h \
   src/ProgressWidget.h \
   src/ScrollbarItem.h \
@@ -146,6 +147,7 @@ SOURCES = \
   src/Helpers.cpp \
   src/TileItem.cpp \
   src/HomeView.cpp \
+  src/LinkSelectionItem.cpp \
   src/ProgressWidget.cpp \
   src/ScrollbarItem.cpp \
   src/UrlItem.cpp \
