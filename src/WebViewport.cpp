@@ -244,6 +244,7 @@ QWebFrame* findFrame(const QPoint& pos, QWebFrame* frame)
     return 0;
 }
 
+#if defined(ENABLE_NEW_LINK_SELECTION) && ENABLE_NEW_LINK_SELECTION
 void WebViewport::adjustClickPosition(QPointF& pos)
 {
     QPointF localPos = viewportWidget()->webView()->mapFromScene(pos);
@@ -306,6 +307,11 @@ void WebViewport::adjustClickPosition(QPointF& pos)
         }
     }
 }
+#else // ENABLE_NEW_LINK_SELECTION
+void WebViewport::adjustClickPosition(QPointF&)
+{
+}
+#endif // ENABLE_NEW_LINK_SELECTION
 
 void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
 {
