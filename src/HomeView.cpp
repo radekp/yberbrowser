@@ -338,6 +338,6 @@ BookmarkContainer::BookmarkContainer(QGraphicsItem* parent, Qt::WindowFlags wFla
 
 void BookmarkContainer::createTiles()
 {
-    addTiles(rect().width() / s_bookmarksTileWidth, s_bookmarksTileWidth, 1, rect().height(), 5, 10, true);
+    addTiles(qMin(m_list.size(), (int)(rect().width() / s_bookmarksTileWidth)), s_bookmarksTileWidth, 1, rect().height(), 5, 10, true);
 }
 

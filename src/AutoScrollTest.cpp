@@ -10,7 +10,8 @@
 #include <QPainterPath>
 
 namespace {
-const int s_scrollPixels[] = {10, -20, 30, -40, 50, -60};
+const int s_scrollPixels[] = {10, 20, 30, 40, 50, 10};
+const int s_scrollPixelsTimeot[] = {3000, 3000, 4000, 4000, 3000, 2000};
 const int s_xAxisInFPS[] = {10, 20, 60};
 const QColor s_xFPSValueColor(10, 255, 10);
 const QColor s_FPSTextColor(10, 255, 10);
@@ -19,7 +20,7 @@ const QColor s_FPSLineColor(10, 255, 10);
 const QColor s_bckColor(20, 20, 20);
 const qreal s_bckTransparency = 0.9;
 const int s_fpsCheckTimeout = 100;
-const int s_scrolTimeout = 0;
+const int s_scrollTimeout = 0;
 }
 
 class FPSResultView : public QGraphicsWidget {
@@ -35,18 +36,23 @@ Q_SIGNALS:
 
 private:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent*);
-    void addAreaDividerItem(int, int, int);
-    void addLineItem(int, int, int);
+    void addAreaDividerItem(int);
+    void addHorizontalLineItem(int);
     void addTextItem(const QRectF&, const QString&);
     void addTransparentRectangleItem(const QRectF&);
     void displayResult();
     void startAnimation(bool);
+    qreal getYValue(qreal fps);
 
 private Q_SLOTS:
     void animFinished();
 
 private:
     QList<int>* m_fpsValues;
+    QRectF m_rect;
+    int m_min;
+    int m_max;
+    int m_avg;
 };
 
 FPSResultView::FPSResultView(QList<int>& fpsValues, QGraphicsItem* parent, Qt::WindowFlags wFlags)
@@ -72,9 +78,11 @@ void FPSResultView::appear(ApplicationWindow *window)
     startAnimation(true);
 }
 
-qreal getYValue(QRectF rect, qreal fps) 
+qreal FPSResultView::getYValue(qreal fps) 
 {
-    return qMin(rect.bottom(), qMax(rect.top(), rect.bottom() - fps * 3));
+    // squeeze it to the middle 
+    qreal ed = m_rect.height() / 2 / (m_max - m_min);
+    return (m_rect.bottom() - (m_rect.height() / 4) - (ed * (fps - m_min)));
 }
 
 void FPSResultView::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
@@ -82,15 +90,15 @@ void FPSResultView::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
     startAnimation(false);
 }
 
-void FPSResultView::addAreaDividerItem(int x, int y1, int y2)
+void FPSResultView::addAreaDividerItem(int x)
 {
-    QGraphicsLineItem* areaDivider = new QGraphicsLineItem(x, y1, x, y2, this);
+    QGraphicsLineItem* areaDivider = new QGraphicsLineItem(x, m_rect.top(), x, m_rect.bottom(), this);
     areaDivider->setPen(QPen(QBrush(s_FPSDividerColor), 1, Qt::DashLine));
 }
 
-void FPSResultView::addLineItem(int x1, int x2, int y)
+void FPSResultView::addHorizontalLineItem(int y)
 {
-    QGraphicsLineItem* lineItem = new QGraphicsLineItem(x1, y, x2, y, this);
+    QGraphicsLineItem* lineItem = new QGraphicsLineItem(m_rect.left(), y, m_rect.right(), y, this);
     lineItem->setPen(QPen(QBrush(s_xFPSValueColor), 1, Qt::DotLine));
 }
 
@@ -119,63 +127,74 @@ void FPSResultView::displayResult()
         return;
 
     // background
-    QRectF r(rect());
-    int xPadding = r.width() / 10;
-    int yPadding = r.height() / 10;
-    r.adjust(xPadding, yPadding, -xPadding, -yPadding);
-    addTransparentRectangleItem(r);
+    m_rect = rect();
+    int xPadding = m_rect.width() / 10;
+    int yPadding = m_rect.height() / 10;
+    m_rect.adjust(xPadding, yPadding, -xPadding, -yPadding);
+    addTransparentRectangleItem(m_rect);
 
-    // left side rectangle for fps text
-    QRectF sideRect(r); sideRect.moveLeft(sideRect.left() - 30); sideRect.setWidth(20);
-    addTransparentRectangleItem(sideRect);
-    for (unsigned int i = 0; i < sizeof(s_xAxisInFPS) / sizeof(int); ++i) {
-        qreal fpsValue = getYValue(r, s_xAxisInFPS[i]);
-
-        addLineItem(r.left(), r.right(), fpsValue);
-        addTextItem(QRectF(sideRect.left(), fpsValue - 10, sideRect.width(), 20), QString::number(s_xAxisInFPS[i]));
-    }    
+    // calculate min max and avg first to setup the grid
+    m_min = m_fpsValues->at(0);
+    m_max = m_min;
+    m_avg = m_fpsValues->at(0);
+    int count = 1;
+    for (int i = 1; i < m_fpsValues->size(); ++i) {
+        // reserved value
+        if (m_fpsValues->at(i) == -1)
+            continue;
+        m_max = qMax(m_fpsValues->at(i), m_max);
+        m_min = qMin(m_fpsValues->at(i), m_min);
+        m_avg+=m_fpsValues->at(i);
+        count++;
+    }
+    m_avg/=count++;
 
     // create path for fps
     QPainterPath path;
 
-    qreal ed = r.width() / m_fpsValues->size();
-    qreal x = r.left(); 
-    qreal y = getYValue(r, m_fpsValues->at(0));
+    qreal ed = m_rect.width() / m_fpsValues->size();
+    qreal x = m_rect.left(); 
+    qreal y = getYValue(m_fpsValues->at(0));
     path.moveTo(x, y);
-    int min = m_fpsValues->at(0);
-    int max = min;
-    int avg = m_fpsValues->at(0);
     // add fps items and scroll divider
     for (int i = 1; i < m_fpsValues->size(); ++i) {
-        x = r.left() + i*ed;
+        x = m_rect.left() + i*ed;
 
         // -1 indicates new scroll sections (up, down, up, down)
         if (m_fpsValues->at(i) == -1) {
-            addAreaDividerItem(x, r.top(), r.bottom());
+            addAreaDividerItem(x);
             continue;
         }
         // add fps value to the path
-        y = getYValue(r, m_fpsValues->at(i));
+        y = getYValue(m_fpsValues->at(i));
         path.lineTo(x, y);
-        max = qMax(m_fpsValues->at(i), max);
-        min = qMin(m_fpsValues->at(i), min);
-        avg+=m_fpsValues->at(i);
     }
-    avg/=m_fpsValues->size();
     
     QGraphicsPathItem* results = new QGraphicsPathItem(path, this);
     results->setPen(QPen(QBrush(s_FPSLineColor), 1));
 
-    // top rectangle item with min, max and avg
-    QRectF topRect(r); topRect.moveTop(sideRect.top() - 30); topRect.setHeight(20);
-    addTransparentRectangleItem(topRect);
-    addTextItem(QRect(topRect.left() + 5, topRect.top(), 50, topRect.height()), QString("Min:" + QString::number(min) + "fps"));
-    addTextItem(QRect(topRect.left() + 100, topRect.top(), 50, topRect.height()), QString("Max:" + QString::number(max) + "fps"));
-    addTextItem(QRect(topRect.left() + 200, topRect.top(), 50, topRect.height()), QString("Avg:" + QString::number(avg) + "fps"));
+    // left side rectangle for fps text
+    QRectF sideRect(m_rect); sideRect.moveLeft(sideRect.left() - 30); sideRect.setWidth(20);
+    addTransparentRectangleItem(sideRect);
+    for (unsigned int i = 0; i < sizeof(s_xAxisInFPS) / sizeof(int); ++i) {
+        y = getYValue(s_xAxisInFPS[i]);
+        // out of bounds? could happen on non target env, when fps average is so high
+        if (!m_rect.contains(m_rect.left(), y))
+            continue;
+        addHorizontalLineItem(y);
+        addTextItem(QRectF(sideRect.left(), y - 10, sideRect.width(), 20), QString::number(s_xAxisInFPS[i]));
+    }    
 
     // add avg as an fps horizontal line too
-    addLineItem(r.left(), r.right(), getYValue(r, avg));
-    addTextItem(QRectF(sideRect.left(), getYValue(r, avg) - 10, sideRect.width(), 20), QString::number(avg));
+    addHorizontalLineItem(getYValue(m_avg));
+    addTextItem(QRectF(sideRect.left(), getYValue(m_avg) - 10, sideRect.width(), 20), QString::number(m_avg));
+
+    // top rectangle item with min, max and avg
+    QRectF topRect(m_rect); topRect.moveTop(sideRect.top() - 30); topRect.setHeight(20);
+    addTransparentRectangleItem(topRect);
+    addTextItem(QRect(topRect.left() + 5, topRect.top(), 50, topRect.height()), QString("Min:" + QString::number(m_min) + "fps"));
+    addTextItem(QRect(topRect.left() + 100, topRect.top(), 50, topRect.height()), QString("Max:" + QString::number(m_max) + "fps"));
+    addTextItem(QRect(topRect.left() + 200, topRect.top(), 50, topRect.height()), QString("Avg:" + QString::number(m_avg) + "fps"));
 }
 
 void FPSResultView::startAnimation(bool in)
@@ -209,7 +228,7 @@ AutoScrollTest::AutoScrollTest(BrowsingView* browsingView)
     , m_scrollTimer(this)
     , m_fpsResultView(0)
 {
-    connect(&m_scrollTimer, SIGNAL(timeout()), this, SLOT(scroll()));
+    connect(&m_scrollTimer, SIGNAL(timeout()), this, SLOT(doScroll()));
     connect(&m_fpsTimer, SIGNAL(timeout()), this, SLOT(fpsTick()));
 }
 
@@ -233,42 +252,30 @@ void AutoScrollTest::starScrollTest()
         return;
     }
 
-    m_lastPos = QPoint(0, 0);
     m_scrollIndex = 0;
-    m_fpsTicks = 0;
+    m_fpsTicks = ((WebView*)((WebViewport*)m_browsingView->pannableViewport())->viewportWidget()->webView())->fpsTicks();
     m_fpsTimestamp.start();
     m_fpsTimer.start(s_fpsCheckTimeout);
-    m_scrollTimer.start(s_scrolTimeout);        
+    m_scrollTimer.start(s_scrollTimeout);   
+    m_scrollValue = s_scrollPixels[0];
+    QTimer::singleShot(s_scrollPixelsTimeot[0], this, SLOT(scrollTimeout()));
 }
 
-void AutoScrollTest::scroll()
+void AutoScrollTest::doScroll()
 {
     PannableViewport* viewport = m_browsingView->pannableViewport();
-    QPointF panPos(viewport->panPos().x(), viewport->panPos().y() - s_scrollPixels[m_scrollIndex]);
+    QPointF panPos(viewport->panPos().x(), viewport->panPos().y() - m_scrollValue);
     viewport->setPanPos(panPos);
 
-    if (m_lastPos.y() == viewport->panPos().y()) {
-        m_fpsValues.append(-1);
-        if (++m_scrollIndex >= sizeof(s_scrollPixels) / sizeof(int)) {
-            m_scrollTimer.stop();
-            m_fpsTimer.stop();
-            //
-            m_fpsResultView = new FPSResultView(m_fpsValues);
-            m_fpsResultView->setGeometry(m_browsingView->pannableViewport()->rect());
-            m_fpsResultView->appear(m_browsingView->applicationWindow());
-            connect(m_fpsResultView, SIGNAL(finished()), this, SLOT(fpsViewClicked()));
-        }
-    }
-    m_lastPos = viewport->panPos();
+    // switch direction
+    if (panPos.y() != viewport->panPos().y())
+        m_scrollValue = -m_scrollValue;
 }
 
 void AutoScrollTest::fpsTick()
 {
     int prevfps = m_fpsTicks;
     m_fpsTicks = ((WebView*)((WebViewport*)m_browsingView->pannableViewport())->viewportWidget()->webView())->fpsTicks();
-
-    if (!prevfps)
-        return;
 
     double dt = m_fpsTimestamp.restart();
     double dticks = m_fpsTicks - prevfps;
@@ -278,8 +285,29 @@ void AutoScrollTest::fpsTick()
 
 void AutoScrollTest::loadFinished(bool success)
 {
+    // dont start scrolling right after page is loaded. it alters the result
     if (success)
-        starScrollTest();
+        QTimer::singleShot(1000, this, SLOT(starScrollTest()));
+        
+}
+
+void AutoScrollTest::scrollTimeout()
+{
+    m_fpsValues.append(-1);
+    // finished?
+    if (++m_scrollIndex < sizeof(s_scrollPixelsTimeot) / sizeof(int)) {
+        m_scrollValue = s_scrollPixels[m_scrollIndex < sizeof(s_scrollPixels) / sizeof(int) ? m_scrollIndex : 0];
+        QTimer::singleShot(s_scrollPixelsTimeot[m_scrollIndex], this, SLOT(scrollTimeout()));
+    } else {
+        m_scrollTimer.stop();
+        m_fpsTimer.stop();
+        //
+        m_fpsResultView = new FPSResultView(m_fpsValues);
+        m_fpsResultView->setGeometry(m_browsingView->pannableViewport()->rect());
+        m_fpsResultView->appear(m_browsingView->applicationWindow());
+        connect(m_fpsResultView, SIGNAL(finished()), this, SLOT(fpsViewClicked()));
+    }
+
 }
 
 void AutoScrollTest::fpsViewClicked()

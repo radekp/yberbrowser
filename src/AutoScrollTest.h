@@ -17,12 +17,13 @@ public:
     AutoScrollTest(BrowsingView*);
     ~AutoScrollTest();
 
-    void starScrollTest();
-
 public Q_SLOTS:
-    void scroll();
+    void starScrollTest();
+    void doScroll();
     void fpsTick();
     void loadFinished(bool);
+    void scrollTimeout();
+
 Q_SIGNALS:
     void finished();
 
@@ -32,8 +33,8 @@ private Q_SLOTS:
 private:
     BrowsingView* m_browsingView;
     QTimer m_scrollTimer;
-    QPointF m_lastPos;
     unsigned int m_scrollIndex;
+    int m_scrollValue;
     QTime m_fpsTimestamp;
     QTimer m_fpsTimer;
     unsigned int m_fpsTicks;
