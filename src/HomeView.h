@@ -8,15 +8,15 @@
 
 class TileItem;
 class QGraphicsRectItem;
-class QPropertyAnimation;
 class UrlItem;
 class ApplicationWindow;
-class HomeContainer;
-class HistoryContainer;
-class BookmarkContainer;
+class PannableTileContainer;
+class HistoryWidget;
+class BookmarkWidget;
 class QGraphicsSceneMouseEvent;
+class QParallelAnimationGroup;
 
-class HomeView : public PannableViewport, private CommonGestureConsumer {
+class HomeView : public QGraphicsWidget {
     Q_OBJECT
 public:
     HomeView(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
@@ -37,6 +37,26 @@ public Q_SLOTS:
     void animFinished();
     void tileItemActivated(UrlItem*);
 
+private:
+    void startAnimation(bool);
+    void createViewItems();
+    void destroyViewItems();
+
+private:
+    QGraphicsRectItem* m_bckg;
+    PannableTileContainer* m_pannableHistoryContainer;
+    HistoryWidget* m_historyWidget;
+    BookmarkWidget* m_bookmarkWidget;
+    QParallelAnimationGroup* m_slideAnimationGroup;
+    bool m_active;
+};
+
+class PannableTileContainer : public PannableViewport, private CommonGestureConsumer {
+    Q_OBJECT
+public:
+    PannableTileContainer(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+    ~PannableTileContainer();
+    
 protected:
     bool sceneEventFilter(QGraphicsItem*, QEvent*);
     void cancelLeftMouseButtonPress(const QPoint&);
@@ -47,62 +67,39 @@ protected:
     void adjustClickPosition(QPointF&) {}
 
 private:
-    void startAnimation(bool);
-
-private:
-    QGraphicsRectItem* m_bckg;
-    HomeContainer* m_homeContainer;
-    QPropertyAnimation* m_slideAnim;
-    bool m_active;
     CommonGestureRecognizer m_recognizer;
     QGraphicsSceneMouseEvent* m_selfSentEvent;
 };
 
-class HomeContainer : public QGraphicsWidget {
+class TileBaseWidget : public QGraphicsWidget {
     Q_OBJECT
 public:
-    HomeContainer(HomeView*, Qt::WindowFlags wFlags = 0);
-    ~HomeContainer();
+    TileBaseWidget(UrlList&, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+    ~TileBaseWidget();
 
-    void setGeometry(const QRectF& rect);
-
-    void createViewItems();
-    void destroyViewItems();
-
-private:
-    HistoryContainer* m_historyContainer;
-    BookmarkContainer* m_bookmarkContainer;
-};
-
-class TileContainer : public QGraphicsWidget {
-    Q_OBJECT
-public:
-    TileContainer(UrlList&, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
-    ~TileContainer();
-    
     virtual void createTiles() = 0;
     void destroyTiles();
 
 protected:
-    void addTiles(int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY, bool textOnly);
+    void addTiles(const QRectF& rect, int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY, bool textOnly);
 
 private:
     UrlList* m_urlList;
     QList<TileItem*> m_tileList;
 };
 
-class HistoryContainer : public TileContainer {
+class HistoryWidget : public TileBaseWidget {
     Q_OBJECT
 public:
-    HistoryContainer(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+    HistoryWidget(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
 
     void createTiles();
 };
 
-class BookmarkContainer : public TileContainer {
+class BookmarkWidget : public TileBaseWidget {
     Q_OBJECT
 public:
-    BookmarkContainer(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+    BookmarkWidget(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
 
     void createTiles();
 

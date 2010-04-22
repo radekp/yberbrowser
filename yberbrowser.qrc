@@ -4,5 +4,6 @@
     <file>data/icon/48x48/history_48.png</file>
     <file>data/icon/48x48/screen_toggle_48.png</file>
     <file>data/icon/48x48/stop_48.png</file>
+    <file>data/icon/48x48/bookmarks_48.png</file>
 </qresource>
 </RCC>

@@ -5,6 +5,7 @@
 #include <QGraphicsRectItem>
 #include <QDebug>
 #include <QGraphicsSceneMouseEvent>
+#include <QParallelAnimationGroup>
 
 #include "HomeView.h"
 #include "TileItem.h"
@@ -12,7 +13,6 @@
 #include "ApplicationWindow.h"
 
 #include <QPropertyAnimation>
-#include <QParallelAnimationGroup>
 #if USE_DUI
 #include <DuiScene>
 #endif
@@ -32,46 +32,69 @@ const QColor s_TitleTextColor(0xFA, 0xFA, 0xFA);
 }
 
 HomeView::HomeView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : PannableViewport(parent, wFlags)
+    : QGraphicsWidget(parent, wFlags)
     , m_bckg(new QGraphicsRectItem(rect(), this))
-    , m_homeContainer(new HomeContainer(this, wFlags))
-    , m_slideAnim(new QPropertyAnimation(m_homeContainer, "geometry"))
+    , m_pannableHistoryContainer(new PannableTileContainer(this, wFlags))
+    , m_historyWidget(new HistoryWidget(this, wFlags))
+    , m_bookmarkWidget(new BookmarkWidget(this, wFlags))
+    , m_slideAnimationGroup(new QParallelAnimationGroup())
     , m_active(false)
-    , m_recognizer(this)
-    , m_selfSentEvent(0)
 {
-    m_recognizer.reset();
-
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
 
     m_bckg->setPen(QPen(QBrush(QColor(10, 10, 10)), 3));
     m_bckg->setBrush(QColor(20, 20, 20));
 
-    m_bckg->setZValue(0);
-    m_homeContainer->setZValue(1);
-    connect(m_slideAnim, SIGNAL(finished()), this, SLOT(animFinished()));
+    m_pannableHistoryContainer->setWidget(m_historyWidget);
 
-    setWidget(m_homeContainer);
+    m_bckg->setZValue(0);
+    m_historyWidget->setZValue(1);
+    m_bookmarkWidget->setZValue(1);
+    connect(m_slideAnimationGroup, SIGNAL(finished()), this, SLOT(animFinished()));
 }
 
 HomeView::~HomeView()
 {
-    delete m_slideAnim;
+    m_slideAnimationGroup->stop();
+    m_slideAnimationGroup->clear();
+    // FIXME leaking animation group. find out why it segfaults
+//    delete m_slideAnimationGroup;
     delete m_bckg;
-    delete m_homeContainer;
+    delete m_historyWidget;
+    delete m_bookmarkWidget;
+    delete m_pannableHistoryContainer;
 }
 
 void HomeView::setGeometry(const QRectF& rect)
 {
-    if (rect == geometry())
+    QRectF currentRect(geometry());
+    if (rect == currentRect)
         return;
     QGraphicsWidget::setGeometry(rect);
     m_bckg->setRect(rect);
-    // home container is twice the height
-    QRectF r(rect);
-    r.setHeight(2*r.height());
-    m_homeContainer->setGeometry(r);
+    
+    if (rect.width() != currentRect.width() || rect.height() != currentRect.height()) {
+        // readjust subcontainers' sizes in case of size chage
+        QRectF r(rect);
+        // upper stripe for bookmarks
+        r.setHeight(s_bookmarkStripeHeight);
+        m_bookmarkWidget->setGeometry(r);
+
+        // history comes next
+        r.moveTop(r.bottom());
+        // the pannable area is the rest of the view
+        r.setHeight(rect.height() - r.height());
+        m_pannableHistoryContainer->setGeometry(r);
+
+        // and the panned widget is twice as the view
+        r.setHeight(2 * rect.height());
+        m_historyWidget->setGeometry(r);
+    
+        // reconstuct tiles
+        destroyViewItems();
+        createViewItems();
+    }
 }
 
 void HomeView::appear(ApplicationWindow *window)
@@ -84,7 +107,7 @@ void HomeView::appear(ApplicationWindow *window)
     scene()->setActiveWindow(this);
 
     m_active = true;
-    m_homeContainer->createViewItems();
+    createViewItems();
     startAnimation(m_active);
 }
 
@@ -102,7 +125,7 @@ void HomeView::animFinished()
         m_bckg->setOpacity(0.8);
         emit appeared();
     } else {
-        m_homeContainer->destroyViewItems();
+        destroyViewItems();
         emit disappeared();
     }
 }
@@ -117,26 +140,77 @@ void HomeView::tileItemActivated(UrlItem* item)
 void HomeView::startAnimation(bool in)
 {
     // ongoing?
-    m_slideAnim->stop();
-    m_slideAnim->setDuration(800);
-    QRectF r(m_homeContainer->geometry());
+    m_slideAnimationGroup->stop();
+    m_slideAnimationGroup->clear();
+
+    // add both history and bookmark anim
+    QPropertyAnimation* historyAnim = new QPropertyAnimation(m_historyWidget, "geometry");
+    historyAnim->setDuration(800);
+    QRectF r(m_historyWidget->geometry());
 
     if (in)
         r.moveTop(rect().top());
-    QRectF hidden(r); hidden.moveTop(r.bottom());
+    QRectF hiddenHistory(r); hiddenHistory.moveTop(r.bottom());
 
-    m_slideAnim->setStartValue(in ?  hidden : r);
-    m_slideAnim->setEndValue(in ? r : hidden);
+    historyAnim->setStartValue(in ?  hiddenHistory : r);
+    historyAnim->setEndValue(in ? r : hiddenHistory);
 
-    m_slideAnim->setEasingCurve(in ? QEasingCurve::OutBack : QEasingCurve::InCubic);
-    m_slideAnim->start(QAbstractAnimation::KeepWhenStopped);
+    historyAnim->setEasingCurve(in ? QEasingCurve::OutBack : QEasingCurve::InCubic);
+
+    m_slideAnimationGroup->addAnimation(historyAnim);
+
+    //
+    QPropertyAnimation* bookmarkAnim = new QPropertyAnimation(m_bookmarkWidget, "geometry");
+    bookmarkAnim->setDuration(800);
+    r = m_bookmarkWidget->geometry();
+
+    if (in)
+        r.moveTop(rect().top());
+    QRectF hiddenBookmark(r); hiddenBookmark.moveBottom(r.top());
+
+    bookmarkAnim->setStartValue(in ?  hiddenBookmark : r);
+    bookmarkAnim->setEndValue(in ? r : hiddenBookmark);
+
+    bookmarkAnim->setEasingCurve(in ? QEasingCurve::OutBack : QEasingCurve::InCubic);
+
+    m_slideAnimationGroup->addAnimation(bookmarkAnim);
+
+    m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
     
     // hide the container
-    if (in)
-        m_homeContainer->setGeometry(hidden);
+    if (in) {
+        m_historyWidget->setGeometry(hiddenHistory);
+        m_bookmarkWidget->setGeometry(hiddenBookmark);
+    }
 }
 
-bool HomeView::sceneEventFilter(QGraphicsItem *i, QEvent *e)
+void HomeView::destroyViewItems()
+{
+    m_historyWidget->destroyTiles();
+    m_bookmarkWidget->destroyTiles();
+}
+
+void HomeView::createViewItems()
+{
+    m_historyWidget->createTiles();
+    m_bookmarkWidget->createTiles();
+}
+
+//-------------------------
+
+PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
+    : PannableViewport(parent, wFlags)
+    , m_recognizer(this)
+    , m_selfSentEvent(0)
+{
+    m_recognizer.reset();
+}
+
+PannableTileContainer::~PannableTileContainer()
+{
+}
+
+bool PannableTileContainer::sceneEventFilter(QGraphicsItem *i, QEvent *e)
 {
     if (e == m_selfSentEvent)
         return false;
@@ -164,95 +238,46 @@ bool HomeView::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     return doFilter;
 }
 
-void HomeView::cancelLeftMouseButtonPress(const QPoint&)
+void PannableTileContainer::cancelLeftMouseButtonPress(const QPoint&)
 {
     // don't send the mouse press event after this callback.
     // QAbstractCKineticScroller started panning
     m_recognizer.clearDelayedPress();
 }
 
-void HomeView::mousePressEventFromChild(QGraphicsSceneMouseEvent* event)
+void PannableTileContainer::mousePressEventFromChild(QGraphicsSceneMouseEvent* event)
 {
     m_selfSentEvent = event;
     QApplication::sendEvent(scene(), event);
     m_selfSentEvent = 0;
 }
 
-void HomeView::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* event)
+void PannableTileContainer::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* event)
 {
     m_selfSentEvent = event;
     QApplication::sendEvent(scene(), event);
     m_selfSentEvent = 0;
 }
 
-//-------------------------
-
-HomeContainer::HomeContainer(HomeView* parent, Qt::WindowFlags wFlags)
-    : QGraphicsWidget(parent, wFlags)
-    , m_historyContainer(new HistoryContainer(this, wFlags))
-    , m_bookmarkContainer(new BookmarkContainer(this, wFlags))
-{
-}
-
-HomeContainer::~HomeContainer()
-{
-    delete m_historyContainer;
-    delete m_bookmarkContainer;
-}
-
-void HomeContainer::setGeometry(const QRectF& rect)
-{
-    QRectF currentRect(geometry());
-    if (rect == currentRect)
-        return;
-    QGraphicsWidget::setGeometry(rect);
-    
-    // readjust subcontainers' sizes in case of size chage
-    if (rect.width() != currentRect.width() || rect.height() != currentRect.height()) {
-        QRectF r(rect);
-        // upper stripe for bookmarks
-        r.setHeight(s_bookmarkStripeHeight);
-        m_bookmarkContainer->setGeometry(r);
-        // history comes next
-        r.moveTop(r.bottom());
-        r.setHeight(rect.height() - r.height());
-        m_historyContainer->setGeometry(r);
-        // reconstuct tiles
-        destroyViewItems();
-        createViewItems();
-    }
-}
-
-void HomeContainer::createViewItems()
-{
-    m_historyContainer->createTiles();
-    m_bookmarkContainer->createTiles();
-}
-
-void HomeContainer::destroyViewItems()
-{
-    m_historyContainer->destroyTiles();
-    m_bookmarkContainer->destroyTiles();
-}
-
-TileContainer::TileContainer(UrlList& urlList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+TileBaseWidget::TileBaseWidget(UrlList& urlList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_urlList(&urlList)
 {
 }
 
-TileContainer::~TileContainer()
+TileBaseWidget::~TileBaseWidget()
 {
     destroyTiles();
 }
 
-void TileContainer::addTiles(int hTileNum, int tileWidth, int vTileNum, int tileHeight, int paddingX, int paddingY, bool textOnly)
+void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, int vTileNum, int tileHeight, int paddingX, int paddingY, bool textOnly)
 {
-    QGraphicsWidget* parentView = parentWidget()->parentWidget();
+    //FIXME figure out how to get HomeView
+    QGraphicsWidget* parentView = !parentWidget()->parentWidget() ? parentWidget() : parentWidget()->parentWidget();
     if (m_tileList.size())
         return;
 
-    int width = rect().width();
+    int width = rect.width();
     int y = paddingY;
     for (int i = 0; i < vTileNum; ++i) {
         // move tiles to the middle
@@ -275,18 +300,18 @@ void TileContainer::addTiles(int hTileNum, int tileWidth, int vTileNum, int tile
     }
 }
 
-void TileContainer::destroyTiles()
+void TileBaseWidget::destroyTiles()
 {
     for (int i = m_tileList.size() - 1; i >= 0; --i)
         delete m_tileList.takeAt(i);
 }
 
-HistoryContainer::HistoryContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileContainer(UrlStore::instance()->list(), parent, wFlags)
+HistoryWidget::HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
+    : TileBaseWidget(UrlStore::instance()->list(), parent, wFlags)
 {
 }
 
-void HistoryContainer::createTiles()
+void HistoryWidget::createTiles()
 {
     int width = rect().width();
 
@@ -319,11 +344,11 @@ void HistoryContainer::createTiles()
 
     tileHeight = qMin(tileHeight, maxHeight);
 
-    addTiles(hTileNum, tileWidth, vTileNum, tileHeight, s_tilePadding, s_tilePadding, false);
+    addTiles(rect(), hTileNum, tileWidth, vTileNum, tileHeight, s_tilePadding, s_tilePadding, false);
 }
 
-BookmarkContainer::BookmarkContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileContainer(m_list, parent, wFlags)
+BookmarkWidget::BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
+    : TileBaseWidget(m_list, parent, wFlags)
 {
     // FIXME : hardcoded static items in the bookmarks view until bookmark management is added.
     m_list.append(new UrlItem(QUrl("http://cnn.com/"), "CNN.com - Breaking News, U.S., World, Weather, Entertainment &amp; Video News"));
@@ -336,8 +361,9 @@ BookmarkContainer::BookmarkContainer(QGraphicsItem* parent, Qt::WindowFlags wFla
     m_list.append(new UrlItem(QUrl("http://google.com/"), "Google"));
 }
 
-void BookmarkContainer::createTiles()
+void BookmarkWidget::createTiles()
 {
-    addTiles(qMin(m_list.size(), (int)(rect().width() / s_bookmarksTileWidth)), s_bookmarksTileWidth, 1, rect().height(), 5, 10, true);
+    // add bookmakr icon + tiles
+    addTiles(rect(), qMin(m_list.size(), (int)(rect().width() / s_bookmarksTileWidth)), s_bookmarksTileWidth, 1, rect().height(), 5, 10, true);
 }
 

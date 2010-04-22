@@ -20,7 +20,7 @@ const QColor s_FPSLineColor(10, 255, 10);
 const QColor s_bckColor(20, 20, 20);
 const qreal s_bckTransparency = 0.9;
 const int s_fpsCheckTimeout = 100;
-const int s_scrollTimeout = 0;
+const int s_scrollTimeout = 10;
 }
 
 class FPSResultView : public QGraphicsWidget {

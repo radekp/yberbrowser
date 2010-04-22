@@ -153,6 +153,7 @@ YberWidget* BrowsingView::createNavigationToolBar()
     connect(m_urlEdit, SIGNAL(editCancelled()), SLOT(updateURL()));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
     qtoolbar->addAction(QIcon(":/data/icon/48x48/history_48.png"), "Home", this, SLOT(toggleHomeView()));
+    qtoolbar->addAction(QIcon(":/data/icon/48x48/bookmarks_48.png"), "Add bookmark", this, SLOT(addBookmark()));
     qtoolbar->addWidget(m_urlEdit);
     m_stopbackAction = new QAction(QIcon(":/data/icon/48x48/back_48.png"), "Back", 0);
     connect(m_stopbackAction, SIGNAL(triggered()), this, SLOT(pageBack()));
