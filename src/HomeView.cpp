@@ -26,7 +26,7 @@ const int s_maxTileWidth = 200;
 const int s_defaultTileNumH = 3;
 const int s_defaultTileNumV = 6;
 const int s_tilePadding = 20;
-const int s_bookmarkStripeHeight = 65;
+const int s_bookmarkStripeHeight = 70;
 const int s_bookmarksTileWidth = 120;
 const QColor s_TitleTextColor(0xFA, 0xFA, 0xFA);
 }
@@ -186,14 +186,14 @@ void HomeView::startAnimation(bool in)
 
 void HomeView::destroyViewItems()
 {
-    m_historyWidget->destroyTiles();
-    m_bookmarkWidget->destroyTiles();
+    m_historyWidget->destroyWidgetContent();
+    m_bookmarkWidget->destroyWidgetContent();
 }
 
 void HomeView::createViewItems()
 {
-    m_historyWidget->createTiles();
-    m_bookmarkWidget->createTiles();
+    m_historyWidget->setupWidgetContent();
+    m_bookmarkWidget->setupWidgetContent();
 }
 
 //-------------------------
@@ -267,7 +267,7 @@ TileBaseWidget::TileBaseWidget(UrlList& urlList, QGraphicsItem* parent, Qt::Wind
 
 TileBaseWidget::~TileBaseWidget()
 {
-    destroyTiles();
+    destroyWidgetContent();
 }
 
 void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, int vTileNum, int tileHeight, int paddingX, int paddingY, bool textOnly)
@@ -278,10 +278,10 @@ void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, i
         return;
 
     int width = rect.width();
-    int y = paddingY;
+    int y = rect.top() + paddingY;
     for (int i = 0; i < vTileNum; ++i) {
         // move tiles to the middle
-        int x = (width - (hTileNum * tileWidth)) / 2;
+        int x = rect.left() + (width - (hTileNum * tileWidth)) / 2;
         for (int j = 0; j < hTileNum; ++j) {
             // get the corresponding url entry
             int itemIndex = j + (i*hTileNum);
@@ -300,7 +300,7 @@ void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, i
     }
 }
 
-void TileBaseWidget::destroyTiles()
+void TileBaseWidget::destroyWidgetContent()
 {
     for (int i = m_tileList.size() - 1; i >= 0; --i)
         delete m_tileList.takeAt(i);
@@ -311,7 +311,7 @@ HistoryWidget::HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 {
 }
 
-void HistoryWidget::createTiles()
+void HistoryWidget::setupWidgetContent()
 {
     int width = rect().width();
 
@@ -359,11 +359,34 @@ BookmarkWidget::BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     m_list.append(new UrlItem(QUrl("http://ovi.com/"), "Ovi by Nokia"));
     m_list.append(new UrlItem(QUrl("http://nytimes.com/"), "The New York Times - Breaking News, World News Multimedia"));
     m_list.append(new UrlItem(QUrl("http://google.com/"), "Google"));
+
+    // setup bck gradient
+    QGradientStops stops;
+    stops << QGradientStop(0.00, QColor(240, 240, 240)) << QGradientStop(0.30, QColor(114, 114, 114)) << QGradientStop(0.50, QColor(144, 144, 144)) << QGradientStop(0.70, QColor(134, 134, 134)) << QGradientStop(1.00, QColor(40, 40, 40));
+    for (int j=0; j<stops.size(); ++j)
+        m_bckgGradient.setColorAt(stops.at(j).first, stops.at(j).second);
 }
 
-void BookmarkWidget::createTiles()
+void BookmarkWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
-    // add bookmakr icon + tiles
-    addTiles(rect(), qMin(m_list.size(), (int)(rect().width() / s_bookmarksTileWidth)), s_bookmarksTileWidth, 1, rect().height(), 5, 10, true);
+    // FIXME: optimize it
+    QRectF r(rect());
+    r.adjust(10, -15, -10, 0);
+    painter->setBrush(m_bckgGradient);
+    painter->setPen(QColor(20, 20, 20));
+    painter->drawRoundedRect(r, 12, 12);
+    QImage bm(":/data/icon/48x48/history_48.png");
+    painter->drawImage(QPoint(10, rect().height() / 2 - bm.size().height() / 2), bm);
+    TileBaseWidget::paint(painter, option, widget);
+}
+
+void BookmarkWidget::setupWidgetContent()
+{
+    // add bookmark tiles
+    QRectF r(rect());
+    m_bckgGradient.setStart(r.topLeft());
+    m_bckgGradient.setFinalStop(r.bottomLeft());
+    r.adjust(50, 10, -15, 0);
+    addTiles(r, qMin(m_list.size(), (int)(r.width() / s_bookmarksTileWidth)), s_bookmarksTileWidth, 1, r.height() - 10, 5, 0, true);
 }
 

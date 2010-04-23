@@ -18,6 +18,11 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem* urlItem, bool textOnly)
 {
     if (m_urlItem)
         connect(m_urlItem, SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
+
+    QGradientStops stops;
+    stops << QGradientStop(0.00, QColor(255, 255, 255)) << QGradientStop(0.40, QColor(245, 245, 245)) << QGradientStop(0.50, QColor(214, 214, 214)) << QGradientStop(0.60, QColor(245, 245, 245)) << QGradientStop(1.00, QColor(255, 255, 255));
+    for (int j=0; j<stops.size(); ++j)
+        m_bckgGradient.setColorAt(stops.at(j).first, stops.at(j).second);
 }
 
 TileItem::~TileItem()
@@ -34,8 +39,8 @@ void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     if (textOnly) {
         addDropShadow(*painter, rect());
 
-        painter->setPen(QColor(140, 140, 140));
-        painter->setBrush(QColor(240, 240, 240));
+        painter->setBrush(m_bckgGradient);
+        painter->setPen(Qt::black);
         painter->drawRoundedRect(rect(), 5, 5);
     } else {    
         addDropShadow(*painter, m_thumbnailRect);
@@ -43,7 +48,7 @@ void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     }
 
     painter->setFont(f);
-    painter->setPen(textOnly ? QColor(22, 22, 22) : QColor(220, 220, 220));
+    painter->setPen(textOnly ? QColor(2, 2, 22) : QColor(220, 220, 220));
     painter->drawText(rect(), Qt::AlignHCenter|(textOnly ? Qt::AlignVCenter : Qt::AlignBottom), m_title);
 
     if (m_selected) {
@@ -67,10 +72,13 @@ void TileItem::setGeometry(const QRectF& rect)
         m_thumbnailRect = rect.toRect();
         m_thumbnailRect.setHeight(m_thumbnailRect.height() - (QFontMetrics(QFont()).height() + 3));
     }
+    m_bckgGradient.setStart(rect.topLeft());
+    m_bckgGradient.setFinalStop(rect.bottomLeft());
 }
 
 void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
 {
+    // FIXME: dropshadow shouldnt be a rect
     painter.setPen(QColor(40, 40, 40));
     painter.setBrush(QColor(20, 20, 20));
     QRectF r(rect); r.moveTopLeft(r.topLeft() + QPointF(2,2));

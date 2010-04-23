@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QRectF>
 #include <QGraphicsRectItem>
+#include <QLinearGradient>
 
 class QGraphicsWidget;
 class UrlItem;
@@ -33,6 +34,7 @@ private:
     QString m_title;
     bool m_textOnly;
     bool m_selected;
+    QLinearGradient m_bckgGradient;
 };
 
 #endif

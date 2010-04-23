@@ -77,8 +77,8 @@ public:
     TileBaseWidget(UrlList&, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
     ~TileBaseWidget();
 
-    virtual void createTiles() = 0;
-    void destroyTiles();
+    virtual void setupWidgetContent() = 0;
+    void destroyWidgetContent();
 
 protected:
     void addTiles(const QRectF& rect, int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY, bool textOnly);
@@ -93,7 +93,7 @@ class HistoryWidget : public TileBaseWidget {
 public:
     HistoryWidget(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
 
-    void createTiles();
+    void setupWidgetContent();
 };
 
 class BookmarkWidget : public TileBaseWidget {
@@ -101,9 +101,13 @@ class BookmarkWidget : public TileBaseWidget {
 public:
     BookmarkWidget(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
 
-    void createTiles();
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
+
+    void setupWidgetContent();
 
 private:
+    QGraphicsRectItem* m_bckg;
+    QLinearGradient m_bckgGradient;
     UrlList m_list;
 };
 
