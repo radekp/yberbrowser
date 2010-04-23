@@ -375,7 +375,7 @@ void BookmarkWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* op
     painter->setBrush(m_bckgGradient);
     painter->setPen(QColor(20, 20, 20));
     painter->drawRoundedRect(r, 12, 12);
-    QImage bm(":/data/icon/48x48/history_48.png");
+    QImage bm(":/data/icon/48x48/bookmarks_48.png");
     painter->drawImage(QPoint(10, rect().height() / 2 - bm.size().height() / 2), bm);
     TileBaseWidget::paint(painter, option, widget);
 }

@@ -74,13 +74,14 @@ private:
 class TileBaseWidget : public QGraphicsWidget {
     Q_OBJECT
 public:
-    TileBaseWidget(UrlList&, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
     ~TileBaseWidget();
 
     virtual void setupWidgetContent() = 0;
     void destroyWidgetContent();
 
 protected:
+    TileBaseWidget(UrlList&, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+
     void addTiles(const QRectF& rect, int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY, bool textOnly);
 
 private:
