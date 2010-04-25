@@ -169,8 +169,10 @@ void BrowsingView::addBookmark()
 {
     if (!m_webView || (m_homeView && m_homeView->isActive()))
         return;
-    if (m_webView->url().isEmpty())
+    if (m_webView->url().isEmpty()) {
         notification("No page, no save.", m_browsingViewport);
+        return;
+    }
     // FIXME webkit returns empty favicon
     BookmarkStore::instance()->add(m_webView->url(), m_webView->title(), QIcon());
     notification("Bookmark saved.", m_browsingViewport);

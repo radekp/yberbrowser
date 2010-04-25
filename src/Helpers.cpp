@@ -55,17 +55,14 @@ NotificationWidget::NotificationWidget(const QString& text, QGraphicsItem* paren
     , m_text(text)
     , m_scrollingIn(true)
 {
+    setOpacity(0.8);
 }
 
 void NotificationWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     painter->setPen(Qt::black);
+    painter->setBrush(Qt::black);
     painter->drawRect(rect());
-
-    QRectF r(rect());
-    painter->setBrush(QColor(0, 0, 0, 230));
-    r.adjust(1, 1, -1, 0);
-    painter->drawRect(r);
 
     QFont f("Times", 14);
     painter->setFont(f);

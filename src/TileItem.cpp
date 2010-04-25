@@ -16,7 +16,7 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout)
     , m_defaultIcon(0)
 {
     connect(m_urlItem, SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
-    if (!m_urlItem->thumbnailAvailable())
+    if (!m_urlItem->thumbnail())
         m_defaultIcon = new QImage(layout == Horizontal ? ":/data/icon/16x16/defaulticon_16.png" : ":/data/icon/48x48/defaulticon_48.png");
     QGradientStops stops;
     stops << QGradientStop(0.00, QColor(255, 255, 255)) << QGradientStop(0.10, QColor(245, 245, 245)) << QGradientStop(0.50, QColor(214, 214, 214)) << QGradientStop(0.90, QColor(245, 245, 245)) << QGradientStop(1.00, QColor(255, 255, 255));
