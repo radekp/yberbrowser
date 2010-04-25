@@ -10,7 +10,8 @@
 #include "HomeView.h"
 #include "Helpers.h"
 #include "ProgressWidget.h"
-#include "UrlStore.h"
+#include "HistoryStore.h"
+#include "BookmarkStore.h"
 #include <QAction>
 #include <QGraphicsLinearLayout>
 
@@ -162,6 +163,17 @@ YberWidget* BrowsingView::createNavigationToolBar()
     naviToolbar->setWidget(qtoolbar);
 #endif
     return naviToolbar;
+}
+
+void BrowsingView::addBookmark()
+{
+    if (!m_webView || (m_homeView && m_homeView->isActive()))
+        return;
+    if (m_webView->url().isEmpty())
+        notification("No page, no save.", m_browsingViewport);
+    // FIXME webkit returns empty favicon
+    BookmarkStore::instance()->add(m_webView->url(), m_webView->title(), QIcon());
+    notification("Bookmark saved.", m_browsingViewport);
 }
 
 YberWidget* BrowsingView::navigationToolbar()
@@ -358,7 +370,7 @@ void BrowsingView::urlTextEdited(const QString& newText)
     // autocomplete only when adding text, not when deleting or backspacing
     if (text.size() > m_lastEnteredText.size()) {
         // todo: make it async
-        QString match = UrlStore::instance()->match(text);
+        QString match = HistoryStore::instance()->match(text);
         if (match.size()) {
             m_urlEdit->setText(match);
             m_urlEdit->setCursorPosition(text.size());
@@ -368,7 +380,7 @@ void BrowsingView::urlTextEdited(const QString& newText)
     m_lastEnteredText = text;
 }
 
-void BrowsingView::updateUrlStore()
+void BrowsingView::updateHistoryStore()
 {
     // render thumbnail
     // todo: render thumbnail if it is really needed
@@ -381,7 +393,7 @@ void BrowsingView::updateUrlStore()
         QPainter p(thumbnail);
         m_page->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
     }
-    UrlStore::instance()->accessed(m_page->mainFrame()->url(), m_page->mainFrame()->title(), thumbnail);
+    HistoryStore::instance()->accessed(m_page->mainFrame()->url(), m_page->mainFrame()->title(), thumbnail);
 }
 
 void BrowsingView::setLoadInProgress(bool loadInProgress)
@@ -400,7 +412,7 @@ void BrowsingView::loadFinished(bool success)
     setLoadInProgress(false);
     updateURL();
     if (success)
-        QTimer::singleShot(1000, this, SLOT(updateUrlStore()));
+        QTimer::singleShot(1000, this, SLOT(updateHistoryStore()));
 }
 
 void BrowsingView::urlChanged(const QUrl& url)

@@ -9,7 +9,8 @@
 
 #include "HomeView.h"
 #include "TileItem.h"
-#include "UrlStore.h"
+#include "HistoryStore.h"
+#include "BookmarkStore.h"
 #include "ApplicationWindow.h"
 
 #include <QPropertyAnimation>
@@ -259,7 +260,7 @@ void PannableTileContainer::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent*
     m_selfSentEvent = 0;
 }
 
-TileBaseWidget::TileBaseWidget(UrlList& urlList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+TileBaseWidget::TileBaseWidget(const UrlList& urlList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_urlList(&urlList)
 {
@@ -270,7 +271,7 @@ TileBaseWidget::~TileBaseWidget()
     destroyWidgetContent();
 }
 
-void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, int vTileNum, int tileHeight, int paddingX, int paddingY, bool textOnly)
+void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, int vTileNum, int tileHeight, int paddingX, int paddingY, TileItem::TileLayout layout)
 {
     //FIXME figure out how to get HomeView
     QGraphicsWidget* parentView = !parentWidget()->parentWidget() ? parentWidget() : parentWidget()->parentWidget();
@@ -289,7 +290,7 @@ void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, i
                 continue;
 
             // create new tile item
-            TileItem* item = new TileItem(this, m_urlList->at(itemIndex), textOnly);
+            TileItem* item = new TileItem(this, *m_urlList->at(itemIndex), layout);
             connect(item, SIGNAL(itemActivated(UrlItem*)), parentView, SLOT(tileItemActivated(UrlItem*)));
             // padding
             item->setGeometry(QRectF(x + paddingX, y + paddingY, tileWidth - (2*paddingX), tileHeight  - (2*paddingY)));
@@ -307,7 +308,7 @@ void TileBaseWidget::destroyWidgetContent()
 }
 
 HistoryWidget::HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileBaseWidget(UrlStore::instance()->list(), parent, wFlags)
+    : TileBaseWidget(HistoryStore::instance()->list(), parent, wFlags)
 {
 }
 
@@ -344,22 +345,12 @@ void HistoryWidget::setupWidgetContent()
 
     tileHeight = qMin(tileHeight, maxHeight);
 
-    addTiles(rect(), hTileNum, tileWidth, vTileNum, tileHeight, s_tilePadding, s_tilePadding, false);
+    addTiles(rect(), hTileNum, tileWidth, vTileNum, tileHeight, s_tilePadding, s_tilePadding, TileItem::Vertical);
 }
 
 BookmarkWidget::BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileBaseWidget(m_list, parent, wFlags)
+    : TileBaseWidget(BookmarkStore::instance()->list(), parent, wFlags)
 {
-    // FIXME : hardcoded static items in the bookmarks view until bookmark management is added.
-    m_list.append(new UrlItem(QUrl("http://cnn.com/"), "CNN.com - Breaking News, U.S., World, Weather, Entertainment &amp; Video News"));
-    m_list.append(new UrlItem(QUrl("http://news.bbc.co.uk/"), "BBC NEWS | News Front Page"));
-    m_list.append(new UrlItem(QUrl("http://news.google.com/"), "Google News"));
-    m_list.append(new UrlItem(QUrl("http://nokia.com/"), "Nokia - Nokia on the Web"));
-    m_list.append(new UrlItem(QUrl("http://qt.nokia.com/"), "Qt - A cross-platform application and UI framework"));
-    m_list.append(new UrlItem(QUrl("http://ovi.com/"), "Ovi by Nokia"));
-    m_list.append(new UrlItem(QUrl("http://nytimes.com/"), "The New York Times - Breaking News, World News Multimedia"));
-    m_list.append(new UrlItem(QUrl("http://google.com/"), "Google"));
-
     // setup bck gradient
     QGradientStops stops;
     stops << QGradientStop(0.00, QColor(240, 240, 240)) << QGradientStop(0.30, QColor(114, 114, 114)) << QGradientStop(0.50, QColor(144, 144, 144)) << QGradientStop(0.70, QColor(134, 134, 134)) << QGradientStop(1.00, QColor(40, 40, 40));
@@ -387,6 +378,6 @@ void BookmarkWidget::setupWidgetContent()
     m_bckgGradient.setStart(r.topLeft());
     m_bckgGradient.setFinalStop(r.bottomLeft());
     r.adjust(50, 10, -15, 0);
-    addTiles(r, qMin(m_list.size(), (int)(r.width() / s_bookmarksTileWidth)), s_bookmarksTileWidth, 1, r.height() - 10, 5, 0, true);
+    addTiles(r, qMin(m_urlList->size(), (int)(r.width() / s_bookmarksTileWidth)), s_bookmarksTileWidth, 1, r.height() - 10, 5, 0, TileItem::Horizontal);
 }
 

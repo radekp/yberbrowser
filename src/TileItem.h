@@ -13,7 +13,11 @@ class TileItem : public QObject, public QGraphicsRectItem {
     Q_OBJECT
     Q_PROPERTY(QPointF pos READ pos WRITE setPos)
 public:
-    TileItem(QGraphicsWidget* parent, UrlItem* urlItem, bool textOnly);
+    enum TileLayout {
+        Horizontal,
+        Vertical
+    };
+    TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout);
     ~TileItem();
     
     void setGeometry(const QRectF& rect);
@@ -30,11 +34,13 @@ private:
     void addDropShadow(QPainter& painter, const QRectF rect);
 
     UrlItem* m_urlItem;
-    QRect m_thumbnailRect;
+    QRectF m_thumbnailRect;
+    QRectF m_textRect;
     QString m_title;
-    bool m_textOnly;
+    TileLayout m_layout;
     bool m_selected;
     QLinearGradient m_bckgGradient;
+    QImage* m_defaultIcon;
 };
 
 #endif

@@ -4,11 +4,10 @@
 #include "PannableViewport.h"
 #include "CommonGestureRecognizer.h"
 #include <QList>
-#include "UrlStore.h"
+#include "UrlItem.h"
+#include "TileItem.h"
 
-class TileItem;
 class QGraphicsRectItem;
-class UrlItem;
 class ApplicationWindow;
 class PannableTileContainer;
 class HistoryWidget;
@@ -80,12 +79,12 @@ public:
     void destroyWidgetContent();
 
 protected:
-    TileBaseWidget(UrlList&, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+    TileBaseWidget(const UrlList&, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
 
-    void addTiles(const QRectF& rect, int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY, bool textOnly);
+    void addTiles(const QRectF& rect, int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY, TileItem::TileLayout layout);
 
-private:
-    UrlList* m_urlList;
+protected:
+    const UrlList* m_urlList;
     QList<TileItem*> m_tileList;
 };
 
@@ -109,7 +108,6 @@ public:
 private:
     QGraphicsRectItem* m_bckg;
     QLinearGradient m_bckgGradient;
-    UrlList m_list;
 };
 
 #endif

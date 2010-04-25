@@ -63,13 +63,14 @@ protected:
     void resizeEvent(QGraphicsSceneResizeEvent* event);
 
 protected Q_SLOTS:
+    void addBookmark();
     void stopLoad();
     void pageBack();
     void changeLocation();
     void urlTextEdited(const QString& newText);
     void urlChanged(const QUrl& url);
 
-    void updateUrlStore();
+    void updateHistoryStore();
 
     void setLoadInProgress(bool);
     void loadStarted();
