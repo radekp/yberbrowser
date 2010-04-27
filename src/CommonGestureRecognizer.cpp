@@ -5,10 +5,6 @@
 
 static const int s_waitForClickTimeoutMS = 200;
 
-//QApplication::startDragDistance() is too little (12)
-// and causes clicks with finger to be interpreted as pans
-static const int s_startPanDistance = 50;
-
 // time between mouse release that was part of pan and
 // double tap that can happen
 static const int s_doubleClickFilterDurationMS = 300;
@@ -29,6 +25,12 @@ static const int s_minTimeHoldForClick = 100;
       on device.
  */
 
+/*!
+  \class CommonGestureRecognizer class that filters unreliable mouse input and
+  forwards them to the consumer.
+
+  Called from \QGraphicsItem::sceneEventFilter
+*/
 CommonGestureRecognizer::CommonGestureRecognizer(CommonGestureConsumer* consumer)
     : m_consumer(consumer)
     , m_delayedPressEvent(0)
@@ -49,6 +51,28 @@ bool CommonGestureRecognizer::filterMouseEvent(QGraphicsSceneMouseEvent *event)
     // these events will be sent by this class, don't filter these
     if (m_delayedPressEvent == event || m_delayedReleaseEvent == event)
         return false;
+
+#if 0
+    // mapping is not needed at the moment, but
+    // this is here because it's so valuable and big piece of
+    // elegant code
+    QGraphicsSceneMouseEvent mappedEvent(event->type());
+    mapEventCommonProperties(this, event, mappedEvent);
+
+    for (int i = 0x1; i <= 0x10; i <<= 1) {
+        if (event->buttons() & i) {
+            Qt::MouseButton button = Qt::MouseButton(i);
+            mappedEvent.setButtonDownPos(button, mapFromScene(event->buttonDownPos(button)));
+            mappedEvent.setButtonDownScenePos(button, event->buttonDownScenePos(button));
+            mappedEvent.setButtonDownScreenPos(button, event->buttonDownScreenPos(button));
+        }
+    }
+
+    mappedEvent.setLastPos(mapFromScene(event->lastScenePos()));
+    mappedEvent.setLastScenePos(event->lastScenePos());
+    mappedEvent.setLastScreenPos(event->lastScreenPos());
+    mappedEvent.setButton(event->button());
+#endif
 
     bool accepted = false;
 
@@ -84,6 +108,11 @@ void CommonGestureRecognizer::capturePressOrRelease(QGraphicsSceneMouseEvent *ev
     delayedEvent->setAccepted(false);
 
     if (wasRelease) {
+        // let the client do link finding on release event
+        QPointF pos = m_delayedPressEvent->scenePos();
+        m_consumer->adjustClickPosition(pos);
+        // FIXME FIXME
+        m_delayedPressEvent->setScenePos(pos);
         m_delayedReleaseEvent = delayedEvent;
         // mouse press is more reliable than mouse release
         // we must send release with same coords as press
@@ -110,7 +139,8 @@ void CommonGestureRecognizer::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == m_delayedPressTimer.timerId()) {
         m_delayedPressTimer.stop();
-        m_consumer->tapGesture(m_delayedPressEvent, m_delayedReleaseEvent);
+        m_consumer->mousePressEventFromChild(m_delayedPressEvent);
+        m_consumer->mouseReleaseEventFromChild(m_delayedReleaseEvent);
         clearDelayedPress();
     }
 }
@@ -122,7 +152,7 @@ bool CommonGestureRecognizer::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* ev
 #endif
 
     if (m_doubleClickFilter.elapsed() > s_doubleClickFilterDurationMS)
-        m_consumer->doubleTapGesture(event);
+        m_consumer->mouseDoubleClickEventFromChild(event);
     else
         mousePressEvent(event);
     return true;
@@ -142,9 +172,6 @@ bool CommonGestureRecognizer::mousePressEvent(QGraphicsSceneMouseEvent* event)
     if (!m_delayedPressEvent)
         capturePressOrRelease(event);
 
-    if (m_consumer)
-        m_consumer->touchGestureBegin(event->screenPos());
-
     return true;
 }
 
@@ -157,14 +184,7 @@ bool CommonGestureRecognizer::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     if (event->button() != Qt::LeftButton)
         return true;
 
-    if (m_consumer)
-        m_consumer->touchGestureEnd();
-
-    if (m_consumer->isPanning()) {
-        m_doubleClickFilter.restart();
-        m_consumer->stopPanGesture();
-        m_consumer->flickGesture(m_panVelocity.x(), m_panVelocity.y());
-    } else if (m_delayedReleaseEvent) {
+    if (m_delayedReleaseEvent) {
         // sometimes double click is lost if small mouse move occurs
         // inbetween
         QGraphicsSceneMouseEvent dblClickEvent(QEvent::GraphicsSceneMouseDoubleClick);
@@ -184,57 +204,14 @@ bool CommonGestureRecognizer::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 #if defined(ENABLE_EVENT_DEBUG)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
 #endif
-
-    bool isPanning = m_consumer->isPanning();
-
-    if (!isPanning) {
-        // if the button is still pressed
-        if (m_delayedPressEvent && !m_delayedReleaseEvent) {
-            QPoint d = m_delayedPressEvent->screenPos() - event->screenPos();
-            qreal dy = qAbs(d.y());
-            qreal dx = qAbs(d.x());
-            if (dy > s_startPanDistance
-                || dx > s_startPanDistance
-                || m_delayedPressMoment.elapsed() > s_waitForClickTimeoutMS) {
-                if (dx > dy)
-                    m_consumer->startPanGesture(CommonGestureConsumer::HPan);
-                else
-                    m_consumer->startPanGesture(CommonGestureConsumer::VPan);
-
-                isPanning = m_consumer->isPanning();
-
-                // to avoid initial warping, don't use m_delayedPressEvent->screenPos()
-                m_panVelocity = QPointF(0, 0);
-                m_panVelocitySamplingTs.restart();
-                m_dragStartPos = event->screenPos();
-                clearDelayedPress();
-            }
-        }
-    }
-
-    if (isPanning) {
-        clearDelayedPress();
-        QPointF d = event->screenPos() - m_dragStartPos;
-        if (d.manhattanLength()) {
-            m_consumer->panBy(d);
-            int dt = m_panVelocitySamplingTs.restart();
-            if (dt) {
-                QPointF d_dt = d / dt;
-                m_panVelocity = (m_panVelocity + d_dt) / 2;
-            }
-        }
-
-        m_dragStartPos = event->screenPos();
-        return true;
-    }
-
+    Q_UNUSED(event);
     // filter anyway since we don't want excess link hovers when panning.
     return true;
 }
 
 void CommonGestureRecognizer::reset()
 {
-    m_dragStartPos = QPoint();
     clearDelayedPress();
 }
+
 

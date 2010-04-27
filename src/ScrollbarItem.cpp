@@ -7,41 +7,48 @@
 
 #include <QDebug>
 
-const unsigned s_scrollbarTimeout = 300; // in msec
+
+static const qreal s_thumbSize = 6;
+static const qreal s_thumbMinSize = 20;
+static const qreal s_thumbMargin = 12;
+
+const unsigned s_scrollbarFadeTimeout = 300; // in msec
+const unsigned s_scrollbarFadeDuration = 300; // in msec
+
+const qreal s_scrollbarOpacityStart = 0.2;
 const qreal s_scrollbarOpacity = 0.8;
 
-ScrollbarItem::ScrollbarItem(QGraphicsItem* parent, bool horizontal)
+ScrollbarItem::ScrollbarItem(Qt::Orientation orientation, QGraphicsItem* parent)
     : QGraphicsRectItem(parent)
-    , m_visibilityTimer(this)
-    , m_horizontal(horizontal)
-    , m_fader(new QPropertyAnimation(this, "opacity"))
+    , m_orientation(orientation)
+    , m_fadeAnim(this, "opacity")
+    , m_fadeOutTimeout(this)
 {
-    hide();
-    m_visibilityTimer.setSingleShot(true);
-    connect(&m_visibilityTimer, SIGNAL(timeout()), this, SLOT(fadeScrollbar()));
-    connect(m_fader, SIGNAL(finished()), this, SLOT(fadingFinished()));
+    m_fadeAnim.setDuration(s_scrollbarFadeDuration);
+    m_fadeAnim.setStartValue(s_scrollbarOpacityStart);
+    m_fadeAnim.setEndValue(s_scrollbarOpacity);
+    m_fadeAnim.setEasingCurve(QEasingCurve::Linear);
+    connect(&m_fadeAnim, SIGNAL(finished()), this, SLOT(fadingFinished()));
+
+    m_fadeOutTimeout.setInterval(s_scrollbarFadeTimeout);
+    m_fadeOutTimeout.setSingleShot(true);
+    connect(&m_fadeOutTimeout, SIGNAL(timeout()), this, SLOT(startFadeOut()));
 }
 
 ScrollbarItem::~ScrollbarItem()
 {
-    delete m_fader;
 }
 
-void ScrollbarItem::show()
+void ScrollbarItem::updateVisibilityAndFading(bool shouldFadeOut)
 {
-    // not visible or fading out
-    bool needsFading = (!isVisible() || (!m_visibilityTimer.isActive() && isVisible()));
+    show();
 
-    if (m_visibilityTimer.isActive())
-        m_visibilityTimer.stop();
-
-    if (!isVisible())
-        QGraphicsRectItem::show();
-
-    if (needsFading)
+    if (opacity() != s_scrollbarOpacity)
         startFading(true);
 
-    m_visibilityTimer.start(s_scrollbarTimeout);
+    m_fadeOutTimeout.stop();
+    if (shouldFadeOut)
+        m_fadeOutTimeout.start();
 }
 
 void ScrollbarItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
@@ -51,11 +58,6 @@ void ScrollbarItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*o
     painter->drawRoundRect(rect(), 10, 10);
 }
 
-void ScrollbarItem::fadeScrollbar()
-{
-    startFading(false);
-}
-
 void ScrollbarItem::fadingFinished()
 {
     // hide when fading out
@@ -63,14 +65,50 @@ void ScrollbarItem::fadingFinished()
         hide();
 }
 
-void ScrollbarItem::startFading(bool in)
+void ScrollbarItem::startFadeOut()
 {
-    m_fader->setDuration(300);
-
-    m_fader->setStartValue(in ? 0.2 : s_scrollbarOpacity);
-    m_fader->setEndValue(in ? s_scrollbarOpacity : 0.2);    
-
-    m_fader->setEasingCurve(QEasingCurve::Linear);
-    m_fader->start();
+    startFading(false);
 }
 
+void ScrollbarItem::startFading(bool in)
+{
+    if (in) {
+        m_fadeAnim.setDirection(QAbstractAnimation::Forward);
+
+    } else {
+        m_fadeAnim.setDirection(QAbstractAnimation::Backward);
+    }
+
+    if (m_fadeAnim.state() != QAbstractAnimation::Running)
+        m_fadeAnim.start();
+}
+
+/*!
+  \a contentPos includes overshoot
+*/
+
+void ScrollbarItem::contentPositionUpdated(qreal contentPos, qreal contentLength, const QSizeF& viewSize, bool shouldFadeOut)
+{
+    qreal viewLength = m_orientation == Qt::Horizontal ? viewSize.width() : viewSize.height();
+
+    if (contentLength < viewLength)
+        contentLength = viewLength;
+
+    qreal thumbRange = viewLength - 2 * s_thumbMargin;
+
+    qreal thumbPos = (thumbRange) * (-contentPos  / (contentLength));
+    qreal thumbPosMax = (thumbRange) * (-contentPos + viewLength)  / (contentLength);
+
+    thumbPos = qBound(static_cast<qreal>(0.), thumbPos, thumbRange - s_thumbMinSize);
+    thumbPosMax = qBound(s_thumbMinSize, thumbPosMax, thumbRange);
+    qreal thumbLength = thumbPosMax - thumbPos;
+
+    if (m_orientation == Qt::Horizontal)
+        setRect(QRectF(s_thumbMargin + thumbPos, viewSize.height() - s_thumbSize, thumbLength, s_thumbSize));
+    else
+        setRect(QRectF(viewSize.width() - s_thumbSize, s_thumbMargin + thumbPos, s_thumbSize,  thumbLength));
+
+    // show scrollbar only when scrolling is possible
+    if (thumbLength < thumbRange)
+        updateVisibilityAndFading(shouldFadeOut);
+}

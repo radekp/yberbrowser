@@ -1,5 +1,8 @@
 *~
 webkit
 builddir
+builddir-host
+builddir-armel
+builddir-i386
 qt4-maemo5
 qt

@@ -1,5 +1,10 @@
 # common script functionality
 
+function die() {
+    echo "error: $1"
+    exit 1
+}
+
 function is_sbox() {
     if [ -z "$SBOX_UNAME_MACHINE" ]; then
         return 1
@@ -17,7 +22,7 @@ if is_sbox; then
     target="$SBOX_DPKG_INST_ARCH"
 else
     sudo="sudo"
-    QT_SRC_DIR=${QT_SRC_DIR:-$bd/qt4}
+    QT_SRC_DIR=${QT_SRC_DIR:-$bd/qt4-maemo5}
     target="host"
 fi
 
@@ -34,10 +39,9 @@ fi
 # most people have dual-cores..
 makeargs=${makeargs:-"-j3"}
 
-build_webkit_args="--engine-thread --no-video"
+build_webkit_args="--engine-thread --no-video --no-svg"
+build_webkit_args="--no-video --no-svg"
 
-
-CUSTOM_QT_PREFIX=${CUSTOM_QT_PREFIX:-/opt/qt4-custom}
 
 webkit_release=
 release=
@@ -70,3 +74,10 @@ function is_webkit_release() {
     fi
     return 0
 }
+
+
+if is_release; then
+    CUSTOM_QT_PREFIX=${CUSTOM_QT_PREFIX:-/opt/qt4-custom}
+else
+    CUSTOM_QT_PREFIX=${CUSTOM_QT_PREFIX:-/opt/qt4-custom-debug}
+fi

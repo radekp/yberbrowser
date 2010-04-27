@@ -35,7 +35,10 @@ public:
     
     void setPrivatePath(QString& path) { m_privatePath = path; }
     QString privatePath() const { return m_privatePath; }
-    
+
+    void setIsFullScreen(bool flag) { m_isFullScreen = flag;}
+    bool isFullScreen() const { return m_isFullScreen; }
+
 private:
     Settings() {
         m_showToolbar = true;
@@ -45,6 +48,11 @@ private:
         m_autoCompleteEnabled = true;
         m_tilingEnabled = true;
         m_engineThreadEnabled = false;
+#if defined(Q_WS_MAEMO_5) || defined(Q_WS_SYMBIAN) || defined(USE_DUI)
+        m_isFullScreen = true;
+#else
+        m_isFullScreen = false;
+#endif
     }
 
     bool m_showToolbar;
@@ -55,6 +63,7 @@ private:
     bool m_tilingEnabled;
     bool m_engineThreadEnabled;
     QString m_privatePath;
+    bool m_isFullScreen;
 };
 
 #endif

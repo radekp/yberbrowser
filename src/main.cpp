@@ -41,7 +41,6 @@
 #include <QTextStream>
 #include <QVector>
 #include <QtGui>
-#include <QtNetwork/QNetworkProxy>
 #include <cstdio>
 #include <qwebelement.h>
 #include <qwebframe.h>
@@ -49,32 +48,60 @@
 #include <qwebpage.h>
 #include <qwebsettings.h>
 #include <qwebview.h>
-#include <QGLWidget>
+#if USE_DUI
+#include <DuiApplication>
+#include <DuiApplicationPage>
+#include <DuiApplicationWindow>
+#include <DuiTheme>
+#endif
+
+//#include <QGLWidget>
+//#include <Qt/QtOpenGL>
 #include <QX11Info>
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
-#include "MainWindow.h"
+#include "YberApplication.h"
 #include "Settings.h"
-#include "UrlStore.h"
-
-QNetworkProxy* g_globalProxy;
+#include "Helpers.h"
 
 void usage(const char* name);
+void debugMessageOutput(QtMsgType type, const char *msg)
+{
+    const char* str = "";
+    switch (type) {
+    case QtDebugMsg:
+        str = "Debug";
+        break;
+    case QtWarningMsg:
+        str = "Warning";
+        break;
+    case QtCriticalMsg:
+        str = "Critical";
+        break;
+
+    case QtFatalMsg:
+        str = "Fatal";
+        break;
+    default:
+        break;
+    }
+    fprintf(stderr, "%s: %s\n", str, msg);
+}
+
 
 int main(int argc, char** argv)
 {
-    QApplication app(argc, argv);
+    YberApplication app(argc, argv);
     app.setApplicationName("yberbrowser");
 
-    QUrl proxyUrl = MainWindow::urlFromUserInput(qgetenv("http_proxy"));
-    if (proxyUrl.isValid() && !proxyUrl.host().isEmpty()) {
-        int proxyPort = (proxyUrl.port() > 0) ? proxyUrl.port() : 8080;
-        g_globalProxy = new QNetworkProxy(QNetworkProxy::HttpProxy, proxyUrl.host(), proxyPort);
-    }
+#if USE_DUI
+    qInstallMsgHandler(debugMessageOutput);
+#endif
+
 
     QString url; //QString("file://%1/%2").arg(QDir::homePath()).arg(QLatin1String("index.html"));
-
+    //QDir::toNativeSeparators(
     QString privPath = QString("%1/.%2/").arg(QDir::homePath()).arg(QCoreApplication::applicationName());
     QDir privDir(privPath);
     if (!privDir.exists()) {
@@ -93,29 +120,22 @@ int main(int argc, char** argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::ZoomTextOnly, false);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, true);
     QWebSettings::enablePersistentStorage();
-
-
+    QWebSettings::globalSettings()->setIconDatabasePath(settings->privatePath());
+    
     QStringList args = app.arguments();
 
-#if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
     settings->enableTileCache(true);
-#else
-    settings->enableTileCache(false);
-    settings->enableTileVisualization(false);
-#endif
-#if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
+    
+#if ENABLE(ENGINE_THREAD)
     settings->enableEngineThread(true);
 #else
     settings->enableEngineThread(false);
 #endif
-
-    bool noFullscreen = false;
-    
     bool gotFlag = true;
     while (gotFlag) {
         if (args.count() > 1) {
             if (args.at(1) == "-w") {
-                noFullscreen = true;
+                settings->setIsFullScreen(false);
                 args.removeAt(1);
             } else if (args.at(1) == "-t") {
                 settings->enableToolbar(false);
@@ -123,21 +143,19 @@ int main(int argc, char** argv)
             } else if (args.at(1) == "-g") {
                 settings->setUseGL(true);
                 args.removeAt(1);
-#if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
             } else if (args.at(1) == "-c") {
                 settings->enableTileCache(false);
                 args.removeAt(1);
             } else if (args.at(1) == "-v") {
                 settings->enableTileVisualization(true);
                 args.removeAt(1);
-#endif
             } else if (args.at(1) == "-a") {
                 settings->enableAutoComplete(false);
                 args.removeAt(1);
             } else if (args.at(1) == "-f") {
                 settings->enableFPS(true);
                 args.removeAt(1);
-#if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
+#if ENABLE(ENGINE_THREAD)
             } else if (args.at(1) == "-e") {
                 settings->enableEngineThread(false);
                 args.removeAt(1);
@@ -146,7 +164,7 @@ int main(int argc, char** argv)
                 usage(argv[0]);
                 return EXIT_SUCCESS;
             } else {
-                gotFlag = false;
+                    gotFlag = false;
             }
         } else {
             gotFlag = false;
@@ -155,30 +173,25 @@ int main(int argc, char** argv)
 
     if (args.count() > 1)
         url = args.at(1);
-    
-#if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
+
+#if ENABLE(ENGINE_THREAD)
     if (settings->engineThreadEnabled())
         QWebSettings::enableEngineThread();
 #endif
+    
+    if (settings->tileCacheEnabled())
+        QWebSettings::globalSettings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, true);
 
-    MainWindow* window = new MainWindow(g_globalProxy, url);
-
-    if (noFullscreen)
-        window->show();
-    else
-        window->showFullScreen();
+    app.start();
+    app.createMainView(urlFromUserInput(url));
 
     for (int i = 2; i < args.count(); i++) {
-        window->newWindow(args.at(i));
-        if (noFullscreen)
-            window->show();
-        else
-            window->showFullScreen();
+        if (args.at(i) != "-software")
+            app.createMainView(urlFromUserInput(args.at(i)));
     }
 
     int retval = app.exec();
 
-    delete g_globalProxy;
     return retval;
 }
 
@@ -190,13 +203,11 @@ void usage(const char* name)
     s << " -w disable fullscreen" << endl;
     s << " -t disable toolbar" << endl;
     s << " -g use glwidget as qgv viewport" << endl;
-#if defined(WEBKIT_SUPPORTS_TILE_CACHE) && WEBKIT_SUPPORTS_TILE_CACHE
     s << " -c disable tile cache" << endl;
     s << " -v enable tile visualization" << endl;
-#endif
     s << " -f show fps counter" << endl;
     s << " -a disable url autocomplete" << endl;
-#if defined(WEBKIT_SUPPORTS_ENGINE_THREAD) && WEBKIT_SUPPORTS_ENGINE_THREAD
+#if ENABLE(ENGINE_THREAD)
     s << " -e disable engine thread" << endl;
 #endif
     s << " -h|-?|--help help" << endl;

@@ -11,25 +11,34 @@ isEmpty(PREFIX) {
 DATADIR = $$PREFIX/share
 BINDIR = $$PREFIX/bin
 
+dui {
+    CONFIG+=dui
+    DEFINES+=USE_DUI=1
+} else {
+    DEFINES+=USE_DUI=0
+}
+
+QMAKE_CXXFLAGS += -Werror
 
 QT += network opengl
 QT += xml xmlpatterns
+
+# Add $$PWD to include path so we can include from 3rdparty/file.h.
+# we want to specify '3rdparty/' explicitly to avoid name clashes
+# with system include path.
+
+INCLUDEPATH += $$PWD/
 
 contains(QT_CONFIG, maemo5)  {
     QT += maemo5 dbus
 }
 
-disable_tile_cache {
-    DEFINES+=WEBKIT_SUPPORTS_TILE_CACHE=0
+enable_engine_thread {
+    DEFINES+=ENABLE_ENGINE_THREAD=1
 } else {
-    DEFINES+=WEBKIT_SUPPORTS_TILE_CACHE=1
+    DEFINES+=ENABLE_ENGINE_THREAD=0
 }
 
-disable_engine_thread|disable_tile_cache {
-    DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=0
-} else {
-    DEFINES+=WEBKIT_SUPPORTS_ENGINE_THREAD=1
-}
 
 contains(WEBKIT, system) {
     QT += webkit
@@ -98,40 +107,72 @@ symbian {
     TARGET.CAPABILITY = ReadUserData WriteUserData NetworkServices
 }
 
-
-
 target.path = $$BINDIR
 INSTALLS += target
+RESOURCES = yberbrowser.qrc
 
 HEADERS = \
-  src/AutoScroller.h \
-  src/MainWindow.h \
-  src/WebViewportItem.h \
-  src/HistoryViewportItem.h \
+  src/ApplicationWindow.h \
+  src/ApplicationWindowHost.h \
+  src/AutoSelectLineEdit.h \
+  src/AutoScrollTest.h \
+  src/BackingStoreVisualizerWidget.h \
+  src/BookmarkStore.h \
+  src/BrowsingView.h \
   src/CommonGestureRecognizer.h \
+  src/EnvHttpProxyFactory.h \
   src/EventHelpers.h \
-  src/FlickAnimation.h \
-  src/MainView.h \
-  src/HistoryItem.h \
-  src/UrlStore.h \
-  src/UrlItem.h \
-  src/Settings.h \
+  src/Helpers.h \
+  src/HistoryStore.h \
+  src/TileItem.h \
+  src/HomeView.h \
+  src/LinkSelectionItem.h \
+  src/PannableViewport.h \
   src/ProgressWidget.h \
-  src/ScrollbarItem.h
+  src/ScrollbarItem.h \
+  src/Settings.h \
+  src/UrlItem.h \
+  src/WebPage.h \
+  src/WebView.h \
+  src/WebViewportItem.h \
+  src/YberApplication.h
 
 SOURCES = \
-  src/main.cpp \
-  src/AutoScroller.cpp \
-  src/MainWindow.cpp \
-  src/WebViewportItem.cpp \
-  src/HistoryViewportItem.cpp \
+  src/AutoSelectLineEdit.cpp \
+  src/AutoScrollTest.cpp \
+  src/BackingStoreVisualizerWidget.cpp \
+  src/BookmarkStore.cpp \
+  src/BrowsingView.cpp \
   src/CommonGestureRecognizer.cpp \
+  src/EnvHttpProxyFactory.cpp\
   src/EventHelpers.cpp \
-  src/FlickAnimation.cpp \
-  src/MainView.cpp \
-  src/HistoryItem.cpp \
-  src/UrlStore.cpp \
-  src/UrlItem.cpp \
+  src/Helpers.cpp \
+  src/HistoryStore.cpp \
+  src/TileItem.cpp \
+  src/HomeView.cpp \
+  src/LinkSelectionItem.cpp \
   src/ProgressWidget.cpp \
-  src/ScrollbarItem.cpp
+  src/ScrollbarItem.cpp \
+  src/UrlItem.cpp \
+  src/WebPage.cpp \
+  src/WebView.cpp \
+  src/WebViewportItem.cpp \
+  src/YberApplication.cpp \
+  src/main.cpp
+
+!dui {
+HEADERS += \
+  3rdparty/qabstractkineticscroller.h \
+  3rdparty/qabstractkineticscroller_p.h \
+  src/WebViewport.h
+
+SOURCES += \
+  src/ApplicationWindowHost.cpp \
+  src/PannableViewport.cpp \
+  src/WebViewport.cpp \
+  3rdparty/qabstractkineticscroller.cpp \
+  src/ApplicationWindow.cpp
+
+}
+
 

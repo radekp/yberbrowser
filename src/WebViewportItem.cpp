@@ -40,7 +40,6 @@
 #include <qwebpage.h>
 #include <qwebsettings.h>
 #include <qwebview.h>
-#include <QGLWidget>
 #include <QtGlobal>
 
 #include "WebViewportItem.h"
@@ -48,439 +47,86 @@
 #include "ScrollbarItem.h"
 #include "EventHelpers.h"
 
-static const int s_zoomAnimDurationMS = 300;
-static const int s_zoomCommitTimerDurationMS = 50;
-
-static const float s_zoomScaleWheelStep = .2;
-static const qreal s_minZoomScale = .01; // arbitrary
-static const qreal s_maxZoomScale = 10.; // arbitrary
-
-static const int s_minDoubleClickZoomTargetWidth = 100; // in document coords, aka CSS pixels
-
-// the amount of pixels to try to pan before pan mode unlocks vertically / horzontally
-static const int s_panModeChangeDelta = 200; // pixels in doc coords
-
-
-static const int s_defaultPreferredWidth = 1024;
-static const int s_defaultPreferredHeight = 768;
-
-static const unsigned s_tileSize = 35;
-
-static const int s_thumbSize = 6;
-static const int s_thumbMinSize = 50;
-static const int s_thumbMargin = 12;
-
-#define TILE_KEY(x,y) (x << 16 | y)
-
-class TileItem : public QObject {
-    Q_OBJECT
-public:
-    TileItem(unsigned hPos, unsigned vPos, QGraphicsItem* parent);
-    ~TileItem();
-
-    bool isActive() const;
-    void setActive(bool active);
-    void painted();
-
-private Q_SLOTS:
-    void paintBlinkEnd();
-
-private:    
-    unsigned           m_vPos;
-    unsigned           m_hPos;
-    bool               m_active;
-    unsigned           m_beingPainted;
-    QGraphicsRectItem* m_rectItem;
-};
-
-TileItem::TileItem(unsigned hPos, unsigned vPos, QGraphicsItem* parent) 
-    : m_vPos(vPos)
-    , m_hPos(hPos)
-    , m_active(false)
-    , m_beingPainted(0)
-    , m_rectItem(new QGraphicsRectItem(hPos*s_tileSize, vPos*s_tileSize, s_tileSize, s_tileSize, parent))
-{
-    setActive(true);
+namespace {
+const int s_defaultPreferredWidth = 1024;
+const int s_defaultPreferredHeight = 768;
+const qreal s_minZoomScale = .01; // arbitrary
+const qreal s_maxZoomScale = 10.; // arbitrary
+const int s_minDoubleClickZoomTargetWidth = 100; // in document coords, aka CSS pixels
+const int s_zoomCommitTimerDurationMS = 100;
+const qreal s_zoomableContentMinWidth = 300.;
+const qreal s_zoomRectAdjustHeight = 5.;
+const qreal s_zoomRectAdjustWidth = 5.;
 }
 
-TileItem::~TileItem()
-{
-    delete m_rectItem;
-}
+/*!
+ \class WebViewportItem graphics item representing the whole web page
+ responsible for zooming the document when the item size changes
 
-bool TileItem::isActive() const 
-{ 
-    return m_active; 
-}
+ \WebViewportItem is a \GraphicsItem which is the size of the web page.
+ it scales the underlying \QGraphicsWebView to its own size.
+ */
 
-void TileItem::setActive(bool active) 
-{
-    if (active && m_active)
-        qDebug() << "duplicate tile at:" << m_hPos << " " <<  m_vPos;
-    
-    m_active = active;
-    m_rectItem->setBrush(QBrush(active?Qt::cyan:Qt::gray));
-    m_rectItem->setOpacity(0.4);
-}
-
-void TileItem::painted() 
-{
-    if (!m_rectItem->isVisible() || !m_active || m_beingPainted)
-        return;
-    m_beingPainted = 1;
-    m_rectItem->setBrush(QBrush(Qt::red));
-    QTimer::singleShot(1000, this, SLOT(paintBlinkEnd()));
-}
-
-void TileItem::paintBlinkEnd() 
-{
-    // dont keep getting reinvalidated 
-    if (m_beingPainted == 1) {
-        m_rectItem->setBrush(QBrush(m_active?Qt::cyan:Qt::gray));
-        QTimer::singleShot(1000, this, SLOT(paintBlinkEnd()));
-        m_beingPainted = 2;
-        return;
-    }
-    m_beingPainted = 0;
-}
-
-WebViewportItem::WebViewportItem(QGraphicsItem* parent, Qt::WindowFlags wFlags)
+/*!
+ * \view ownership transfer
+ */
+WebViewportItem::WebViewportItem(QGraphicsWebView* view, QGraphicsWidget* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_webView(0)
-    , m_zoomAnim(this)
+    , m_webView(view)
     , m_zoomCommitTimer(this)
-    , m_hasUserZoomScale(false)
-    , m_forceUpdateAfterZoomCommit(false)
-    , m_recognizer(this)
-    , m_flickAnim(this)
-    , m_progressBox(0)
-    , m_vScrollbar(0)
-    , m_hScrollbar(0)
+    , m_resizeMode(WebViewportItem::ResizeWidgetHeightToContent)
 {
+    Q_ASSERT(m_webView);
+
 #if !defined(ENABLE_PAINT_DEBUG)
     setFlag(QGraphicsItem::ItemHasNoContents, true);
 #endif
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
-    setAttribute(Qt::WA_OpaquePaintEvent, true);
+
     setFiltersChildEvents(true);
 
-    m_zoomAnim.setTimeLine(new QTimeLine(s_zoomAnimDurationMS));
-    connect(m_zoomAnim.timeLine(), SIGNAL(stateChanged(QTimeLine::State)), this, SLOT(panAnimStateChanged(QTimeLine::State)));
+    m_webView->setResizesToContents(true);
+
+    m_webView->setParentItem(this);
+    m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
+
+    updatePreferredSize();
+
+    connect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
 
     connect(&m_zoomCommitTimer, SIGNAL(timeout()), this, SLOT(commitZoom()));
     m_zoomCommitTimer.setSingleShot(true);
-
-    resetState(true);
 }
 
 WebViewportItem::~WebViewportItem()
 {
-    resetCacheTiles();
-    delete m_progressBox;
-    delete m_vScrollbar;
-    delete m_hScrollbar;
-}
-
-void WebViewportItem::panAnimStateChanged(QTimeLine::State newState)
-{
-    switch(newState) {
-    case QTimeLine::Running:
-        m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
-        break;
-    case QTimeLine::NotRunning: {
-        transferAnimStateToView();
-        m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
-        break;
-    }
-    case QTimeLine::Paused:
-        // ### what to do?
-    default:
-        break;
-    }
-}
-
-void WebViewportItem::startPanGesture(CommonGestureConsumer::PanDirection directionHint)
-{
-    int s = PanInteraction;
-    if (directionHint == CommonGestureConsumer::VPan)
-        s |= VPanInteraction;
-    else
-        s |= HPanInteraction;
-
-    m_interactionState = static_cast<InteractionState>(m_interactionState | s);
-    m_panModeResidue = QPointF(0., 0.);
-    startInteraction();
-}
-
-void WebViewportItem::panBy(const QPointF& delta)
-{
-    QPointF p;
-    m_panModeResidue += delta;
-
-    if (qAbs(m_panModeResidue.x()) > s_panModeChangeDelta) {
-        m_interactionState = static_cast<InteractionState>(m_interactionState | HPanInteraction);
-    }
-
-    if (qAbs(m_panModeResidue.y()) > s_panModeChangeDelta) {
-        m_interactionState = static_cast<InteractionState>(m_interactionState | VPanInteraction);
-    }
-
-    if (m_interactionState & HPanInteraction) {
-        p.setX(delta.x());
-    }
-
-    if (m_interactionState & VPanInteraction) {
-        p.setY(delta.y());
-    }
-
-    moveItemBy(p);
-}
-
-void WebViewportItem::moveItemBy(const QPointF& delta)
-{
-    setWebViewPos(clipPointToViewport(m_webView->pos() + delta, zoomScale()));
-}
-
-QPointF WebViewportItem::clipPointToViewport(const QPointF& p, qreal targetZoomScale)
-{
-    QSizeF contentsSize = m_webView->page()->mainFrame()->contentsSize() * targetZoomScale;
-    QSizeF sz = size();
-
-    qreal minX = -qMax(contentsSize.width() - sz.width(), static_cast<qreal>(0.));
-    qreal minY = -qMax(contentsSize.height() - sz.height(), static_cast<qreal>(0.));
-
-    return QPointF(qBound(minX, p.x(), static_cast<qreal>(0.)),
-                   qBound(minY, p.y(), static_cast<qreal>(0.)));
-}
-
-void WebViewportItem::stopPanGesture()
-{
-    m_interactionState = static_cast<InteractionState>(m_interactionState & ~(PanInteraction | VPanInteraction | HPanInteraction));
-    stopInteraction();
-}
-
-void WebViewportItem::flickGesture(qreal /*velocityX*/, qreal velocityY)
-{
-    m_flickAnim.start(velocityY);
-}
-
-void WebViewportItem::touchGestureBegin(const QPointF&)
-{
-    m_flickAnim.stop();
-}
-
-void WebViewportItem::touchGestureEnd()
-{
-}
-
-void WebViewportItem::startInteraction()
-{
-}
-
-void WebViewportItem::stopInteraction()
-{
-}
-
-void WebViewportItem::tapGesture(QGraphicsSceneMouseEvent* pressEventLike, QGraphicsSceneMouseEvent* releaseEventLike)
-{
-    scene()->sendEvent(m_webView, pressEventLike);
-    scene()->sendEvent(m_webView, releaseEventLike);
-}
-
-void WebViewportItem::doubleTapGesture(QGraphicsSceneMouseEvent* pressEventLike)
-{
-    qreal curScale = m_webView->scale();
-    QSize contentsSize = m_webView->page()->mainFrame()->contentsSize();
-    QSizeF viewportSize = size();
-
-    qreal targetScale;
-    QPointF targetPoint;
-
-    if (isZoomedIn()) {
-        targetScale = static_cast<qreal>(viewportSize.width()) / contentsSize.width();
-        targetPoint = QPointF(0, (m_webView->pos().y()/curScale)*targetScale);
-    } else {
-        QPointF p = m_webView->mapFromScene(pressEventLike->scenePos());
-
-        // assume to find atleast something
-        targetScale = zoomScale() + s_zoomScaleWheelStep;
-
-        QWebHitTestResult r = m_webView->page()->mainFrame()->hitTestContent(p.toPoint());
-        QWebElement e = r.enclosingBlockElement();
-
-        while (!e.isNull() && e.geometry().width() < s_minDoubleClickZoomTargetWidth) {
-            e = e.parent();
-        }
-        if (!e.isNull()) {
-            QRectF er = e.geometry();
-            er.adjust(-5, -5, 5, 5);
-            qreal overMinWidth = er.width() - 300;
-            if (overMinWidth < 0)
-                er.adjust(overMinWidth / 2, 0, -overMinWidth / 2, 0);
-            QSizeF targetSize = er.size();
-            p.setX(er.x() + er.size().width() / 2);
-            targetScale = static_cast<qreal>(viewportSize.width()) / targetSize.width();
-        }
-
-        targetPoint = clipPointToViewport(QPointF(viewportSize.width()/2, viewportSize.height()/2) - (p * targetScale), targetScale);
-    }
-
-    startZoomAnimTo(targetPoint, targetScale);
-}
-
-bool WebViewportItem::isZoomedIn() const
-{
-    QSize contentsSize = m_webView->page()->mainFrame()->contentsSize();
-    qreal targetScale = static_cast<qreal>(size().width()) / contentsSize.width();
-    return zoomScale() > targetScale;
-}
-
-void WebViewportItem::startZoomAnimTo(const QPointF& targetPoint, qreal targetScale)
-{
-    m_zoomAnim.timeLine()->stop();
-    qreal step = m_zoomAnim.timeLine()->currentValue();
-
-    qreal curScale = m_zoomAnim.horizontalScaleAt(step) * m_webView->scale();
-    QPointF curPos = m_zoomAnim.posAt(step) + m_webView->pos();
-
-    setWebViewPos(QPointF(0,0));
-    m_webView->setScale(1.);
-
-    m_zoomAnim.setPosAt(0, curPos);
-    m_zoomAnim.setPosAt(1, targetPoint);
-    m_zoomAnim.setScaleAt(0, curScale, curScale);
-    m_zoomAnim.setScaleAt(1, targetScale, targetScale);
-    m_zoomAnim.setStep(0);
-    m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
-    m_zoomAnim.timeLine()->start();
-
-    m_hasUserZoomScale = true;
-    m_forceUpdateAfterZoomCommit = true;
-}
-
-void WebViewportItem::transferAnimStateToView()
-{
-    Q_ASSERT(m_zoomAnim.timeLine()->state() == QTimeLine::NotRunning);
-
-    qreal step = m_zoomAnim.timeLine()->currentValue();
-
-    qreal s = m_zoomAnim.horizontalScaleAt(step);
-    QPointF p = m_zoomAnim.posAt(step);
-
-    resetZoomAnim();
-
-    setWebViewPos(p);
-    m_webView->setScale(s);
-}
-
-
-qreal WebViewportItem::zoomScale() const
-{
-    if (!m_webView)
-        return 1.;
-
-    return m_zoomAnim.horizontalScaleAt(1) * m_webView->scale();
-}
-
-void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
-{
-    value = qBound(s_minZoomScale, value, s_maxZoomScale);
-    qreal curZoomScale = zoomScale();
-
-    if (value != curZoomScale) {
-        QPointF p = m_webView->pos();
-        m_webView->setScale(value);
-        p *= value / curZoomScale;
-        setWebViewPos(clipPointToViewport(p, zoomScale()));
-    }
-
-    if (commitInstantly) {
-        commitZoom();
-    } else {
-        m_webView->setTileCacheState(QWebFrame::TileCacheNoTileCreation);
-        m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
-    }
-}
-
-void WebViewportItem::wheelEvent(QGraphicsSceneWheelEvent *event)
-{
-    int adv = event->delta() / (15*8);
-    qreal newScale = zoomScale() + adv * s_zoomScaleWheelStep;
-
-    QPointF p = clipPointToViewport(m_webView->mapFromScene(event->scenePos()), newScale);
-
-    startZoomAnimTo(p, newScale);
-    event->accept();
 }
 
 void WebViewportItem::commitZoom()
 {
-    qreal s = m_webView->scale();
-    m_webView->setTileCacheZoomFactorX(s);
-    m_webView->setTileCacheZoomFactorY(s);
-    m_webView->setTileCacheState(QWebFrame::TileCacheNormal);
-    if (m_forceUpdateAfterZoomCommit) {
-        m_webView->page()->mainFrame()->forceSynchronousTileCacheUpdate();
-	m_forceUpdateAfterZoomCommit = false;
-    }
+    m_webView->setTiledBackingStoreFrozen(false);
+    m_zoomCommitTimer.stop();
 }
 
-void WebViewportItem::setWebView(QGraphicsWebView* view)
+QGraphicsWebView* WebViewportItem::webView()
 {
-    if (m_webView) {
-        m_webView->setParentItem(0);
-        delete m_webView;
-    }
-
-    m_webView = view;
-    m_webView->setParentItem(this);
-    m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
-    m_zoomAnim.setItem(m_webView);
-    delete m_progressBox;
-    m_progressBox = new ProgressWidget(this);
-
-    delete m_hScrollbar;
-    m_hScrollbar = new ScrollbarItem(this, true);
-    delete m_vScrollbar;
-    m_vScrollbar = new ScrollbarItem(this, false);
-
-    updatePreferredSize();
+    return m_webView;
 }
 
-void WebViewportItem::resetState(bool resetZoom)
+/*!
+\fn void WebViewportItem::contentsSizeChangeCausedResize()
+This signal is emitted when contents size has changed and vieport item is resized due to this
+*/
+void WebViewportItem::webViewContentsSizeChanged(const QSize& sz)
 {
-    m_interactionState = NoInteraction;
-    m_hasUserZoomScale = false;
-    m_recognizer.reset();
-
-    if (m_webView)
-        setWebViewPos(QPointF(0, 0));
-
-    m_zoomAnim.setPosAt(0, QPointF(0,0));
-    m_zoomAnim.setPosAt(1, QPointF(0,0));
-
-    if (resetZoom) {
-        if (m_webView) {
-            m_webView->setScale(1.);
-            m_webView->setTileCacheZoomFactorX(1.);
-            m_webView->setTileCacheZoomFactorY(1.);
-            m_webView->setTileCacheState(QWebFrame::TileCacheNormal);
-        }
-        m_zoomAnim.timeLine()->stop();
-        resetZoomAnim();
+    Q_UNUSED(sz);
+    qreal scale = zoomScale();
+    if (m_resizeMode == WebViewportItem::ResizeWidgetHeightToContent) {
+        scale = size().width() / contentsSize().width();
     }
-}
-
-void WebViewportItem::resetZoomAnim()
-{
-    // we have to clear the anim transforms
-    m_zoomAnim.clear();
-    // calling just QGraphicsItemAnimation::clear(),setPos(0) does
-    // not work. it leaves the scaling there
-    m_zoomAnim.setScaleAt(0, 1., 1.);
-    m_zoomAnim.setPosAt(0, QPointF(0,0));
-    m_zoomAnim.setStep(0);
+    resize(contentsSize() * scale);
+    emit contentsSizeChangeCausedResize();
 }
 
 #if defined(ENABLE_PAINT_DEBUG)
@@ -488,8 +134,6 @@ void WebViewportItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* o
 {
     static int n = 0;
     ++n;
-    qDebug() << "WebViewportItem::paint" << option->exposedRect.toRect() << boundingRect() << (n % 2 ? "Qt::green" : "Qt::darkGreen");
-
     painter->save();
     painter->setPen(Qt::green);
     painter->setBrush(Qt::green);
@@ -499,107 +143,25 @@ void WebViewportItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* o
 }
 #endif
 
-/*!
-  Copies common properties of mouse/wheel event to new event. Maps the coordinates from the event
-  to the coordinate space of the receiving item
-
-  This is very errorprone and should be replaced.
-  \internal
- */
-template<typename EventType>
-void mapEventCommonProperties(QGraphicsItem* parent, const EventType* event, EventType& mappedEvent)
+QSize WebViewportItem::contentsSize() const
 {
-    // lifted form qmlgraphicsflickable.cpp, LGPL Nokia
-
-    QRectF parentRect = parent->mapToScene(parent->boundingRect()).boundingRect();
-
-    mappedEvent.setAccepted(false);
-    mappedEvent.setPos(parent->mapFromScene(event->scenePos()));
-    mappedEvent.setScenePos(event->scenePos());
-    mappedEvent.setScreenPos(event->screenPos());
-    mappedEvent.setModifiers(event->modifiers());
-    mappedEvent.setButtons(event->buttons());
+    return m_webView->page()->mainFrame()->contentsSize();
 }
 
-bool WebViewportItem::sendMouseEventFromChild(QGraphicsSceneMouseEvent *event)
+void WebViewportItem::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
-    QGraphicsSceneMouseEvent mappedEvent(event->type());
-    mapEventCommonProperties(this, event, mappedEvent);
-
-    for (int i = 0x1; i <= 0x10; i <<= 1) {
-        if (event->buttons() & i) {
-            Qt::MouseButton button = Qt::MouseButton(i);
-            mappedEvent.setButtonDownPos(button, mapFromScene(event->buttonDownPos(button)));
-            mappedEvent.setButtonDownScenePos(button, event->buttonDownScenePos(button));
-            mappedEvent.setButtonDownScreenPos(button, event->buttonDownScreenPos(button));
-        }
-    }
-
-    mappedEvent.setLastPos(mapFromScene(event->lastScenePos()));
-    mappedEvent.setLastScenePos(event->lastScenePos());
-    mappedEvent.setLastScreenPos(event->lastScreenPos());
-    mappedEvent.setButton(event->button());
-
-    return m_recognizer.filterMouseEvent(event);
+    QGraphicsWidget::resizeEvent(event);
+    setZoomScale(size().width() / contentsSize().width());
 }
 
-bool WebViewportItem::sendWheelEventFromChild(QGraphicsSceneWheelEvent *event)
+void WebViewportItem::disableContentUpdates()
 {
-    QGraphicsSceneWheelEvent mappedEvent(event->type());
-    mapEventCommonProperties(this, event, mappedEvent);
-
-    mappedEvent.setDelta(event->delta());
-    mappedEvent.setOrientation(event->orientation());
-
-    wheelEvent(&mappedEvent);
-    return mappedEvent.isAccepted();
+    m_webView->setTiledBackingStoreFrozen(true);
 }
 
-bool WebViewportItem::sceneEventFilter(QGraphicsItem *i, QEvent *e)
+void WebViewportItem::enableContentUpdates()
 {
-    // lifted form qmlgraphicsflickable.cpp, LGPL Nokia
-    if (!isVisible())
-        return QGraphicsItem::sceneEventFilter(i, e);
-
-    switch (e->type()) {
-    case QEvent::GraphicsSceneMouseDoubleClick:
-    case QEvent::GraphicsSceneMousePress:
-    case QEvent::GraphicsSceneMouseMove:
-    case QEvent::GraphicsSceneMouseRelease:
-        return sendMouseEventFromChild(static_cast<QGraphicsSceneMouseEvent *>(e));
-
-    case QEvent::GraphicsSceneWheel:
-        return sendWheelEventFromChild(static_cast<QGraphicsSceneWheelEvent*>(e));
-
-    case QEvent::GraphicsSceneContextMenu:
-        // filter out context menu, comes from long tap
-        return true;
-
-    case QEvent::GraphicsSceneHoverMove:
-    case QEvent::GraphicsSceneHoverLeave:
-    case QEvent::GraphicsSceneHoverEnter:
-        // filter out hover, so that we don't get excess
-        // link highlights while panning
-        return true;
-
-    default:
-        break;
-    }
-
-    return QGraphicsItem::sceneEventFilter(i, e);
-}
-
-QGraphicsWebView* WebViewportItem::webView()
-{
-    return m_webView;
-}
-
-void WebViewportItem::setGeometry(const QRectF& rect)
-{
-    QGraphicsWidget::setGeometry(rect);
-    if (m_progressBox)
-        m_progressBox->udpateGeometry(rect);
-    updateScrollbars();
+    m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
 }
 
 void WebViewportItem::updatePreferredSize()
@@ -609,114 +171,71 @@ void WebViewportItem::updatePreferredSize()
     // Thus, we need to update viewport manually until we have fix for this.
 
     m_webView->page()->setPreferredContentsSize(QSize(s_defaultPreferredWidth, s_defaultPreferredHeight));
+    resize(contentsSize());
 }
 
-void WebViewportItem::setPanPos(const QPointF& pos)
+/*!  Returns a rectangle of a content element containing point \p in
+  current item coordinates.
+*/
+QRectF WebViewportItem::findZoomableRectForPoint(const QPointF& p)
 {
-    setWebViewPos(clipPointToViewport(pos, zoomScale()));
-}
+    QPointF webp = m_webView->mapFromParent(p);
 
-QPointF WebViewportItem::panPos() const
-{
-    return m_webView->pos();
-}
+    QWebHitTestResult r = m_webView->page()->mainFrame()->hitTestContent(webp.toPoint());
+    QWebElement e = r.enclosingBlockElement();
 
-void WebViewportItem::showTiles(bool tilesOn) 
-{
-    if (tilesOn) {
-        connect(m_webView->page(),SIGNAL(tileCreated(unsigned, unsigned)), this, SLOT(tileCreated(unsigned, unsigned)));
-        connect(m_webView->page(),SIGNAL(tileRemoved(unsigned, unsigned)), this, SLOT(tileRemoved(unsigned, unsigned)));
-        connect(m_webView->page(),SIGNAL(tilePainted(unsigned, unsigned)), this, SLOT(tilePainted(unsigned, unsigned)));
-        connect(m_webView->page(),SIGNAL(tileCacheViewportScaleChanged()), this, SLOT(tileCacheViewportScaleChanged()));
-    } else {
-        disconnect(m_webView->page(),SIGNAL(tileCreated(unsigned, unsigned)), this, SLOT(tileCreated(unsigned, unsigned)));
-        disconnect(m_webView->page(),SIGNAL(tileRemoved(unsigned, unsigned)), this, SLOT(tileRemoved(unsigned, unsigned)));
-        disconnect(m_webView->page(),SIGNAL(tilePainted(unsigned, unsigned)), this, SLOT(tilePainted(unsigned, unsigned)));
-        disconnect(m_webView->page(),SIGNAL(tileCacheViewportScaleChanged()), this, SLOT(tileCacheViewportScaleChanged()));
-        // empty the tile map
-        resetCacheTiles();
+    while (!e.isNull() && e.geometry().width() < s_minDoubleClickZoomTargetWidth) {
+        e = e.parent();
     }
+    if (!e.isNull()) {
+        QRectF er = e.geometry();
+        er.adjust(-s_zoomRectAdjustWidth, -s_zoomRectAdjustHeight, s_zoomRectAdjustWidth, s_zoomRectAdjustHeight);
+        qreal overMinWidth = er.width() - s_zoomableContentMinWidth;
+        if (overMinWidth < 0)
+            er.adjust(overMinWidth / 2, 0, -overMinWidth / 2, 0);
+        webp.setX(er.x());
+        QRectF res(webp, er.size());
+        return QRectF(m_webView->mapToParent(res.topLeft()),
+                      m_webView->mapToParent(res.bottomRight()));
+    }
+    return QRectF();
 }
 
-void WebViewportItem::tileCreated(unsigned hPos, unsigned vPos)
+qreal WebViewportItem::zoomScale() const
 {
-    // new tile or just inactive?
-    if (!m_tileMap.contains(TILE_KEY(hPos, vPos)))
-        m_tileMap.insert(TILE_KEY(hPos, vPos), new TileItem(hPos, vPos, this));
+    if (!m_webView)
+        return 1.;
+
+    return m_webView->scale();
+}
+
+void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
+{
+    if (!commitInstantly) {
+        disableContentUpdates();
+    }
+
+    value = qBound(s_minZoomScale, value, s_maxZoomScale);
+    qreal curZoomScale = zoomScale();
+    if (value != curZoomScale) {
+        // fixme
+        // QPointF p = m_webView->pos();
+        m_webView->setScale(value);
+        //p *= value / curZoomScale;
+        //setPos(p);
+    }
+    if (commitInstantly)
+        commitZoom();
     else
-        m_tileMap.value(TILE_KEY(hPos, vPos))->setActive(true);
+        m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
 }
 
-void WebViewportItem::tileRemoved(unsigned hPos, unsigned vPos)
+void WebViewportItem::setGeometry(const QRectF&r)
 {
-    if (!m_tileMap.contains(TILE_KEY(hPos, vPos)))
-        return;
-    m_tileMap.value(TILE_KEY(hPos, vPos))->setActive(false);
+    QGraphicsWidget::setGeometry(r);
 }
 
-void WebViewportItem::tilePainted(unsigned hPos, unsigned vPos)
+void WebViewportItem::setResizeMode(WebViewportItem::ResizeMode mode)
 {
-    if (!m_tileMap.contains(TILE_KEY(hPos, vPos)))
-        tileCreated(hPos, vPos);
-    m_tileMap.value(TILE_KEY(hPos, vPos))->painted();
+    m_resizeMode = mode;
 }
-
-void WebViewportItem::tileCacheViewportScaleChanged()
-{
-    QTimer::singleShot(0, this, SLOT(resetCacheTiles()));
-}
-
-void WebViewportItem::resetCacheTiles()
-{
-    QMapIterator<int, TileItem*> i(m_tileMap);
-    while (i.hasNext()) {
-        i.next();
-        delete i.value();
-    }    
-    m_tileMap.clear();
-}
-
-void WebViewportItem::setWebViewPos(const QPointF& point)
-{
-    m_webView->setPos(point);
-    updateScrollbars();
-}
-
-void WebViewportItem::updateScrollbars()
-{
-    if (!m_vScrollbar || !m_hScrollbar)
-        return;
-    QPointF contentPos = m_webView->pos();
-    QSizeF contentSize = m_webView->page()->mainFrame()->contentsSize() * zoomScale();
-    
-    QSizeF viewSize = size();
-
-    int hThumbLength = qMax(s_thumbMinSize, static_cast<int>(viewSize.width() * viewSize.width() / contentSize.width()));
-    int vThumbLength = qMax(s_thumbMinSize, static_cast<int>(viewSize.height() * viewSize.height() / contentSize.height()));
-
-    int xPos =  (viewSize.width() - hThumbLength) * -contentPos.x() / (contentSize.width() - viewSize.width());
-    int yPos =  (viewSize.height() - vThumbLength) * -contentPos.y() / (contentSize.height() - viewSize.height());
-
-    // need to display?
-    if (yPos >= 0 && vThumbLength < viewSize.height()) {
-        // add top/bottom margin, so it doesn't hit the edges
-        yPos = qMax(s_thumbMargin, yPos);
-        if (yPos + vThumbLength + s_thumbMargin > viewSize.height())
-            vThumbLength = viewSize.height() - s_thumbMargin - yPos;
-        m_vScrollbar->setRect(QRectF(viewSize.width() - s_thumbSize - 5, yPos, s_thumbSize, vThumbLength));
-        if (vThumbLength < viewSize.height())
-            m_vScrollbar->show();
-    }
-
-    // need to display?
-    if (xPos >= 0 && hThumbLength < viewSize.width()) {
-        xPos = qMax(s_thumbMargin, xPos);
-        if (xPos + hThumbLength + s_thumbMargin > viewSize.width())
-            hThumbLength = viewSize.width() - s_thumbMargin - xPos;
-        m_hScrollbar->setRect(QRectF(xPos, size().height() - s_thumbSize - 5, hThumbLength, s_thumbSize));
-        if (hThumbLength < viewSize.width())
-            m_hScrollbar->show();    
-    }
-}
-
-#include "WebViewportItem.moc"

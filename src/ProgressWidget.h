@@ -5,7 +5,7 @@
 #include <QGraphicsRectItem>
 #include <QLinearGradient>
 
-class WebViewportItem;
+class QWebView;
 class ProgressItem;
 class QPropertyAnimation;
 
@@ -13,10 +13,10 @@ class ProgressWidget : public QObject, public QGraphicsRectItem {
     Q_OBJECT
     Q_PROPERTY(QPointF pos READ pos WRITE setPos)
 public:
-    ProgressWidget(WebViewportItem* parent);
+    ProgressWidget(QGraphicsItem* parent);
     ~ProgressWidget();
 
-    void udpateGeometry(const QRectF& rect);
+    void updateGeometry(const QRectF& rect);
     virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = 0);
 
     void setPos(const QPointF& pos);
