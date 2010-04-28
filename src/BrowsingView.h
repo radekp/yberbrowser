@@ -26,11 +26,13 @@ class YberApplication;
 class WebViewportItem;
 class PannableViewport;
 class ApplicationWindow;
+class TabSelectionView;
 class HomeView;
 class BackingStoreVisualizerWidget;
 class ProgressWidget;
 class QAction;
 class AutoScrollTest;
+class QToolBar;
 
 class BrowsingView : public BrowsingViewBase
 {
@@ -68,6 +70,7 @@ protected Q_SLOTS:
     void pageBack();
     void changeLocation();
     void urlTextEdited(const QString& newText);
+    void urlEditfocusChanged(bool);
     void urlChanged(const QUrl& url);
 
     void updateHistoryStore();
@@ -86,7 +89,10 @@ protected Q_SLOTS:
 
     void createHomeView();
     void deleteHomeView();
-    void toggleHomeView();
+
+    void createTabSelectionView();
+    void deleteTabSelectionView();
+    void toggleTabSelectionView();
 
     void prepareForResize();
 
@@ -96,10 +102,9 @@ protected Q_SLOTS:
 private:
     Q_DISABLE_COPY(BrowsingView);
     YberWidget* createNavigationToolBar();
-    YberWidget* navigationToolbar();
     void setFPSCalculation(bool fpsOn);
     void connectSignals();
-    void updateHomeView();
+    void updateViews();
 
     void toggleStopBackIcon();
 
@@ -108,14 +113,16 @@ private:
 #endif
 
 #if !USE_DUI
-    ApplicationWindow *m_appWin;
+    ApplicationWindow* m_appWin;
     YberWidget* m_centralWidget;
 #endif
 
+    QToolBar* m_toolbar;
     WebView* m_webView;
     WebPage* m_page;
     PannableViewport* m_browsingViewport;
     BackingStoreVisualizerWidget* m_backingStoreVisualizer;
+    TabSelectionView* m_tabSelectionView;
     HomeView* m_homeView;
     UrlEditWidget* m_urlEdit;
     ProgressWidget* m_progressBox;

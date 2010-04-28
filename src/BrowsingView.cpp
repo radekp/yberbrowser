@@ -8,6 +8,7 @@
 #include "Settings.h"
 #include "BackingStoreVisualizerWidget.h"
 #include "HomeView.h"
+#include "TabSelectionView.h"
 #include "Helpers.h"
 #include "ProgressWidget.h"
 #include "HistoryStore.h"
@@ -51,6 +52,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_centralWidget(new QGraphicsWidget(this))
 #endif
     , m_backingStoreVisualizer(0)
+    , m_tabSelectionView(0)
     , m_homeView(0)
     , m_stopbackAction(0)
     , m_loadIndProgress(false)
@@ -86,6 +88,8 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
 BrowsingView::~BrowsingView()
 {
     delete m_autoScrollTest;
+    deleteHomeView();
+    deleteTabSelectionView();
 }
 
 void BrowsingView::connectSignals()
@@ -126,7 +130,7 @@ YberWidget* BrowsingView::createNavigationToolBar()
     }
 
     DEFINE_TOOLBAR_ITEM("R");
-    DEFINE_TOOLBAR_ITEM_CB("H", this, SLOT(toggleHomeView()));
+    DEFINE_TOOLBAR_ITEM_CB("H", this, SLOT(toggleTabSelectionView()));
 
     m_urlEdit = new DuiTextEdit(DuiTextEditModel::SingleLine, QString(), naviToolbar);
     m_urlEdit->setViewType("toolbar");
@@ -147,27 +151,30 @@ YberWidget* BrowsingView::createNavigationToolBar()
 #else
 
     QGraphicsProxyWidget* naviToolbar = new QGraphicsProxyWidget();
-    QToolBar* qtoolbar = new QToolBar("Navigation");
-    m_urlEdit = new UrlEditWidget(qtoolbar);
+    m_toolbar = new QToolBar("Navigation");
+    m_urlEdit = new UrlEditWidget(m_toolbar);
     m_urlEdit->setSizePolicy(QSizePolicy::Expanding, m_urlEdit->sizePolicy().verticalPolicy());
+    m_urlEdit->setFocusPolicy(Qt::ClickFocus);
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
     connect(m_urlEdit, SIGNAL(editCancelled()), SLOT(updateURL()));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
-    qtoolbar->addAction(QIcon(":/data/icon/48x48/history_48.png"), "Home", this, SLOT(toggleHomeView()));
-    qtoolbar->addAction(QIcon(":/data/icon/48x48/bookmarks_48.png"), "Add bookmark", this, SLOT(addBookmark()));
-    qtoolbar->addWidget(m_urlEdit);
+    connect(m_urlEdit, SIGNAL(focusChanged(bool)), SLOT(urlEditfocusChanged(bool)));
+    m_toolbar->addAction(QIcon(":/data/icon/48x48/history_48.png"), "Tab selection", this, SLOT(toggleTabSelectionView()));
+    m_toolbar->addAction(QIcon(":/data/icon/48x48/bookmarks_48.png"), "Add bookmark", this, SLOT(addBookmark()));
+    m_toolbar->addWidget(m_urlEdit);
     m_stopbackAction = new QAction(QIcon(":/data/icon/48x48/back_48.png"), "Back", 0);
     connect(m_stopbackAction, SIGNAL(triggered()), this, SLOT(pageBack()));
-    qtoolbar->addAction(m_stopbackAction);
-    qtoolbar->addAction(QIcon(":/data/icon/48x48/screen_toggle_48.png"), "Fullscreen", this, SLOT(toggleFullScreen()));
-    naviToolbar->setWidget(qtoolbar);
+    m_toolbar->addAction(m_stopbackAction);
+    m_toolbar->addAction(QIcon(":/data/icon/48x48/screen_toggle_48.png"), "Fullscreen", this, SLOT(toggleFullScreen()));
+    naviToolbar->setWidget(m_toolbar);
 #endif
     return naviToolbar;
 }
 
 void BrowsingView::addBookmark()
 {
-    if (!m_webView || (m_homeView && m_homeView->isActive()))
+    // FIXME: check if webviewport is active
+    if (!m_webView)
         return;
     if (m_webView->url().isEmpty()) {
         notification("No page, no save.", m_browsingViewport);
@@ -178,11 +185,6 @@ void BrowsingView::addBookmark()
     notification("Bookmark saved.", m_browsingViewport);
 }
 
-YberWidget* BrowsingView::navigationToolbar()
-{
-    return (YberWidget*)centralWidget()->layout()->itemAt(1);
-}
-
 void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
     QGraphicsWidget::resizeEvent(event);
@@ -190,7 +192,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     YberWidget* w = centralWidget();
     w->setGeometry(QRectF(w->pos(), size()));
     w->setPreferredSize(size());
-    updateHomeView();
+    updateViews();
     m_progressBox->updateGeometry(m_browsingViewport->rect());
 
 #if !USE_DUI
@@ -227,6 +229,8 @@ void BrowsingView::pageBack()
 
 void BrowsingView::showHomeView()
 {
+    if (m_homeView && m_homeView->isActive())
+        return;
     createHomeView();
 #if USE_DUI
     m_homeView->appear(0);
@@ -332,7 +336,7 @@ void BrowsingView::createHomeView()
         return;
     // FIXME: home view invokes should be moved to app framework
     m_homeView = new HomeView();
-    updateHomeView();
+    m_homeView->setGeometry(m_browsingViewport->rect());
     connect(m_homeView, SIGNAL(disappeared()), this, SLOT(deleteHomeView()));
     connect(m_homeView, SIGNAL(urlSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
 }
@@ -343,14 +347,30 @@ void BrowsingView::deleteHomeView()
     m_homeView = 0;
 }
 
-void BrowsingView::toggleHomeView()
+void BrowsingView::createTabSelectionView() 
 {
-    createHomeView();
+    if (m_tabSelectionView)
+        return;
+    // FIXME: home view invokes should be moved to app framework
+    m_tabSelectionView = new TabSelectionView();
+    m_tabSelectionView->setGeometry(m_browsingViewport->rect());
+    connect(m_tabSelectionView, SIGNAL(disappeared()), this, SLOT(deleteTabSelectionView()));
+}
 
-    if (m_homeView->isActive())
-        m_homeView->disappear();
+void BrowsingView::deleteTabSelectionView()
+{
+    delete m_tabSelectionView;
+    m_tabSelectionView = 0;
+}
+
+void BrowsingView::toggleTabSelectionView()
+{
+    createTabSelectionView();
+
+    if (m_tabSelectionView->isActive())
+        m_tabSelectionView->disappear();
     else
-        showHomeView();
+        m_tabSelectionView->appear(applicationWindow());
 }
 
 void BrowsingView::changeLocation()
@@ -380,6 +400,19 @@ void BrowsingView::urlTextEdited(const QString& newText)
         }
     }
     m_lastEnteredText = text;
+}
+
+void BrowsingView::urlEditfocusChanged(bool focused)
+{
+    if (focused) {
+        showHomeView();
+    } else {
+        // FIXME: this is a hack to not to get urleditor focused back
+        // when the toolbar is focused, only when the actual edior is focused
+        // currently, even if a button gets pressed, the urleditor gets 
+        // focused back, if it was focused the last time
+        m_toolbar->widgetForAction(m_stopbackAction)->setFocus(Qt::MouseFocusReason);
+    }
 }
 
 void BrowsingView::updateHistoryStore()
@@ -457,10 +490,13 @@ void BrowsingView::toggleFullScreen()
 #endif
 }
 
-void BrowsingView::updateHomeView()
+void BrowsingView::updateViews()
 {
     if (m_homeView)
         m_homeView->setGeometry(m_browsingViewport->geometry());
+
+    if (m_tabSelectionView)
+        m_tabSelectionView->setGeometry(m_browsingViewport->geometry());
 }
 
 void BrowsingView::prepareForResize()

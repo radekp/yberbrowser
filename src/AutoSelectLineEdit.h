@@ -14,6 +14,7 @@ public:
 
 Q_SIGNALS:
     void editCancelled();
+    void focusChanged(bool);
 
 protected:
     void focusInEvent(QFocusEvent*e);

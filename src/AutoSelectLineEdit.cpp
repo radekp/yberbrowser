@@ -21,6 +21,7 @@ void AutoSelectLineEdit::focusInEvent(QFocusEvent*e)
 {
     QLineEdit::focusInEvent(e);
     m_selectURLTimer.start();
+    emit focusChanged(true);
 }
 
 void AutoSelectLineEdit::focusOutEvent(QFocusEvent*e)
@@ -28,5 +29,6 @@ void AutoSelectLineEdit::focusOutEvent(QFocusEvent*e)
     QLineEdit::focusOutEvent(e);
     m_selectURLTimer.stop();
     emit editCancelled();
+    emit focusChanged(false);
     deselect();
 }

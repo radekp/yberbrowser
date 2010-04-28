@@ -21,7 +21,7 @@ dui {
 QMAKE_CXXFLAGS += -Werror
 
 QT += network opengl
-QT += xml xmlpatterns
+QT += xml xmlpatterns script
 
 # Add $$PWD to include path so we can include from 3rdparty/file.h.
 # we want to specify '3rdparty/' explicitly to avoid name clashes
@@ -124,13 +124,16 @@ HEADERS = \
   src/EventHelpers.h \
   src/Helpers.h \
   src/HistoryStore.h \
-  src/TileItem.h \
   src/HomeView.h \
   src/LinkSelectionItem.h \
   src/PannableViewport.h \
   src/ProgressWidget.h \
   src/ScrollbarItem.h \
   src/Settings.h \
+  src/TabSelectionView.h \
+  src/TileContainerWidget.h \
+  src/TileItem.h \
+  src/TileSelectionViewBase.h \
   src/UrlItem.h \
   src/WebPage.h \
   src/WebView.h \
@@ -148,11 +151,14 @@ SOURCES = \
   src/EventHelpers.cpp \
   src/Helpers.cpp \
   src/HistoryStore.cpp \
-  src/TileItem.cpp \
   src/HomeView.cpp \
   src/LinkSelectionItem.cpp \
   src/ProgressWidget.cpp \
   src/ScrollbarItem.cpp \
+  src/TabSelectionView.cpp \
+  src/TileContainerWidget.cpp \
+  src/TileItem.cpp \
+  src/TileSelectionViewBase.cpp \
   src/UrlItem.cpp \
   src/WebPage.cpp \
   src/WebView.cpp \
