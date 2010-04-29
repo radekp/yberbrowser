@@ -63,7 +63,6 @@
 
 #include "YberApplication.h"
 #include "Settings.h"
-#include "UrlStore.h"
 #include "Helpers.h"
 
 void usage(const char* name);
@@ -121,6 +120,7 @@ int main(int argc, char** argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::ZoomTextOnly, false);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, true);
     QWebSettings::enablePersistentStorage();
+    QWebSettings::globalSettings()->setIconDatabasePath(settings->privatePath());
     
     QStringList args = app.arguments();
 

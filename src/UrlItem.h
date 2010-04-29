@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QUrl>
 #include <QString>
+#include <QList>
 
 class QImage;
 
@@ -17,6 +18,8 @@ public:
     bool thumbnailAvailable() const { return m_thumbnail != 0; }
     void setThumbnail(QImage* thumbnail);
     QImage* thumbnail();
+    void setThumbnailPath(const QString& path) { m_thumbnailPath = path; }
+    QString thumbnailPath();
 
 Q_SIGNALS:
     void thumbnailChanged();
@@ -26,12 +29,14 @@ public:
     QString m_title;
     uint m_refcount;
     uint m_lastAccess;
-    QString m_thumbnailPath;
     bool m_thumbnailChanged;
 
 private:
     QImage* m_thumbnail;
+    QString m_thumbnailPath;
 };
+
+typedef QList<UrlItem*> UrlList;
 
 #endif
 

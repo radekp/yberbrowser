@@ -7,11 +7,11 @@ static const unsigned s_tileSize = 35;
 
 #define TILE_KEY(x,y) (x << 16 | y)
 
-class TileItem : public QObject {
+class BackingStoreTileItem : public QObject {
     Q_OBJECT
 public:
-    TileItem(unsigned hPos, unsigned vPos, QGraphicsItem* parent);
-    ~TileItem();
+    BackingStoreTileItem(unsigned hPos, unsigned vPos, QGraphicsItem* parent);
+    ~BackingStoreTileItem();
 
     bool isActive() const;
     void setActive(bool active);
@@ -28,7 +28,7 @@ private:
     QGraphicsRectItem* m_rectItem;
 };
 
-TileItem::TileItem(unsigned hPos, unsigned vPos, QGraphicsItem* parent)
+BackingStoreTileItem::BackingStoreTileItem(unsigned hPos, unsigned vPos, QGraphicsItem* parent)
     : m_vPos(vPos)
     , m_hPos(hPos)
     , m_active(false)
@@ -38,17 +38,17 @@ TileItem::TileItem(unsigned hPos, unsigned vPos, QGraphicsItem* parent)
     setActive(true);
 }
 
-TileItem::~TileItem()
+BackingStoreTileItem::~BackingStoreTileItem()
 {
     delete m_rectItem;
 }
 
-bool TileItem::isActive() const
+bool BackingStoreTileItem::isActive() const
 {
     return m_active;
 }
 
-void TileItem::setActive(bool active)
+void BackingStoreTileItem::setActive(bool active)
 {
     if (active && m_active)
         qDebug() << "duplicate tile at:" << m_hPos << " " <<  m_vPos;
@@ -58,7 +58,7 @@ void TileItem::setActive(bool active)
     m_rectItem->setOpacity(0.4);
 }
 
-void TileItem::painted()
+void BackingStoreTileItem::painted()
 {
     if (!m_rectItem->isVisible() || !m_active || m_beingPainted)
         return;
@@ -67,7 +67,7 @@ void TileItem::painted()
     QTimer::singleShot(1000, this, SLOT(paintBlinkEnd()));
 }
 
-void TileItem::paintBlinkEnd()
+void BackingStoreTileItem::paintBlinkEnd()
 {
     // dont keep getting reinvalidated
     if (m_beingPainted == 1) {
@@ -114,7 +114,7 @@ void BackingStoreVisualizerWidget::tileCreated(unsigned hPos, unsigned vPos)
 {
     // new tile or just inactive?
     if (!m_tileMap.contains(TILE_KEY(hPos, vPos)))
-        m_tileMap.insert(TILE_KEY(hPos, vPos), new TileItem(hPos, vPos, this));
+        m_tileMap.insert(TILE_KEY(hPos, vPos), new BackingStoreTileItem(hPos, vPos, this));
     else
         m_tileMap.value(TILE_KEY(hPos, vPos))->setActive(true);
 }
@@ -140,7 +140,7 @@ void BackingStoreVisualizerWidget::tileCacheViewportScaleChanged()
 
 void BackingStoreVisualizerWidget::resetCacheTiles()
 {
-    QMapIterator<int, TileItem*> i(m_tileMap);
+    QMapIterator<int, BackingStoreTileItem*> i(m_tileMap);
     while (i.hasNext()) {
         i.next();
         delete i.value();

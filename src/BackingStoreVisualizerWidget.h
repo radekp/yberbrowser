@@ -6,7 +6,7 @@
 #include "yberconfig.h"
 
 class QGraphicsWebView;
-class TileItem;
+class BackingStoreTileItem;
 
 class BackingStoreVisualizerWidget : public QGraphicsWidget
 {
@@ -30,7 +30,7 @@ private:
     void disconnectSignals();
     
     QGraphicsWebView* m_webView;
-    QMap<int, TileItem*> m_tileMap;
+    QMap<int, BackingStoreTileItem*> m_tileMap;
 
 };
 

@@ -17,7 +17,7 @@ public:
     virtual void mousePressEventFromChild(QGraphicsSceneMouseEvent*) = 0;
     virtual void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* ) = 0;
     virtual void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent*) = 0;
-
+    virtual void adjustClickPosition(QPointF& pos) = 0;
 };
 
 class CommonGestureRecognizer : public QObject

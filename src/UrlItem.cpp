@@ -1,8 +1,7 @@
 #include "UrlItem.h"
-#include "UrlStore.h"
 #include <QDateTime>
 #include <QImage>
-
+#include <QDebug>
 #include "Settings.h"
 
 UrlItem::UrlItem()
@@ -18,7 +17,7 @@ UrlItem::UrlItem(const QUrl& url, const QString& title, QImage* thumbnail)
     , m_title(title)
     , m_refcount(1)
     , m_lastAccess(QDateTime::currentDateTime().toTime_t())
-    , m_thumbnailChanged(false)
+    , m_thumbnailChanged(thumbnail)
     , m_thumbnail(thumbnail)
 {
 }
@@ -37,13 +36,22 @@ void UrlItem::setThumbnail(QImage* thumbnail)
 
 QImage* UrlItem::thumbnail()
 {
+    // load thumbnails on demand
     if (m_thumbnail)
         return m_thumbnail;
+    // available?
     if (!m_thumbnailPath.size())
         return 0;
-    // load thumbnail
     m_thumbnail = new QImage(Settings::instance()->privatePath() + m_thumbnailPath);
     return m_thumbnail;
 }
 
+QString UrlItem::thumbnailPath()
+{
+    if (!m_thumbnail)
+        return QString();
+    if (!m_thumbnailPath.size())
+        m_thumbnailPath = QString::number(m_lastAccess + rand()) + ".png";
+    return m_thumbnailPath;
+}
 

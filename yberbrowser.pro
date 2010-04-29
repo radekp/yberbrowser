@@ -33,10 +33,10 @@ contains(QT_CONFIG, maemo5)  {
     QT += maemo5 dbus
 }
 
-disable_engine_thread {
-    DEFINES+=ENABLE_ENGINE_THREAD=0
-} else {
+enable_engine_thread {
     DEFINES+=ENABLE_ENGINE_THREAD=1
+} else {
+    DEFINES+=ENABLE_ENGINE_THREAD=0
 }
 
 
@@ -109,25 +109,29 @@ symbian {
 
 target.path = $$BINDIR
 INSTALLS += target
+RESOURCES = yberbrowser.qrc
 
 HEADERS = \
   src/ApplicationWindow.h \
   src/ApplicationWindowHost.h \
   src/AutoSelectLineEdit.h \
+  src/AutoScrollTest.h \
   src/BackingStoreVisualizerWidget.h \
+  src/BookmarkStore.h \
   src/BrowsingView.h \
   src/CommonGestureRecognizer.h \
   src/EnvHttpProxyFactory.h \
   src/EventHelpers.h \
   src/Helpers.h \
-  src/HistoryItem.h \
-  src/HistoryView.h \
+  src/HistoryStore.h \
+  src/TileItem.h \
+  src/HomeView.h \
+  src/LinkSelectionItem.h \
   src/PannableViewport.h \
   src/ProgressWidget.h \
   src/ScrollbarItem.h \
   src/Settings.h \
   src/UrlItem.h \
-  src/UrlStore.h \
   src/WebPage.h \
   src/WebView.h \
   src/WebViewportItem.h \
@@ -135,18 +139,21 @@ HEADERS = \
 
 SOURCES = \
   src/AutoSelectLineEdit.cpp \
+  src/AutoScrollTest.cpp \
   src/BackingStoreVisualizerWidget.cpp \
+  src/BookmarkStore.cpp \
   src/BrowsingView.cpp \
   src/CommonGestureRecognizer.cpp \
   src/EnvHttpProxyFactory.cpp\
   src/EventHelpers.cpp \
   src/Helpers.cpp \
-  src/HistoryItem.cpp \
-  src/HistoryView.cpp \
+  src/HistoryStore.cpp \
+  src/TileItem.cpp \
+  src/HomeView.cpp \
+  src/LinkSelectionItem.cpp \
   src/ProgressWidget.cpp \
   src/ScrollbarItem.cpp \
   src/UrlItem.cpp \
-  src/UrlStore.cpp \
   src/WebPage.cpp \
   src/WebView.cpp \
   src/WebViewportItem.cpp \

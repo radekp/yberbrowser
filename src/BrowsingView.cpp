@@ -7,11 +7,15 @@
 #include "ApplicationWindow.h"
 #include "Settings.h"
 #include "BackingStoreVisualizerWidget.h"
-#include "HistoryView.h"
+#include "HomeView.h"
 #include "Helpers.h"
 #include "ProgressWidget.h"
+#include "HistoryStore.h"
+#include "BookmarkStore.h"
 #include <QAction>
 #include <QGraphicsLinearLayout>
+
+#include "AutoScrollTest.h"
 
 #if USE_DUI
 #include <DuiTextEdit>
@@ -34,6 +38,8 @@
 #include <QGraphicsProxyWidget>
 #include <QGLWidget>
 
+#include "qwebframe.h"
+
 /*!
    \class BrowsingView view displaying the web page, e.g the main browser UI.
 */
@@ -45,8 +51,10 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_centralWidget(new QGraphicsWidget(this))
 #endif
     , m_backingStoreVisualizer(0)
-    , m_historyView(0)
-
+    , m_homeView(0)
+    , m_stopbackAction(0)
+    , m_loadIndProgress(false)
+    , m_autoScrollTest(0)
 {
 #if USE_DUI
     setPannableAreaInteractive(false);
@@ -65,7 +73,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     m_browsingViewport->setAutoRange(false);
 
     YberWidget* w = centralWidget();
-    QGraphicsLinearLayout *layout = new QGraphicsLinearLayout(Qt::Vertical, w);
+    QGraphicsLinearLayout* layout = new QGraphicsLinearLayout(Qt::Vertical, w);
     layout->setContentsMargins(0,0,0,0);
     layout->setSpacing(0.);
     layout->addItem(m_browsingViewport);
@@ -73,6 +81,11 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
 
     m_progressBox = new ProgressWidget(m_browsingViewport);
     connectSignals();
+}
+
+BrowsingView::~BrowsingView()
+{
+    delete m_autoScrollTest;
 }
 
 void BrowsingView::connectSignals()
@@ -92,14 +105,13 @@ void BrowsingView::connectSignals()
 
 }
 
-
 YberWidget* BrowsingView::createNavigationToolBar()
 {
 #if USE_DUI
     DuiWidget* naviToolbar = new DuiWidget();
     naviToolbar->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
 
-    QGraphicsLinearLayout *toolbarLayout = new QGraphicsLinearLayout(Qt::Horizontal);
+    QGraphicsLinearLayout* toolbarLayout = new QGraphicsLinearLayout(Qt::Horizontal);
 
 #define DEFINE_TOOLBAR_ITEM(text)  \
     {                              \
@@ -114,7 +126,7 @@ YberWidget* BrowsingView::createNavigationToolBar()
     }
 
     DEFINE_TOOLBAR_ITEM("R");
-    DEFINE_TOOLBAR_ITEM_CB("H", this, SLOT(toggleHistoryView()));
+    DEFINE_TOOLBAR_ITEM_CB("H", this, SLOT(toggleHomeView()));
 
     m_urlEdit = new DuiTextEdit(DuiTextEditModel::SingleLine, QString(), naviToolbar);
     m_urlEdit->setViewType("toolbar");
@@ -141,14 +153,34 @@ YberWidget* BrowsingView::createNavigationToolBar()
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
     connect(m_urlEdit, SIGNAL(editCancelled()), SLOT(updateURL()));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
-    qtoolbar->addAction(style()->standardIcon(QStyle::SP_FileIcon), "APP");
-    qtoolbar->addAction(style()->standardIcon(QStyle::SP_FileIcon), "History", this, SLOT(toggleHistoryView()));
+    qtoolbar->addAction(QIcon(":/data/icon/48x48/history_48.png"), "Home", this, SLOT(toggleHomeView()));
+    qtoolbar->addAction(QIcon(":/data/icon/48x48/bookmarks_48.png"), "Add bookmark", this, SLOT(addBookmark()));
     qtoolbar->addWidget(m_urlEdit);
-    qtoolbar->addAction(m_page->action(QWebPage::Back));
-    qtoolbar->addAction(style()->standardIcon(QStyle::SP_FileIcon), "Fullscreen", this, SLOT(toggleFullScreen()));
+    m_stopbackAction = new QAction(QIcon(":/data/icon/48x48/back_48.png"), "Back", 0);
+    connect(m_stopbackAction, SIGNAL(triggered()), this, SLOT(pageBack()));
+    qtoolbar->addAction(m_stopbackAction);
+    qtoolbar->addAction(QIcon(":/data/icon/48x48/screen_toggle_48.png"), "Fullscreen", this, SLOT(toggleFullScreen()));
     naviToolbar->setWidget(qtoolbar);
 #endif
     return naviToolbar;
+}
+
+void BrowsingView::addBookmark()
+{
+    if (!m_webView || (m_homeView && m_homeView->isActive()))
+        return;
+    if (m_webView->url().isEmpty()) {
+        notification("No page, no save.", m_browsingViewport);
+        return;
+    }
+    // FIXME webkit returns empty favicon
+    BookmarkStore::instance()->add(m_webView->url(), m_webView->title(), QIcon());
+    notification("Bookmark saved.", m_browsingViewport);
+}
+
+YberWidget* BrowsingView::navigationToolbar()
+{
+    return (YberWidget*)centralWidget()->layout()->itemAt(1);
 }
 
 void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
@@ -158,7 +190,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     YberWidget* w = centralWidget();
     w->setGeometry(QRectF(w->pos(), size()));
     w->setPreferredSize(size());
-    updateHistoryView();
+    updateHomeView();
     m_progressBox->updateGeometry(m_browsingViewport->rect());
 
 #if !USE_DUI
@@ -183,6 +215,32 @@ void BrowsingView::load(const QUrl& url)
 */
 }
 
+void BrowsingView::stopLoad()
+{
+    m_webView->triggerPageAction(QWebPage::Stop);
+}
+
+void BrowsingView::pageBack()
+{
+    m_webView->triggerPageAction(QWebPage::Back);
+}
+
+void BrowsingView::showHomeView()
+{
+    createHomeView();
+#if USE_DUI
+    m_homeView->appear(0);
+#else
+    m_homeView->appear(applicationWindow());
+#endif
+}
+
+void BrowsingView::hideHomeView()
+{
+    if (m_homeView && m_homeView->isActive())
+        m_homeView->disappear();
+}
+
 #if !USE_DUI
 
 void BrowsingView::appear(ApplicationWindow *window)
@@ -195,7 +253,7 @@ void BrowsingView::appear(ApplicationWindow *window)
 QMenuBar* BrowsingView::createMenu(QWidget* parent)
 {
     QWebPage* page = m_page;
-    QMenuBar *menuBar = new QMenuBar(parent);
+    QMenuBar* menuBar = new QMenuBar(parent);
 
     QMenu* fileMenu = menuBar->addMenu("&File");
     fileMenu->addAction(new QAction("New Window", this));
@@ -208,6 +266,10 @@ QMenuBar* BrowsingView::createMenu(QWidget* parent)
     viewMenu->addAction(page->action(QWebPage::Reload));
 
     QMenu* developerMenu = menuBar->addMenu("&Developer");
+
+    QAction* fpsTestAction = new QAction("FPS test", this);
+    developerMenu->addAction(fpsTestAction);
+    connect(fpsTestAction, SIGNAL(triggered(bool)), this, SLOT(startAutoScrollTest()));
     
     // fps
     QAction* fpsAction = new QAction("Show FPS", this);
@@ -264,50 +326,43 @@ BrowsingView* BrowsingView::newWindow(const QString &)
     return 0;
 }
 
-void BrowsingView::deleteHistoryView()
+void BrowsingView::createHomeView() 
 {
-    delete m_historyView;
-    m_historyView = 0;
+    if (m_homeView)
+        return;
+    // FIXME: home view invokes should be moved to app framework
+    m_homeView = new HomeView();
+    updateHomeView();
+    connect(m_homeView, SIGNAL(disappeared()), this, SLOT(deleteHomeView()));
+    connect(m_homeView, SIGNAL(urlSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
 }
 
-void BrowsingView::toggleHistoryView()
+void BrowsingView::deleteHomeView()
 {
-    if (!m_historyView) {
-        // FIXME: history view invokes should be moved to app framework
-        m_historyView = new HistoryView();
-        updateHistoryView();
-        connect(m_historyView, SIGNAL(disappeared()), this, SLOT(deleteHistoryView()));
-        connect(m_historyView, SIGNAL(urlSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
-    }
-
-    if (m_historyView->isActive()) {
-        m_historyView->disappear();
-    } else {
-#if USE_DUI
-        m_historyView->appear(0);
-#else
-        m_historyView->appear(applicationWindow());
-#endif
-    }
+    delete m_homeView;
+    m_homeView = 0;
 }
 
-void BrowsingView::hideHistoryView()
+void BrowsingView::toggleHomeView()
 {
-    if (m_historyView && m_historyView->isActive())
-        m_historyView->disappear();
+    createHomeView();
+
+    if (m_homeView->isActive())
+        m_homeView->disappear();
+    else
+        showHomeView();
 }
 
 void BrowsingView::changeLocation()
 {
     // nullify on hitting enter. end  of editing.
-    //m_lastEnteredText.resize(0);
-    hideHistoryView();
+    m_lastEnteredText.resize(0);
+    hideHomeView();
     load(urlFromUserInput(m_urlEdit->text()));
 }
 
-void BrowsingView::urlTextEdited(const QString& )
+void BrowsingView::urlTextEdited(const QString& newText)
 {
-#if 0
     if (!Settings::instance()->autoCompleteEnabled())
         return;
 
@@ -317,7 +372,7 @@ void BrowsingView::urlTextEdited(const QString& )
     // autocomplete only when adding text, not when deleting or backspacing
     if (text.size() > m_lastEnteredText.size()) {
         // todo: make it async
-        QString match = UrlStore::instance()->match(text);
+        QString match = HistoryStore::instance()->match(text);
         if (match.size()) {
             m_urlEdit->setText(match);
             m_urlEdit->setCursorPosition(text.size());
@@ -325,11 +380,9 @@ void BrowsingView::urlTextEdited(const QString& )
         }
     }
     m_lastEnteredText = text;
-#endif
 }
 
-#if 0
-void BrowsingView::updateUrlStore()
+void BrowsingView::updateHistoryStore()
 {
     // render thumbnail
     // todo: render thumbnail if it is really needed
@@ -342,13 +395,13 @@ void BrowsingView::updateUrlStore()
         QPainter p(thumbnail);
         m_page->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
     }
-    UrlStore::instance()->accessed(m_webViewItem->url(), m_webViewItem->title(), thumbnail);
+    HistoryStore::instance()->accessed(m_page->mainFrame()->url(), m_page->mainFrame()->title(), thumbnail);
 }
 
-#endif
-
-void BrowsingView::setLoadInProgress(bool)
+void BrowsingView::setLoadInProgress(bool loadInProgress)
 {
+    m_loadIndProgress = loadInProgress;
+    toggleStopBackIcon();
 }
 
 void BrowsingView::loadStarted()
@@ -361,7 +414,7 @@ void BrowsingView::loadFinished(bool success)
     setLoadInProgress(false);
     updateURL();
     if (success)
-        QTimer::singleShot(1000, this, SLOT(updateUrlStore()));
+        QTimer::singleShot(1000, this, SLOT(updateHistoryStore()));
 }
 
 void BrowsingView::urlChanged(const QUrl& url)
@@ -404,10 +457,10 @@ void BrowsingView::toggleFullScreen()
 #endif
 }
 
-void BrowsingView::updateHistoryView()
+void BrowsingView::updateHomeView()
 {
-    if (m_historyView)
-        m_historyView->setGeometry(m_browsingViewport->geometry());
+    if (m_homeView)
+        m_homeView->setGeometry(m_browsingViewport->geometry());
 }
 
 void BrowsingView::prepareForResize()
@@ -417,3 +470,27 @@ void BrowsingView::prepareForResize()
     m_sizeBeforeResize = m_browsingViewport->size();
 #endif
 }
+
+void BrowsingView::startAutoScrollTest()
+{
+    delete m_autoScrollTest;
+    m_autoScrollTest = new AutoScrollTest(this);
+    connect(m_autoScrollTest, SIGNAL(finished()), this, SLOT(finishedAutoScrollTest()));
+    m_autoScrollTest->starScrollTest();
+}
+
+void BrowsingView::finishedAutoScrollTest()
+{
+    delete m_autoScrollTest;
+    m_autoScrollTest = 0;
+}
+
+void BrowsingView::toggleStopBackIcon()
+{
+    m_stopbackAction->setIcon(QIcon(m_loadIndProgress ? ":/data/icon/48x48/stop_48.png" : ":/data/icon/48x48/back_48.png"));
+    m_stopbackAction->setIconText(m_loadIndProgress ? "Stop" : "Back");
+    
+    disconnect(m_stopbackAction, SIGNAL(triggered()), this, m_loadIndProgress ? SLOT(pageBack()) : SLOT(stopLoad()));
+    connect(m_stopbackAction, SIGNAL(triggered()), this, m_loadIndProgress ? SLOT(stopLoad()) : SLOT(pageBack()));
+}
+

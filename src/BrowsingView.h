@@ -26,9 +26,11 @@ class YberApplication;
 class WebViewportItem;
 class PannableViewport;
 class ApplicationWindow;
-class HistoryView;
+class HomeView;
 class BackingStoreVisualizerWidget;
 class ProgressWidget;
+class QAction;
+class AutoScrollTest;
 
 class BrowsingView : public BrowsingViewBase
 {
@@ -41,12 +43,15 @@ class BrowsingView : public BrowsingViewBase
 
 public:
     BrowsingView(YberApplication&, QGraphicsItem* parent = 0);
-
+    ~BrowsingView();
 
 #if !USE_DUI
     ApplicationWindow* applicationWindow() { return m_appWin; }
     void appear(ApplicationWindow* window);
     YberWidget* centralWidget()  { return m_centralWidget; }
+    PannableViewport* pannableViewport() { return m_browsingViewport; }
+    void showHomeView();
+    void hideHomeView();
 #endif
 public Q_SLOTS:
     void load(const QUrl&);
@@ -54,15 +59,18 @@ public Q_SLOTS:
     void setTitle(const QString&);
 #endif
 
-
-
 protected:
     void resizeEvent(QGraphicsSceneResizeEvent* event);
 
 protected Q_SLOTS:
+    void addBookmark();
+    void stopLoad();
+    void pageBack();
     void changeLocation();
     void urlTextEdited(const QString& newText);
     void urlChanged(const QUrl& url);
+
+    void updateHistoryStore();
 
     void setLoadInProgress(bool);
     void loadStarted();
@@ -76,18 +84,25 @@ protected Q_SLOTS:
 
     void toggleFullScreen();
 
-    void toggleHistoryView();
-    void deleteHistoryView();
+    void createHomeView();
+    void deleteHomeView();
+    void toggleHomeView();
 
     void prepareForResize();
+
+    void startAutoScrollTest();
+    void finishedAutoScrollTest();
 
 private:
     Q_DISABLE_COPY(BrowsingView);
     YberWidget* createNavigationToolBar();
+    YberWidget* navigationToolbar();
     void setFPSCalculation(bool fpsOn);
     void connectSignals();
-    void hideHistoryView();
-    void updateHistoryView();
+    void updateHomeView();
+
+    void toggleStopBackIcon();
+
 #if !USE_DUI
     QMenuBar* createMenu(QWidget* parent);
 #endif
@@ -101,10 +116,14 @@ private:
     WebPage* m_page;
     PannableViewport* m_browsingViewport;
     BackingStoreVisualizerWidget* m_backingStoreVisualizer;
-    HistoryView* m_historyView;
+    HomeView* m_homeView;
     UrlEditWidget* m_urlEdit;
     ProgressWidget* m_progressBox;
     QSizeF m_sizeBeforeResize;
+    QString m_lastEnteredText;
+    QAction* m_stopbackAction;
+    bool m_loadIndProgress;
+    AutoScrollTest* m_autoScrollTest;
 };
 
 

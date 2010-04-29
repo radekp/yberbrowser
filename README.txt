@@ -146,4 +146,11 @@ Windowed, raster, GLWidget for QGraphicsView:
 ./yberbrowser -graphicssystem raster -w -g http://slashdot.org
 
 
+icons
+----
+Thanks to ICONS etc.
+Author:	Mysitemyway.com
+
+http://icons.mysitemyway.com/terms-of-use/
+All royalty free stock icons, clip art and other design resources on this website are free for use in both personal and commercial projects.
 

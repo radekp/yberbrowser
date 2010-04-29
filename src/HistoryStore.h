@@ -1,26 +1,24 @@
-#ifndef UrlStore_h_
-#define UrlStore_h_
+#ifndef HistoryStore_h_
+#define HistoryStore_h_
 
 #include <QObject>
 #include <QList>
 #include <QUrl>
 #include "UrlItem.h"
 
-typedef QList<UrlItem*> UrlList;
-
-class UrlStore : public QObject {
+class HistoryStore : public QObject {
     Q_OBJECT
 public:
-    static UrlStore* instance();    
+    static HistoryStore* instance();    
 
     void accessed(const QUrl& url, const QString& title, QImage* thumbnail);
     bool contains(const QString& url);
     QString match(const QString& url);
-    UrlList& list() { return m_list; }
+    const UrlList& list() const { return m_list; }
 
 private:
-    UrlStore();
-    ~UrlStore();
+    HistoryStore();
+    ~HistoryStore();
 
     void internalize();
     bool matchUrls(const QString& url1, const QString& url2);
@@ -31,8 +29,6 @@ private Q_SLOTS:
 private:
     UrlList m_list;
     bool m_needsPersisting;
-
-    static QString s_thumbnailDir;
 };
 
 #endif

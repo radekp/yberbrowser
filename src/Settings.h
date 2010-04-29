@@ -48,7 +48,11 @@ private:
         m_autoCompleteEnabled = true;
         m_tilingEnabled = true;
         m_engineThreadEnabled = false;
+#if defined(Q_WS_MAEMO_5) || defined(Q_WS_SYMBIAN) || defined(USE_DUI)
         m_isFullScreen = true;
+#else
+        m_isFullScreen = false;
+#endif
     }
 
     bool m_showToolbar;
