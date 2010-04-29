@@ -66,9 +66,9 @@ void PannableTileContainer::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent*
     m_selfSentEvent = 0;
 }
 
-TileBaseWidget::TileBaseWidget(const UrlList& urlList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+TileBaseWidget::TileBaseWidget(UrlList* urlList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_urlList(&urlList)
+    , m_urlList(urlList)
 {
 }
 

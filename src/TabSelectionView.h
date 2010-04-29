@@ -2,10 +2,10 @@
 #define TabSelectionView_h_
 
 #include "TileSelectionViewBase.h"
+#include "UrlItem.h"
 
 class PannableTileContainer;
 class TabWidget;
-class UrlItem;
 
 class TabSelectionView :  public TileSelectionViewBase {
     Q_OBJECT
@@ -29,6 +29,7 @@ private:
 private:
     PannableTileContainer* m_pannableTabContainer;
     TabWidget* m_tabWidget;
+    UrlList m_tabList;
 };
 
 #endif

@@ -28,15 +28,17 @@ const int s_tilePadding = 20;
 class TabWidget : public TileBaseWidget {
     Q_OBJECT
 public:
-    TabWidget(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+    TabWidget(UrlList*, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
 
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 
     void setupWidgetContent();
+
+private:
 };
 
-TabWidget::TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileBaseWidget(HistoryStore::instance()->list(), parent, wFlags)
+TabWidget::TabWidget(UrlList* tabList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+    : TileBaseWidget(tabList, parent, wFlags)
 {
 }
 
@@ -68,8 +70,10 @@ void TabWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
 TabSelectionView::TabSelectionView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(parent, wFlags)
     , m_pannableTabContainer(new PannableTileContainer(this, wFlags))
-    , m_tabWidget(new TabWidget(this, wFlags))
+    , m_tabWidget(new TabWidget(&m_tabList, this, wFlags))
 {
+    m_tabList.append(new UrlItem(QUrl("http://www.google.com"), "googli", 0));
+    m_tabList.append(new UrlItem(QUrl("new window"), "new window", 0));
     m_tabWidget->setZValue(1);
     m_pannableTabContainer->setWidget(m_tabWidget);
     connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));

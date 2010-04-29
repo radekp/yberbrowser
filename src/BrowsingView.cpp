@@ -51,28 +51,26 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_appWin(0)
     , m_centralWidget(new QGraphicsWidget(this))
 #endif
-    , m_backingStoreVisualizer(0)
+    , m_activeWebView(0)
     , m_tabSelectionView(0)
     , m_homeView(0)
     , m_stopbackAction(0)
     , m_loadIndProgress(false)
     , m_autoScrollTest(0)
 {
+    m_webInteractionProxy = new WebViewportItem();
 #if USE_DUI
     setPannableAreaInteractive(false);
-#endif
-    m_webView = new WebView();
-    m_page = new WebPage(m_webView);
-    m_webView->setPage(m_page);
-    WebViewportItem* webInteractionProxy = new WebViewportItem(m_webView);
-
-#if USE_DUI
     m_browsingViewport = new PannableViewport();
-    m_browsingViewport->setWidget(webInteractionProxy);
+    m_browsingViewport->setWidget(m_webInteractionProxy);
 #else
-    m_browsingViewport = new WebViewport(webInteractionProxy);
+    m_browsingViewport = new WebViewport(m_webInteractionProxy);
 #endif
     m_browsingViewport->setAutoRange(false);
+
+    m_progressBox = new ProgressWidget(m_browsingViewport);
+    // create and activate new window
+    newWindow();
 
     YberWidget* w = centralWidget();
     QGraphicsLinearLayout* layout = new QGraphicsLinearLayout(Qt::Vertical, w);
@@ -80,9 +78,6 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     layout->setSpacing(0.);
     layout->addItem(m_browsingViewport);
     layout->addItem(createNavigationToolBar());
-
-    m_progressBox = new ProgressWidget(m_browsingViewport);
-    connectSignals();
 }
 
 BrowsingView::~BrowsingView()
@@ -92,19 +87,32 @@ BrowsingView::~BrowsingView()
     deleteTabSelectionView();
 }
 
-void BrowsingView::connectSignals()
+void BrowsingView::connectSignals(WebView* currentView, WebView* oldView)
 {
-    connect(m_webView, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
-    connect(m_webView, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
-    connect(m_webView, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
-    connect(m_webView, SIGNAL(titleChanged(const QString&)), this, SLOT(setTitle(const QString&)));
-    //connect(m_webPage, SIGNAL(windowCloseRequested()), this, SLOT(close()));
+    if (oldView) {
+        disconnect(oldView, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
+        disconnect(oldView, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
+        disconnect(oldView, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
+        disconnect(oldView, SIGNAL(titleChanged(const QString&)), this, SLOT(setTitle(const QString&)));
 
-    connect(m_webView->page(), SIGNAL(loadStarted()), m_progressBox, SLOT(loadStarted()));
-    connect(m_webView->page(), SIGNAL(loadProgress(int)), m_progressBox, SLOT(progressChanged(int)));
-    connect(m_webView->page(), SIGNAL(loadFinished(bool)), m_progressBox, SLOT(loadFinished(bool)));
+        disconnect(oldView->page(), SIGNAL(loadStarted()), m_progressBox, SLOT(loadStarted()));
+        disconnect(oldView->page(), SIGNAL(loadProgress(int)), m_progressBox, SLOT(progressChanged(int)));
+        disconnect(oldView->page(), SIGNAL(loadFinished(bool)), m_progressBox, SLOT(loadFinished(bool)));
+    #if !USE_DUI
+        disconnect(oldView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
+    #endif
+    }
+
+    connect(currentView, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
+    connect(currentView, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
+    connect(currentView, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
+    connect(currentView, SIGNAL(titleChanged(const QString&)), this, SLOT(setTitle(const QString&)));
+
+    connect(currentView->page(), SIGNAL(loadStarted()), m_progressBox, SLOT(loadStarted()));
+    connect(currentView->page(), SIGNAL(loadProgress(int)), m_progressBox, SLOT(progressChanged(int)));
+    connect(currentView->page(), SIGNAL(loadFinished(bool)), m_progressBox, SLOT(loadFinished(bool)));
 #if !USE_DUI
-    connect(m_webView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
+    connect(currentView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
 #endif
 
 }
@@ -174,14 +182,14 @@ YberWidget* BrowsingView::createNavigationToolBar()
 void BrowsingView::addBookmark()
 {
     // FIXME: check if webviewport is active
-    if (!m_webView)
+    if (!m_activeWebView)
         return;
-    if (m_webView->url().isEmpty()) {
+    if (m_activeWebView->url().isEmpty()) {
         notification("No page, no save.", m_browsingViewport);
         return;
     }
     // FIXME webkit returns empty favicon
-    BookmarkStore::instance()->add(m_webView->url(), m_webView->title(), QIcon());
+    BookmarkStore::instance()->add(m_activeWebView->url(), m_activeWebView->title(), QIcon());
     notification("Bookmark saved.", m_browsingViewport);
 }
 
@@ -209,22 +217,17 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
 void BrowsingView::load(const QUrl& url)
 {
     if (url.isValid())
-        m_webView->load(url.toString());
-
-/*    m_vp->updateGeometry();
-    qDebug() << m_webView->size() << " " << m_vp->size();
-    qDebug() << m_vp->sizeHint(Qt::PreferredSize) << m_vp->sizeHint(Qt::MinimumSize) << m_vp->sizeHint(Qt::MaximumSize) << m_webView->sizeHint(Qt::PreferredSize, QSize());
-*/
+        m_activeWebView->load(url.toString());
 }
 
 void BrowsingView::stopLoad()
 {
-    m_webView->triggerPageAction(QWebPage::Stop);
+    m_activeWebView->triggerPageAction(QWebPage::Stop);
 }
 
 void BrowsingView::pageBack()
 {
-    m_webView->triggerPageAction(QWebPage::Back);
+    m_activeWebView->triggerPageAction(QWebPage::Back);
 }
 
 void BrowsingView::showHomeView()
@@ -256,78 +259,50 @@ void BrowsingView::appear(ApplicationWindow *window)
 
 QMenuBar* BrowsingView::createMenu(QWidget* parent)
 {
-    QWebPage* page = m_page;
     QMenuBar* menuBar = new QMenuBar(parent);
 
     QMenu* fileMenu = menuBar->addMenu("&File");
-    fileMenu->addAction(new QAction("New Window", this));
     fileMenu->addAction(new QAction("Close", this));
-
-    QMenu* viewMenu = menuBar->addMenu("&Navigation");
-    viewMenu->addAction(page->action(QWebPage::Back));
-    viewMenu->addAction(page->action(QWebPage::Forward));
-    viewMenu->addAction(page->action(QWebPage::Stop));
-    viewMenu->addAction(page->action(QWebPage::Reload));
 
     QMenu* developerMenu = menuBar->addMenu("&Developer");
 
     QAction* fpsTestAction = new QAction("FPS test", this);
     developerMenu->addAction(fpsTestAction);
     connect(fpsTestAction, SIGNAL(triggered(bool)), this, SLOT(startAutoScrollTest()));
-    
-    // fps
-    QAction* fpsAction = new QAction("Show FPS", this);
-    fpsAction->setCheckable(true);
-    fpsAction->setChecked(Settings::instance()->FPSEnabled());
-    connect(fpsAction, SIGNAL(toggled(bool)), this, SLOT(showFPSChanged(bool)));
-    developerMenu->addAction(fpsAction);
-    // tiling visualization
-    QAction* tileAction = new QAction("Show tiles", this);
-    tileAction->setCheckable(true);
-    tileAction->setChecked(Settings::instance()->tileVisualizationEnabled());
-    connect(tileAction, SIGNAL(toggled(bool)), this, SLOT(showTilesChanged(bool)));
-    developerMenu->addAction(tileAction);
     return menuBar;
 }
 #endif
 
-void BrowsingView::showFPSChanged(bool )
+void BrowsingView::setActiveWindow(WebView* webView)
 {
-#if 0
-    Settings::instance()->enableFPS(checked);
-    setFPSCalculation(checked);
-#endif
+    connectSignals(webView, m_activeWebView);
+    m_activeWebView = webView;
+    m_webInteractionProxy->setWebView(webView);
 }
 
-void BrowsingView::setFPSCalculation(bool )
+void BrowsingView::destroyWindow(WebView* webView)
 {
-#if 0
-    if (fpsOn) {
-        m_fpsTimerId = startTimer(s_fpsTimerInterval);
-        m_fpsTicks = m_webViewItem->fpsTicks();
-        m_fpsTimestamp.start();
-    } else
-        killTimer(m_fpsTimerId);
-#endif
-}
-
-void BrowsingView::showTilesChanged(bool showTiles)
-{
-    Settings::instance()->enableTileVisualization(showTiles);
-
-    if (showTiles) {
-        if (!m_backingStoreVisualizer) {
-            m_backingStoreVisualizer = new BackingStoreVisualizerWidget(m_webView, centralWidget());
+    // no destroy on last window
+    if (m_windowList.size() == 1)
+        return;
+    for (int i = 0; i < m_windowList.size(); ++i) {
+        if (m_windowList.at(i) == webView) {
+            // current? activate the next one, unless this is the last window
+            if (webView == m_activeWebView)
+                setActiveWindow(m_windowList.at((i == m_windowList.size() - 1) ? m_windowList.size() - 2 : i + 1));
+            delete m_windowList.takeAt(i);
+            break;
         }
-    } else {
-        delete m_backingStoreVisualizer;
-        m_backingStoreVisualizer = 0;
     }
 }
 
-BrowsingView* BrowsingView::newWindow(const QString &)
+WebView* BrowsingView::newWindow()
 {
-    return 0;
+    WebView* webView = new WebView();
+    m_windowList.append(webView);
+    webView->setPage(new WebPage(webView, this));
+    setActiveWindow(webView);
+    return webView;
 }
 
 void BrowsingView::createHomeView() 
@@ -421,14 +396,14 @@ void BrowsingView::updateHistoryStore()
     // todo: render thumbnail if it is really needed
     // todo: update them, right now thumbnails get saved only when accessed first
     QImage* thumbnail = 0;
-    //if (!m_urlStore->contains(m_webViewItem->url().toString())) 
+    //if (!m_urlStore->contains(m_activeWebViewItem->url().toString())) 
     {
         QSize thumbnailSize(500, 400);
         thumbnail = new QImage(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
         QPainter p(thumbnail);
-        m_page->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
+        m_activeWebView->page()->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
     }
-    HistoryStore::instance()->accessed(m_page->mainFrame()->url(), m_page->mainFrame()->title(), thumbnail);
+    HistoryStore::instance()->accessed(m_activeWebView->page()->mainFrame()->url(), m_activeWebView->page()->mainFrame()->title(), thumbnail);
 }
 
 void BrowsingView::setLoadInProgress(bool loadInProgress)
@@ -457,7 +432,7 @@ void BrowsingView::urlChanged(const QUrl& url)
 
 void BrowsingView::updateURL()
 {
-    urlChanged(m_webView->url());
+    urlChanged(m_activeWebView->url());
 }
 
 #if !USE_DUI

@@ -41,7 +41,7 @@ Q_SIGNALS:
     void closeWidget();
 
 protected:
-    TileBaseWidget(const UrlList&, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+    TileBaseWidget(UrlList*, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
 
     void addTiles(const QRectF& rect, int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY, TileItem::TileLayout layout);
 

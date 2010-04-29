@@ -21,7 +21,6 @@ class AutoSelectLineEdit;
 #endif
 
 class WebView;
-class WebPage;
 class YberApplication;
 class WebViewportItem;
 class PannableViewport;
@@ -54,6 +53,10 @@ public:
     PannableViewport* pannableViewport() { return m_browsingViewport; }
     void showHomeView();
     void hideHomeView();
+
+    WebView* newWindow();
+    void setActiveWindow(WebView* webView);
+    void destroyWindow(WebView* webView);
 #endif
 public Q_SLOTS:
     void load(const QUrl&);
@@ -80,10 +83,6 @@ protected Q_SLOTS:
     void loadFinished(bool success);
 
     void updateURL();
-    void showFPSChanged(bool);
-    void showTilesChanged(bool);
-
-    BrowsingView* newWindow(const QString& url);
 
     void toggleFullScreen();
 
@@ -102,8 +101,7 @@ protected Q_SLOTS:
 private:
     Q_DISABLE_COPY(BrowsingView);
     YberWidget* createNavigationToolBar();
-    void setFPSCalculation(bool fpsOn);
-    void connectSignals();
+    void connectSignals(WebView* currentView, WebView* oldView);
     void updateViews();
 
     void toggleStopBackIcon();
@@ -118,10 +116,9 @@ private:
 #endif
 
     QToolBar* m_toolbar;
-    WebView* m_webView;
-    WebPage* m_page;
+    WebView* m_activeWebView;
     PannableViewport* m_browsingViewport;
-    BackingStoreVisualizerWidget* m_backingStoreVisualizer;
+    WebViewportItem* m_webInteractionProxy;
     TabSelectionView* m_tabSelectionView;
     HomeView* m_homeView;
     UrlEditWidget* m_urlEdit;
@@ -131,6 +128,7 @@ private:
     QAction* m_stopbackAction;
     bool m_loadIndProgress;
     AutoScrollTest* m_autoScrollTest;
+    QList<WebView*> m_windowList;
 };
 
 
