@@ -14,6 +14,7 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout)
     , m_layout(layout)
     , m_selected(false)
     , m_defaultIcon(0)
+    , m_closeIcon(0)
 {
     connect(m_urlItem, SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
     if (!m_urlItem->thumbnail())
@@ -27,6 +28,7 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout)
 TileItem::~TileItem()
 {
     delete m_defaultIcon;
+    delete m_closeIcon;
 }
 
 void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
@@ -50,6 +52,12 @@ void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     if (m_selected) {
         painter->setBrush(QColor(80, 80, 80, 160));
         painter->drawRoundRect(rect(), 5, 5);
+    }
+    
+    if (m_closeIcon) {
+        QRectF r(rect().topRight(), m_closeIcon->rect().size());
+        r.moveLeft(r.left() - m_closeIcon->rect().width()/1.3); r.moveTop(r.top() - m_closeIcon->rect().height()/3);        
+        painter->drawImage(r, *m_closeIcon, m_closeIcon->rect());
     }
 }
 
@@ -91,6 +99,17 @@ void TileItem::setGeometry(const QRectF& rect)
     m_bckgGradient.setFinalStop(rect.bottomLeft());
     m_title = QFontMetrics(f).elidedText(m_urlItem->m_title, Qt::ElideRight, m_textRect.width());
 }
+
+void TileItem::setEditMode(bool on) 
+{ 
+    if (on && !m_closeIcon) {
+        m_closeIcon = new QImage(":/data/icon/48x48/close_item_48.png");
+    } else if (!on) {
+        delete m_closeIcon;
+        m_closeIcon = 0;
+    }
+}
+
 
 void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
 {

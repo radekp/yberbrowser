@@ -23,6 +23,8 @@ public:
     void setGeometry(const QRectF& rect);
     UrlItem* urlItem() const { return m_urlItem; }
 
+    void setEditMode(bool on);
+
 public Q_SLOTS:
     void thumbnailChanged() { update(); }
 
@@ -42,6 +44,7 @@ private:
     bool m_selected;
     QLinearGradient m_bckgGradient;
     QImage* m_defaultIcon;
+    QImage* m_closeIcon;
 };
 
 #endif

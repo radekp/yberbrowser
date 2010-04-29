@@ -36,7 +36,9 @@ public:
 
     virtual void setupWidgetContent() = 0;
     void destroyWidgetContent();
-    
+
+    void setEditMode(bool on);
+
 Q_SIGNALS:
     void closeWidget();
 

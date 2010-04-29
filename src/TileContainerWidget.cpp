@@ -77,6 +77,12 @@ TileBaseWidget::~TileBaseWidget()
     destroyWidgetContent();
 }
 
+void TileBaseWidget::setEditMode(bool on) 
+{ 
+    for (int i = 0; i < m_tileList.size(); ++i)
+        m_tileList.at(i)->setEditMode(on);
+}
+
 void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, int vTileNum, int tileHeight, int paddingX, int paddingY, TileItem::TileLayout layout)
 {
     //FIXME figure out how to get parentview

@@ -63,7 +63,7 @@ void TabWidget::setupWidgetContent()
 
     // default 
     int hTileNum = m_urlList->size();
-    int tileWidth = (width / 2) - s_tilePadding;
+    int tileWidth = (width / 3) - s_tilePadding;
     int tileHeight = tileWidth / 1.20;
     
     QRectF r(rect());
@@ -175,6 +175,7 @@ void TabSelectionView::destroyViewItems()
 void TabSelectionView::createViewItems()
 {
     m_tabWidget->setupWidgetContent();
+    m_tabWidget->setEditMode(true);
 }
 
 #include "TabSelectionView.moc"
