@@ -13,6 +13,7 @@ public:
 
     void accessed(const QUrl& url, const QString& title, QImage* thumbnail);
     bool contains(const QString& url);
+    UrlItem* get(const QString& url);
     QString match(const QString& url);
     UrlList* list() { return &m_list; }
 

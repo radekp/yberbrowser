@@ -21,6 +21,7 @@ public:
     ~TileItem();
     
     void setGeometry(const QRectF& rect);
+    UrlItem* urlItem() const { return m_urlItem; }
 
 public Q_SLOTS:
     void thumbnailChanged() { update(); }

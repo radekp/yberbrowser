@@ -275,9 +275,19 @@ QMenuBar* BrowsingView::createMenu(QWidget* parent)
 
 void BrowsingView::setActiveWindow(WebView* webView)
 {
+    // FIXME
+    if (webView == m_activeWebView)
+        return;
+    // invalidate url bar
+    if (m_urlEdit)
+        m_urlEdit->setText(webView->url().toString());
     connectSignals(webView, m_activeWebView);
+    if (m_activeWebView)
+        m_activeWebView->hide();
+    webView->show();
     m_activeWebView = webView;
     m_webInteractionProxy->setWebView(webView);
+    m_webInteractionProxy->setPos(QPointF(0,0));
 }
 
 void BrowsingView::destroyWindow(WebView* webView)
@@ -327,9 +337,11 @@ void BrowsingView::createTabSelectionView()
     if (m_tabSelectionView)
         return;
     // FIXME: home view invokes should be moved to app framework
-    m_tabSelectionView = new TabSelectionView();
+    m_tabSelectionView = new TabSelectionView(m_windowList, m_activeWebView);
     m_tabSelectionView->setGeometry(m_browsingViewport->rect());
     connect(m_tabSelectionView, SIGNAL(disappeared()), this, SLOT(deleteTabSelectionView()));
+    connect(m_tabSelectionView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
+    connect(m_tabSelectionView, SIGNAL(createNewWindow()), this, SLOT(newWindow()));
 }
 
 void BrowsingView::deleteTabSelectionView()

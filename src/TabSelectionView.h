@@ -6,17 +6,20 @@
 
 class PannableTileContainer;
 class TabWidget;
+class WebView;
+class UrlItem;
 
 class TabSelectionView :  public TileSelectionViewBase {
     Q_OBJECT
 public:
-    TabSelectionView(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    TabSelectionView(QList<WebView*>& windowList, WebView* activeWindow, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~TabSelectionView();
 
     void setGeometry(const QRectF& rect);
 
 Q_SIGNALS:
-    void tabSelected();
+    void windowSelected(WebView* webView);
+    void createNewWindow();
 
 public Q_SLOTS:
     void tileItemActivated(UrlItem*);
@@ -29,6 +32,7 @@ private:
 private:
     PannableTileContainer* m_pannableTabContainer;
     TabWidget* m_tabWidget;
+    QList<WebView*>* m_windowList;
     UrlList m_tabList;
 };
 

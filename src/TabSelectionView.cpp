@@ -8,11 +8,10 @@
 #include <QParallelAnimationGroup>
 
 #include "TabSelectionView.h"
-#include "TileContainerWidget.h"
-#include "TileItem.h"
+#include "UrlItem.h"
 #include "HistoryStore.h"
-#include "BookmarkStore.h"
 #include "ApplicationWindow.h"
+#include "WebView.h"
 
 #include <QPropertyAnimation>
 #if USE_DUI
@@ -30,16 +29,32 @@ class TabWidget : public TileBaseWidget {
 public:
     TabWidget(UrlList*, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
 
+    void setActiveTabItem(UrlItem* tabItem) { m_activeTabItem = tabItem; }
+    QRectF activeTabItemRect();  
+
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 
     void setupWidgetContent();
 
 private:
+    UrlItem* m_activeTabItem;
 };
 
 TabWidget::TabWidget(UrlList* tabList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileBaseWidget(tabList, parent, wFlags)
 {
+}
+
+QRectF TabWidget::activeTabItemRect()
+{
+    if (!m_activeTabItem)
+        return QRectF(0, 0, 0, 0);
+
+    for(int i = 0; i < m_tileList.size(); ++i) {
+        if (m_tileList.at(i)->urlItem() == m_activeTabItem)
+            return m_tileList.at(i)->rect();
+    }
+    return QRectF(0, 0, 0, 0);
 }
 
 void TabWidget::setupWidgetContent()
@@ -67,13 +82,31 @@ void TabWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     TileBaseWidget::paint(painter, option, widget);
 }
 
-TabSelectionView::TabSelectionView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
+TabSelectionView::TabSelectionView(QList<WebView*>& windowList, WebView* activeWindow, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(parent, wFlags)
     , m_pannableTabContainer(new PannableTileContainer(this, wFlags))
     , m_tabWidget(new TabWidget(&m_tabList, this, wFlags))
+    , m_windowList(&windowList) 
 {
-    m_tabList.append(new UrlItem(QUrl("http://www.google.com"), "googli", 0));
-    m_tabList.append(new UrlItem(QUrl("new window"), "new window", 0));
+    // create url list out of window list
+    for (int i = 0; i < windowList.size(); ++i) {
+        WebView* view = windowList.at(i);
+        bool pageAvailable = !view->url().isEmpty();
+        QImage* thumbnail = 0;
+    
+        if (pageAvailable) {
+            // get the thumbnail from history view
+            if (UrlItem* item = HistoryStore::instance()->get(view->url().toString()))
+                thumbnail = item->thumbnail();      
+        }
+
+        UrlItem* newItem = new UrlItem(view->url(), pageAvailable ? view->title() : "no page loded yet", thumbnail, view);
+        m_tabList.append(newItem);
+        // remember the active window so that we can scroll to
+        if (view == activeWindow)
+            m_tabWidget->setActiveTabItem(newItem);
+    }
+    m_tabList.append(new UrlItem(QUrl(), "open new window", 0, 0));
     m_tabWidget->setZValue(1);
     m_pannableTabContainer->setWidget(m_tabWidget);
     connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
@@ -102,17 +135,24 @@ void TabSelectionView::setGeometry(const QRectF& rect)
 void TabSelectionView::tileItemActivated(UrlItem* item)
 {
     TileSelectionViewBase::tileItemActivated(item);
+    if (!item->m_context)
+        emit createNewWindow();
+    else
+        emit windowSelected((WebView*)item->m_context);
 }
 
 void TabSelectionView::setupAnimation(bool in)
 {
-    // add both history and bookmark anim
+    // animate all the way down to the current window
     QPropertyAnimation* tabAnim = new QPropertyAnimation(m_tabWidget, "geometry");
     tabAnim->setDuration(800);
     QRectF r(m_tabWidget->geometry());
 
-    if (in)
-        r.moveLeft(rect().left());
+    if (in) {
+        // scroll all the way down to the active item
+        QRectF finishRect(m_tabWidget->activeTabItemRect());
+        r.moveLeft(finishRect.left() > 0 ? rect().center().x() - (finishRect.left() + finishRect.width()/2) : rect().left());
+    }
     QRectF hiddenWidget(r); hiddenWidget.moveLeft(r.right());
 
     tabAnim->setStartValue(in ?  hiddenWidget : r);

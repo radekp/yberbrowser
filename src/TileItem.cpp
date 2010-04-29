@@ -104,6 +104,7 @@ void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
 void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
 {
     m_selected = true;
-    emit itemActivated(m_urlItem);
+    emit itemActivated(m_urlItem
+);
 }
 

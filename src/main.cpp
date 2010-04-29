@@ -179,8 +179,7 @@ int main(int argc, char** argv)
         QWebSettings::enableEngineThread();
 #endif
     
-    if (settings->tileCacheEnabled())
-        QWebSettings::globalSettings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, true);
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, settings->tileCacheEnabled());
 
     app.start();
     app.createMainView(urlFromUserInput(url));

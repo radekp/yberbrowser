@@ -54,12 +54,12 @@ public:
     void showHomeView();
     void hideHomeView();
 
-    WebView* newWindow();
-    void setActiveWindow(WebView* webView);
-    void destroyWindow(WebView* webView);
 #endif
 public Q_SLOTS:
     void load(const QUrl&);
+    WebView* newWindow();
+    void destroyWindow(WebView* webView);
+    void setActiveWindow(WebView* webView);
 #if !USE_DUI
     void setTitle(const QString&);
 #endif
