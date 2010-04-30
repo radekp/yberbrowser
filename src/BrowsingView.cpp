@@ -403,14 +403,15 @@ void BrowsingView::urlEditfocusChanged(bool focused)
     }
 }
 
-void BrowsingView::updateHistoryStore()
+void BrowsingView::updateHistoryStore(bool successLoad)
 {
     // render thumbnail
-    // todo: render thumbnail if it is really needed
-    // todo: update them, right now thumbnails get saved only when accessed first
     QImage* thumbnail = 0;
-    //if (!m_urlStore->contains(m_activeWebViewItem->url().toString())) 
-    {
+    UrlItem* item = HistoryStore::instance()->get(m_activeWebView->page()->mainFrame()->url().toString());
+    // update thumbnail even if load failed (cancelled?) when there is no thumbnail yet.
+    bool update = successLoad || !item || (item && !item->thumbnailAvailable());
+
+    if (update) {
         QSize thumbnailSize(500, 400);
         thumbnail = new QImage(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
         QPainter p(thumbnail);
@@ -434,8 +435,8 @@ void BrowsingView::loadFinished(bool success)
 {
     setLoadInProgress(false);
     updateURL();
-    if (success)
-        QTimer::singleShot(1000, this, SLOT(updateHistoryStore()));
+    updateHistoryStore(success);
+//    QTimer::singleShot(1000, this, SLOT(updateHistoryStore()));
 }
 
 void BrowsingView::urlChanged(const QUrl& url)

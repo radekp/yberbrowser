@@ -146,8 +146,7 @@ void TabSelectionView::tileItemEdited(UrlItem* item)
     TileSelectionViewBase::tileItemEdited(item);
     if (item->m_context) {
         emit windowClosed((WebView*)item->m_context);
-        // FIXME close the view for now. change it when the generic, 'remove item' feature is added.
-        disappear();
+        m_tabWidget->removeTile(*item);
     }
 }
 

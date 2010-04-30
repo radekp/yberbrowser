@@ -27,7 +27,8 @@ const int s_minTileWidth = 170;
 const int s_maxTileWidth = 200;
 const int s_defaultTileNumH = 3;
 const int s_defaultTileNumV = 6;
-const int s_tilePadding = 20;
+const int s_tileHistoryPadding = 10;
+const int s_tileBookmarkPadding = -5;
 const int s_bookmarkStripeHeight = 70;
 const int s_bookmarksTileWidth = 120;
 const QColor s_TitleTextColor(0xFA, 0xFA, 0xFA);
@@ -93,7 +94,7 @@ void HistoryWidget::setupWidgetContent()
 
     tileHeight = qMin(tileHeight, maxHeight);
 
-    addTiles(rect(), hTileNum, tileWidth, vTileNum, tileHeight, s_tilePadding, s_tilePadding, TileItem::Vertical);
+    addTiles(rect(), hTileNum, tileWidth, vTileNum, tileHeight, s_tileHistoryPadding, s_tileHistoryPadding, TileItem::Vertical);
 }
 
 BookmarkWidget::BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
@@ -126,7 +127,7 @@ void BookmarkWidget::setupWidgetContent()
     m_bckgGradient.setStart(r.topLeft());
     m_bckgGradient.setFinalStop(r.bottomLeft());
     r.adjust(50, 10, -15, 0);
-    addTiles(r, qMin(m_urlList->size(), (int)(r.width() / s_bookmarksTileWidth)), s_bookmarksTileWidth, 1, r.height() - 10, 5, 0, TileItem::Horizontal);
+    addTiles(r, qMin(m_urlList->size(), (int)(r.width() / s_bookmarksTileWidth)), s_bookmarksTileWidth, 1, r.height() - 10, s_tileBookmarkPadding, s_tileBookmarkPadding, TileItem::Horizontal);
 }
 
 HomeView::HomeView(QGraphicsItem* parent, Qt::WindowFlags wFlags)

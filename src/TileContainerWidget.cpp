@@ -4,6 +4,8 @@
 #include <QGraphicsScene>
 #include <QGraphicsItem>
 #include <QGraphicsSceneMouseEvent>
+#include <QParallelAnimationGroup>
+#include <QPropertyAnimation>
 
 PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : PannableViewport(parent, wFlags)
@@ -69,12 +71,14 @@ void PannableTileContainer::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent*
 TileBaseWidget::TileBaseWidget(UrlList* urlList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_urlList(urlList)
+    , m_slideAnimationGroup(0)
 {
 }
 
 TileBaseWidget::~TileBaseWidget()
 {
     destroyWidgetContent();
+    delete m_slideAnimationGroup;
 }
 
 void TileBaseWidget::setEditMode(bool on) 
@@ -114,6 +118,23 @@ void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, i
     }
 }
 
+void TileBaseWidget::removeTile(UrlItem& removed)
+{
+    if (!m_slideAnimationGroup)
+        m_slideAnimationGroup = new QParallelAnimationGroup();
+
+    m_slideAnimationGroup->clear();
+    for (int i = 0; i < m_tileList.size(); ++i) {
+        if (m_tileList.at(i)->urlItem() == &removed) {
+            for (int j = m_tileList.size() - 1; j > i; --j)
+                addMoveAnimation(*m_tileList.at(j), m_tileList[j]->rect(), m_tileList[j-1]->rect());
+            delete m_tileList.takeAt(i);
+            break;
+        }
+    }
+    m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
+}
+
 void TileBaseWidget::destroyWidgetContent()
 {
     for (int i = m_tileList.size() - 1; i >= 0; --i)
@@ -124,4 +145,18 @@ void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
 {
     emit closeWidget();
 }
+
+void TileBaseWidget::addMoveAnimation(TileItem& item, const QRectF& oldPos, const QRectF& newPos)
+{
+    // animate all the way down to the current window
+    QPropertyAnimation* moveAnim = new QPropertyAnimation(&item, "geometry");
+    moveAnim->setDuration(800);
+
+    moveAnim->setStartValue(oldPos);
+    moveAnim->setEndValue(newPos);
+
+    moveAnim->setEasingCurve(QEasingCurve::OutBack);
+    m_slideAnimationGroup->addAnimation(moveAnim);
+}
+
 

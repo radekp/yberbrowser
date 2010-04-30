@@ -8,6 +8,7 @@
 #include "TileItem.h"
 
 class QGraphicsSceneMouseEvent;
+class QParallelAnimationGroup;
 
 class PannableTileContainer : public PannableViewport, private CommonGestureConsumer {
     Q_OBJECT
@@ -38,6 +39,7 @@ public:
     void destroyWidgetContent();
 
     void setEditMode(bool on);
+    void removeTile(UrlItem& removed);
 
 Q_SIGNALS:
     void closeWidget();
@@ -53,6 +55,10 @@ protected:
 
 private:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent*);
+    void addMoveAnimation(TileItem& item, const QRectF& oldPos, const QRectF& newPos);
+
+private:
+    QParallelAnimationGroup* m_slideAnimationGroup;
 };
 
 #endif

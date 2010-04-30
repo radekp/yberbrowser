@@ -6,10 +6,10 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsSceneMouseEvent>
 #include <QParallelAnimationGroup>
+#include <QPropertyAnimation>
 
 #include "ApplicationWindow.h"
 
-#include <QPropertyAnimation>
 #if USE_DUI
 #include <DuiScene>
 #endif

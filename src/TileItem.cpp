@@ -9,6 +9,8 @@
 #include "TileItem.h"
 #include "UrlItem.h"
 
+const int s_padding = 10;
+
 TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout)
     : QGraphicsRectItem(parent)
     , m_urlItem(&urlItem)
@@ -36,13 +38,14 @@ void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
 {
     QFont f("Times", 10);
     painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
+    QRectF r(rect()); r.adjust(s_padding, s_padding, -s_padding, -s_padding);
 
     // QGraphicsDropShadowEffect doesnt perform well on n900.
-    addDropShadow(*painter, rect());
+    addDropShadow(*painter, r);
 
     painter->setBrush(m_bckgGradient);
     painter->setPen(Qt::black);
-    painter->drawRoundedRect(rect(), 5, 5);
+    painter->drawRoundedRect(r, 5, 5);
     QImage* image = m_defaultIcon ? m_defaultIcon : m_urlItem->thumbnail();
     painter->drawImage(m_thumbnailRect, *image, image->rect());
 
@@ -55,13 +58,16 @@ void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
 
     if (m_selected) {
         painter->setBrush(QColor(80, 80, 80, 160));
-        painter->drawRoundRect(rect(), 5, 5);
+        painter->drawRoundRect(r, 5, 5);
     }
 }
 
 void TileItem::setGeometry(const QRectF& rect)
 {
+    QRectF oldRect(geometry());
     setRect(rect);
+
+    QRectF r(rect); r.adjust(s_padding, s_padding, -s_padding, -s_padding);
 
     if (!m_urlItem)    
         return;
@@ -69,8 +75,8 @@ void TileItem::setGeometry(const QRectF& rect)
     QFont f("Times", 10);
     
     m_title = "";
-    m_thumbnailRect = rect;
-    m_textRect = rect;
+    m_thumbnailRect = r;
+    m_textRect = r;
 
     QImage* tn = m_urlItem->thumbnail();
     if (!tn)
@@ -78,7 +84,7 @@ void TileItem::setGeometry(const QRectF& rect)
 
     if (m_layout == Horizontal) {
         // thumbnail comes in front of the text, middle positioned
-        m_thumbnailRect.moveTop(rect.center().y() - tn->rect().height()/2);
+        m_thumbnailRect.moveTop(r.center().y() - tn->rect().height()/2);
         m_thumbnailRect.moveLeft(m_thumbnailRect.left() + 2);
         m_thumbnailRect.setSize(tn->rect().size());
         // fix center positioning
@@ -86,7 +92,7 @@ void TileItem::setGeometry(const QRectF& rect)
     } else if (m_layout == Vertical) {
         if (m_defaultIcon) {
             m_thumbnailRect.setSize(m_defaultIcon->rect().size());
-            m_thumbnailRect.moveCenter(rect.center());
+            m_thumbnailRect.moveCenter(r.center());
         } else {
             // stretch thumbnail
             m_thumbnailRect.adjust(2, 2, -2, -(QFontMetrics(f).height() + 3));
@@ -95,9 +101,10 @@ void TileItem::setGeometry(const QRectF& rect)
     
     setEditIconRect();
 
-    m_bckgGradient.setStart(rect.topLeft());
-    m_bckgGradient.setFinalStop(rect.bottomLeft());
-    m_title = QFontMetrics(f).elidedText(m_urlItem->m_title, Qt::ElideRight, m_textRect.width());
+    m_bckgGradient.setStart(r.topLeft());
+    m_bckgGradient.setFinalStop(r.bottomLeft());
+    if (oldRect.size() != rect.size())
+        m_title = QFontMetrics(f).elidedText(m_urlItem->m_title, Qt::ElideRight, m_textRect.width());
 }
 
 void TileItem::setEditMode(bool on) 
@@ -111,13 +118,23 @@ void TileItem::setEditMode(bool on)
     }
 }
 
+void TileItem::thumbnailChanged() 
+{ 
+    // new thumbnail? 
+    if (m_defaultIcon && m_urlItem->thumbnailAvailable()) {
+        delete m_defaultIcon;
+        m_defaultIcon = 0;
+    }
+    update(); 
+}
+
 void TileItem::setEditIconRect()
 {
     if (!m_editIcon)
         return;
     m_editIconRect = QRectF(rect().topRight(), m_editIcon->rect().size());
-    m_editIconRect.moveLeft(m_editIconRect.left() - m_editIcon->rect().width()/1.3); 
-    m_editIconRect.moveTop(m_editIconRect.top() - m_editIcon->rect().height()/3);        
+    m_editIconRect.moveRight(rect().right() + 5);
+    m_editIconRect.moveTop(rect().top() - 5);
 }
 
 void TileItem::addDropShadow(QPainter& painter, const QRectF rect)

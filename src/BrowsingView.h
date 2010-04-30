@@ -76,7 +76,7 @@ protected Q_SLOTS:
     void urlEditfocusChanged(bool);
     void urlChanged(const QUrl& url);
 
-    void updateHistoryStore();
+    void updateHistoryStore(bool successLoad);
 
     void setLoadInProgress(bool);
     void loadStarted();

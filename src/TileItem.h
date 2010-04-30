@@ -11,7 +11,7 @@ class UrlItem;
 
 class TileItem : public QObject, public QGraphicsRectItem {
     Q_OBJECT
-    Q_PROPERTY(QPointF pos READ pos WRITE setPos)
+    Q_PROPERTY(QRectF geometry READ geometry WRITE setGeometry)
 public:
     enum TileLayout {
         Horizontal,
@@ -21,12 +21,13 @@ public:
     ~TileItem();
     
     void setGeometry(const QRectF& rect);
+    QRectF geometry() { return rect(); }
     UrlItem* urlItem() const { return m_urlItem; }
 
     void setEditMode(bool on);
 
 public Q_SLOTS:
-    void thumbnailChanged() { update(); }
+    void thumbnailChanged();
 
 Q_SIGNALS:
     void itemActivated(UrlItem*);
