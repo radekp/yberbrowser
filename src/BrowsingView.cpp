@@ -37,7 +37,6 @@
 #endif
 
 #include <QGraphicsProxyWidget>
-#include <QGLWidget>
 
 #include "qwebframe.h"
 
