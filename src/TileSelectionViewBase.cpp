@@ -95,10 +95,6 @@ void TileSelectionViewBase::tileItemActivated(UrlItem* /*item*/)
     disappear();
 }
 
-void TileSelectionViewBase::tileItemEdited(UrlItem* /*item*/)
-{
-}
-
 void TileSelectionViewBase::startAnimation(bool in)
 {
     // ongoing?

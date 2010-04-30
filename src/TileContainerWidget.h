@@ -21,9 +21,12 @@ protected:
     void cancelLeftMouseButtonPress(const QPoint&);
 
     void mousePressEventFromChild(QGraphicsSceneMouseEvent*);
-    void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* event);
-    void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent*) {}
+    void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent*);
+    void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent*);
     void adjustClickPosition(QPointF&) {}
+
+private:
+    void forwardEvent(QGraphicsSceneMouseEvent*);
 
 private:
     CommonGestureRecognizer m_recognizer;
@@ -39,6 +42,7 @@ public:
     void destroyWidgetContent();
 
     void setEditMode(bool on);
+    bool editMode() const { return m_editMode; }
     void removeTile(UrlItem& removed);
 
 Q_SIGNALS:
@@ -55,10 +59,11 @@ protected:
 
 private:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent*);
-    void addMoveAnimation(TileItem& item, const QRectF& oldPos, const QRectF& newPos);
+    void addMoveAnimation(TileItem& item, int delay, const QRectF& oldPos, const QRectF& newPos);
 
 private:
     QParallelAnimationGroup* m_slideAnimationGroup;
+    bool m_editMode;
 };
 
 #endif

@@ -141,9 +141,9 @@ void TabSelectionView::tileItemActivated(UrlItem* item)
         emit windowSelected((WebView*)item->m_context);
 }
 
-void TabSelectionView::tileItemEdited(UrlItem* item)
+void TabSelectionView::tileItemClosed(UrlItem* item)
 {
-    TileSelectionViewBase::tileItemEdited(item);
+    TileSelectionViewBase::tileItemClosed(item);
     if (item->m_context) {
         emit windowClosed((WebView*)item->m_context);
         m_tabWidget->removeTile(*item);

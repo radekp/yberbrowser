@@ -28,14 +28,17 @@ public:
 
 public Q_SLOTS:
     void thumbnailChanged();
+    void invalidateClick();
 
 Q_SIGNALS:
     void itemActivated(UrlItem*);
-    void itemEdited(UrlItem*);
+    void itemClosed(UrlItem*);
+    void itemEditingMode(UrlItem*);
 
 private:
-    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
-    virtual void mousePressEvent(QGraphicsSceneMouseEvent* event);
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
+    void mousePressEvent(QGraphicsSceneMouseEvent* event);
+    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event);
     void setEditIconRect();
     void addDropShadow(QPainter& painter, const QRectF rect);
 
@@ -48,8 +51,9 @@ private:
     bool m_selected;
     QLinearGradient m_bckgGradient;
     QImage* m_defaultIcon;
-    QImage* m_editIcon;
-    QRectF m_editIconRect;
+    QImage* m_closeIcon;
+    QRectF m_closeIconRect;
+    bool m_dclick;
 };
 
 #endif

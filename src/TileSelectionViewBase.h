@@ -26,7 +26,8 @@ public Q_SLOTS:
     void disappear();
     void animFinished();
     virtual void tileItemActivated(UrlItem* item);
-    virtual void tileItemEdited(UrlItem* item);
+    virtual void tileItemClosed(UrlItem*) {}
+    virtual void tileItemEditingMode(UrlItem*) {}
 
 protected:
     void startAnimation(bool);

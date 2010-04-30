@@ -183,12 +183,19 @@ void HomeView::tileItemActivated(UrlItem* item)
     emit urlSelected(item->m_url);
 }
 
-void HomeView::tileItemEdited(UrlItem* item)
+void HomeView::tileItemClosed(UrlItem* item)
 {
-    TileSelectionViewBase::tileItemEdited(item);
+    TileSelectionViewBase::tileItemClosed(item);
+    m_historyWidget->removeTile(*item);
+}
 
-    if (!item)
-        return;
+void HomeView::tileItemEditingMode(UrlItem* item)
+{
+    TileSelectionViewBase::tileItemEditingMode(item);
+    // FIXME bookmarks, not yet.
+    //m_bookmarkWidget->setEditMode(!m_bookmarkWidget->editMode());
+    m_historyWidget->setEditMode(!m_historyWidget->editMode());
+    update();
 }
 
 void HomeView::setupAnimation(bool in)

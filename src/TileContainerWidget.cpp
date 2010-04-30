@@ -56,12 +56,20 @@ void PannableTileContainer::cancelLeftMouseButtonPress(const QPoint&)
 
 void PannableTileContainer::mousePressEventFromChild(QGraphicsSceneMouseEvent* event)
 {
-    m_selfSentEvent = event;
-    QApplication::sendEvent(scene(), event);
-    m_selfSentEvent = 0;
+    forwardEvent(event);
 }
 
 void PannableTileContainer::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* event)
+{
+    forwardEvent(event);
+}
+
+void  PannableTileContainer::mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent* event)
+{
+    forwardEvent(event);
+}
+
+void PannableTileContainer::forwardEvent(QGraphicsSceneMouseEvent* event)
 {
     m_selfSentEvent = event;
     QApplication::sendEvent(scene(), event);
@@ -72,6 +80,7 @@ TileBaseWidget::TileBaseWidget(UrlList* urlList, QGraphicsItem* parent, Qt::Wind
     : QGraphicsWidget(parent, wFlags)
     , m_urlList(urlList)
     , m_slideAnimationGroup(0)
+    , m_editMode(false)
 {
 }
 
@@ -83,6 +92,7 @@ TileBaseWidget::~TileBaseWidget()
 
 void TileBaseWidget::setEditMode(bool on) 
 { 
+    m_editMode = on;
     for (int i = 0; i < m_tileList.size(); ++i)
         m_tileList.at(i)->setEditMode(on);
 }
@@ -108,7 +118,8 @@ void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, i
             // create new tile item
             TileItem* item = new TileItem(this, *m_urlList->at(itemIndex), layout);
             connect(item, SIGNAL(itemActivated(UrlItem*)), parentView, SLOT(tileItemActivated(UrlItem*)));
-            connect(item, SIGNAL(itemEdited(UrlItem*)), parentView, SLOT(tileItemEdited(UrlItem*)));
+            connect(item, SIGNAL(itemClosed(UrlItem*)), parentView, SLOT(tileItemClosed(UrlItem*)));
+            connect(item, SIGNAL(itemEditingMode(UrlItem*)), parentView, SLOT(tileItemEditingMode(UrlItem*)));
             // padding
             item->setGeometry(QRectF(x + paddingX, y + paddingY, tileWidth - (2*paddingX), tileHeight  - (2*paddingY)));
             m_tileList.append(item);
@@ -127,7 +138,7 @@ void TileBaseWidget::removeTile(UrlItem& removed)
     for (int i = 0; i < m_tileList.size(); ++i) {
         if (m_tileList.at(i)->urlItem() == &removed) {
             for (int j = m_tileList.size() - 1; j > i; --j)
-                addMoveAnimation(*m_tileList.at(j), m_tileList[j]->rect(), m_tileList[j-1]->rect());
+                addMoveAnimation(*m_tileList.at(j), (j - i) * 100, m_tileList[j]->rect(), m_tileList[j-1]->rect());
             delete m_tileList.takeAt(i);
             break;
         }
@@ -146,11 +157,11 @@ void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
     emit closeWidget();
 }
 
-void TileBaseWidget::addMoveAnimation(TileItem& item, const QRectF& oldPos, const QRectF& newPos)
+void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QRectF& oldPos, const QRectF& newPos)
 {
     // animate all the way down to the current window
     QPropertyAnimation* moveAnim = new QPropertyAnimation(&item, "geometry");
-    moveAnim->setDuration(800);
+    moveAnim->setDuration(500 + delay);
 
     moveAnim->setStartValue(oldPos);
     moveAnim->setEndValue(newPos);

@@ -3,6 +3,7 @@
 #include <QGraphicsWidget>
 #include <QGraphicsSimpleTextItem>
 #include <QtGlobal>
+#include <QTimer>
 #include <QDebug>
 #include <QGraphicsSceneMouseEvent>
 
@@ -17,7 +18,8 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout)
     , m_layout(layout)
     , m_selected(false)
     , m_defaultIcon(0)
-    , m_editIcon(0)
+    , m_closeIcon(0)
+    , m_dclick(false)
 {
     connect(m_urlItem, SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
     if (!m_urlItem->thumbnail())
@@ -31,7 +33,7 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout)
 TileItem::~TileItem()
 {
     delete m_defaultIcon;
-    delete m_editIcon;
+    delete m_closeIcon;
 }
 
 void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
@@ -53,8 +55,8 @@ void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     painter->setPen(QColor(0, 0, 0));
     painter->drawText(m_textRect, Qt::AlignHCenter|(m_layout == Horizontal ? Qt::AlignVCenter : Qt::AlignBottom), m_title);
 
-    if (m_editIcon)
-        painter->drawImage(m_editIconRect, *m_editIcon, m_editIcon->rect());
+    if (m_closeIcon)
+        painter->drawImage(m_closeIconRect, *m_closeIcon, m_closeIcon->rect());
 
     if (m_selected) {
         painter->setBrush(QColor(80, 80, 80, 160));
@@ -109,12 +111,12 @@ void TileItem::setGeometry(const QRectF& rect)
 
 void TileItem::setEditMode(bool on) 
 { 
-    if (on && !m_editIcon) {
-        m_editIcon = new QImage(":/data/icon/48x48/close_item_48.png");
+    if (on && !m_closeIcon) {
+        m_closeIcon = new QImage(":/data/icon/48x48/close_item_48.png");
         setEditIconRect();
     } else if (!on) {
-        delete m_editIcon;
-        m_editIcon = 0;
+        delete m_closeIcon;
+        m_closeIcon = 0;
     }
 }
 
@@ -130,11 +132,11 @@ void TileItem::thumbnailChanged()
 
 void TileItem::setEditIconRect()
 {
-    if (!m_editIcon)
+    if (!m_closeIcon)
         return;
-    m_editIconRect = QRectF(rect().topRight(), m_editIcon->rect().size());
-    m_editIconRect.moveRight(rect().right() + 5);
-    m_editIconRect.moveTop(rect().top() - 5);
+    m_closeIconRect = QRectF(rect().topRight(), m_closeIcon->rect().size());
+    m_closeIconRect.moveRight(rect().right() + 5);
+    m_closeIconRect.moveTop(rect().top() - 5);
 }
 
 void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
@@ -148,11 +150,28 @@ void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
 
 void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
-    if (m_editIcon && m_editIconRect.contains(event->pos())) {
-        emit itemEdited(m_urlItem);
+    if (m_dclick)
+        return;
+
+    if (m_closeIcon && m_closeIconRect.contains(event->pos())) {
+        emit itemClosed(m_urlItem);
     } else {    
         m_selected = true;
         emit itemActivated(m_urlItem);
     }
+}
+
+void TileItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* /*event*/)
+{
+    // half second timeout to distingush double click from click.
+    // FIXME: this should be managed very differently. need to look at the gesture consumer
+    m_dclick = true;
+    QTimer::singleShot(500, this, SLOT(invalidateClick()));
+    emit itemEditingMode(m_urlItem);
+}
+
+void TileItem::invalidateClick()
+{
+    m_dclick = false;
 }
 

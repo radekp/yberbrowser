@@ -21,7 +21,8 @@ Q_SIGNALS:
 
 public Q_SLOTS:
     void tileItemActivated(UrlItem*);
-    void tileItemEdited(UrlItem*);
+    void tileItemClosed(UrlItem*);
+    void tileItemEditingMode(UrlItem*);
 
 private:
     void setupAnimation(bool);
