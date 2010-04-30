@@ -4,6 +4,7 @@
 #include <QGraphicsSimpleTextItem>
 #include <QtGlobal>
 #include <QDebug>
+#include <QGraphicsSceneMouseEvent>
 
 #include "TileItem.h"
 #include "UrlItem.h"
@@ -14,7 +15,7 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout)
     , m_layout(layout)
     , m_selected(false)
     , m_defaultIcon(0)
-    , m_closeIcon(0)
+    , m_editIcon(0)
 {
     connect(m_urlItem, SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
     if (!m_urlItem->thumbnail())
@@ -28,7 +29,7 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout)
 TileItem::~TileItem()
 {
     delete m_defaultIcon;
-    delete m_closeIcon;
+    delete m_editIcon;
 }
 
 void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
@@ -49,15 +50,12 @@ void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     painter->setPen(QColor(0, 0, 0));
     painter->drawText(m_textRect, Qt::AlignHCenter|(m_layout == Horizontal ? Qt::AlignVCenter : Qt::AlignBottom), m_title);
 
+    if (m_editIcon)
+        painter->drawImage(m_editIconRect, *m_editIcon, m_editIcon->rect());
+
     if (m_selected) {
         painter->setBrush(QColor(80, 80, 80, 160));
         painter->drawRoundRect(rect(), 5, 5);
-    }
-    
-    if (m_closeIcon) {
-        QRectF r(rect().topRight(), m_closeIcon->rect().size());
-        r.moveLeft(r.left() - m_closeIcon->rect().width()/1.3); r.moveTop(r.top() - m_closeIcon->rect().height()/3);        
-        painter->drawImage(r, *m_closeIcon, m_closeIcon->rect());
     }
 }
 
@@ -94,6 +92,8 @@ void TileItem::setGeometry(const QRectF& rect)
             m_thumbnailRect.adjust(2, 2, -2, -(QFontMetrics(f).height() + 3));
         }
     }
+    
+    setEditIconRect();
 
     m_bckgGradient.setStart(rect.topLeft());
     m_bckgGradient.setFinalStop(rect.bottomLeft());
@@ -102,14 +102,23 @@ void TileItem::setGeometry(const QRectF& rect)
 
 void TileItem::setEditMode(bool on) 
 { 
-    if (on && !m_closeIcon) {
-        m_closeIcon = new QImage(":/data/icon/48x48/close_item_48.png");
+    if (on && !m_editIcon) {
+        m_editIcon = new QImage(":/data/icon/48x48/close_item_48.png");
+        setEditIconRect();
     } else if (!on) {
-        delete m_closeIcon;
-        m_closeIcon = 0;
+        delete m_editIcon;
+        m_editIcon = 0;
     }
 }
 
+void TileItem::setEditIconRect()
+{
+    if (!m_editIcon)
+        return;
+    m_editIconRect = QRectF(rect().topRight(), m_editIcon->rect().size());
+    m_editIconRect.moveLeft(m_editIconRect.left() - m_editIcon->rect().width()/1.3); 
+    m_editIconRect.moveTop(m_editIconRect.top() - m_editIcon->rect().height()/3);        
+}
 
 void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
 {
@@ -120,10 +129,13 @@ void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
     painter.drawRoundedRect(r, 5, 5);
 }
 
-void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
+void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
-    m_selected = true;
-    emit itemActivated(m_urlItem
-);
+    if (m_editIcon && m_editIconRect.contains(event->pos())) {
+        emit itemEdited(m_urlItem);
+    } else {    
+        m_selected = true;
+        emit itemActivated(m_urlItem);
+    }
 }
 

@@ -19,10 +19,12 @@ public:
 
 Q_SIGNALS:
     void windowSelected(WebView* webView);
+    void windowClosed(WebView* webView);
     void createNewWindow();
 
 public Q_SLOTS:
     void tileItemActivated(UrlItem*);
+    void tileItemEdited(UrlItem*);
 
 private:
     void setupAnimation(bool);

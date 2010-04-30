@@ -141,6 +141,16 @@ void TabSelectionView::tileItemActivated(UrlItem* item)
         emit windowSelected((WebView*)item->m_context);
 }
 
+void TabSelectionView::tileItemEdited(UrlItem* item)
+{
+    TileSelectionViewBase::tileItemEdited(item);
+    if (item->m_context) {
+        emit windowClosed((WebView*)item->m_context);
+        // FIXME close the view for now. change it when the generic, 'remove item' feature is added.
+        disappear();
+    }
+}
+
 void TabSelectionView::setupAnimation(bool in)
 {
     // animate all the way down to the current window
@@ -174,7 +184,7 @@ void TabSelectionView::destroyViewItems()
 
 void TabSelectionView::createViewItems()
 {
-    m_tabWidget->setupWidgetContent();
+   m_tabWidget->setupWidgetContent();
     m_tabWidget->setEditMode(true);
 }
 

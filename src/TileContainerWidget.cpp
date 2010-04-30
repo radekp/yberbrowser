@@ -104,6 +104,7 @@ void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, i
             // create new tile item
             TileItem* item = new TileItem(this, *m_urlList->at(itemIndex), layout);
             connect(item, SIGNAL(itemActivated(UrlItem*)), parentView, SLOT(tileItemActivated(UrlItem*)));
+            connect(item, SIGNAL(itemEdited(UrlItem*)), parentView, SLOT(tileItemEdited(UrlItem*)));
             // padding
             item->setGeometry(QRectF(x + paddingX, y + paddingY, tileWidth - (2*paddingX), tileHeight  - (2*paddingY)));
             m_tileList.append(item);

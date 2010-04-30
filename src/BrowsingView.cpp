@@ -341,6 +341,7 @@ void BrowsingView::createTabSelectionView()
     m_tabSelectionView->setGeometry(m_browsingViewport->rect());
     connect(m_tabSelectionView, SIGNAL(disappeared()), this, SLOT(deleteTabSelectionView()));
     connect(m_tabSelectionView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
+    connect(m_tabSelectionView, SIGNAL(windowClosed(WebView*)), this, SLOT(destroyWindow(WebView*)));
     connect(m_tabSelectionView, SIGNAL(createNewWindow()), this, SLOT(newWindow()));
 }
 

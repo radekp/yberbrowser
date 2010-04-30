@@ -182,6 +182,14 @@ void HomeView::tileItemActivated(UrlItem* item)
     emit urlSelected(item->m_url);
 }
 
+void HomeView::tileItemEdited(UrlItem* item)
+{
+    TileSelectionViewBase::tileItemEdited(item);
+
+    if (!item)
+        return;
+}
+
 void HomeView::setupAnimation(bool in)
 {
     // add both history and bookmark anim

@@ -30,12 +30,15 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     void itemActivated(UrlItem*);
+    void itemEdited(UrlItem*);
 
 private:
     virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
     virtual void mousePressEvent(QGraphicsSceneMouseEvent* event);
+    void setEditIconRect();
     void addDropShadow(QPainter& painter, const QRectF rect);
 
+private:
     UrlItem* m_urlItem;
     QRectF m_thumbnailRect;
     QRectF m_textRect;
@@ -44,7 +47,8 @@ private:
     bool m_selected;
     QLinearGradient m_bckgGradient;
     QImage* m_defaultIcon;
-    QImage* m_closeIcon;
+    QImage* m_editIcon;
+    QRectF m_editIconRect;
 };
 
 #endif
