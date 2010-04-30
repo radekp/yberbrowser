@@ -1,4 +1,7 @@
+#include <qglobal.h>
+#if !defined(QT_NO_OPENGL)
 #include <QGLWidget>
+#endif
 #include <QGraphicsItem>
 
 #include "ApplicationWindowHost.h"
@@ -57,6 +60,7 @@ void ApplicationWindowHost::setApplicationWindow(ApplicationWindow* window)
 {
     m_mainView = window;
 
+#if !defined(QT_NO_OPENGL)
     if (Settings::instance()->useGL())  {
         QGLFormat format = QGLFormat::defaultFormat();
         format.setSampleBuffers(false);
@@ -64,6 +68,7 @@ void ApplicationWindowHost::setApplicationWindow(ApplicationWindow* window)
         glWidget->setAutoFillBackground(false);
         m_mainView->setViewport(glWidget);
     }
+#endif
 
     m_mainView->setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
     m_mainView->setOptimizationFlags(QGraphicsView::DontSavePainterState);

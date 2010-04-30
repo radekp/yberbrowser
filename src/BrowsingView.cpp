@@ -37,7 +37,6 @@
 #endif
 
 #include <QGraphicsProxyWidget>
-#include <QGLWidget>
 
 #include "qwebframe.h"
 
@@ -52,13 +51,15 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_centralWidget(new QGraphicsWidget(this))
 #endif
     , m_activeWebView(0)
+    , m_webInteractionProxy(new WebViewportItem())
     , m_tabSelectionView(0)
     , m_homeView(0)
+    , m_urlEdit(0)
+    , m_progressBox(0)
     , m_stopbackAction(0)
     , m_loadIndProgress(false)
     , m_autoScrollTest(0)
 {
-    m_webInteractionProxy = new WebViewportItem();
 #if USE_DUI
     setPannableAreaInteractive(false);
     m_browsingViewport = new PannableViewport();
@@ -366,6 +367,8 @@ void BrowsingView::changeLocation()
     // nullify on hitting enter. end  of editing.
     m_lastEnteredText.resize(0);
     hideHomeView();
+    if (!m_urlEdit)
+        return;
     load(urlFromUserInput(m_urlEdit->text()));
 }
 
@@ -375,7 +378,7 @@ void BrowsingView::urlTextEdited(const QString& newText)
         return;
 
     QString text = newText;
-    if (m_urlEdit->selectionStart() > -1)
+    if (m_urlEdit && m_urlEdit->selectionStart() > -1)
         text = newText.left(m_urlEdit->selectionStart());
     // autocomplete only when adding text, not when deleting or backspacing
     if (text.size() > m_lastEnteredText.size()) {
@@ -441,6 +444,8 @@ void BrowsingView::loadFinished(bool success)
 
 void BrowsingView::urlChanged(const QUrl& url)
 {
+    if (!m_urlEdit)
+        return;
     m_urlEdit->setText(url.toString());
 }
 

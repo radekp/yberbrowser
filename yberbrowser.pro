@@ -18,10 +18,12 @@ dui {
     DEFINES+=USE_DUI=0
 }
 
-QMAKE_CXXFLAGS += -Werror
+*-g++*: QMAKE_CXXFLAGS += -Werror
 
-QT += network opengl
+QT += network
 QT += xml xmlpatterns script
+
+contains(QT_CONFIG, opengl): QT += opengl
 
 # Add $$PWD to include path so we can include from 3rdparty/file.h.
 # we want to specify '3rdparty/' explicitly to avoid name clashes
