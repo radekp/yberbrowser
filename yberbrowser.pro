@@ -18,7 +18,7 @@ dui {
     DEFINES+=USE_DUI=0
 }
 
-QMAKE_CXXFLAGS += -Werror
+*-g++*: QMAKE_CXXFLAGS += -Werror
 
 QT += network opengl
 QT += xml xmlpatterns script
