@@ -158,7 +158,9 @@ void WebViewportItem::disableContentUpdates()
 
 void WebViewportItem::enableContentUpdates()
 {
-    m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
+    m_webView->setTiledBackingStoreFrozen(false);
+    // FIXME what to do with this?
+//    m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
 }
 
 void WebViewportItem::updatePreferredSize()

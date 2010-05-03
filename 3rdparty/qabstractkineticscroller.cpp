@@ -304,11 +304,10 @@ void QAbstractKineticScrollerPrivate::init()
 void QAbstractKineticScrollerPrivate::changeState(QAbstractKineticScroller::State newState)
 {
     Q_Q(QAbstractKineticScroller);
-
     if (newState != state) {
         QAbstractKineticScroller::State oldState = state;
         state = newState;
-        q->stateChanged(oldState);
+        q->stateChanged(oldState, newState);
     }
 }
 
@@ -1316,9 +1315,10 @@ void QAbstractKineticScroller::cancelLeftMouseButtonPress(const QPoint &globalPr
 
     \sa state()
 */
-void QAbstractKineticScroller::stateChanged(State oldState)
+void QAbstractKineticScroller::stateChanged(State oldState, State newState)
 {
     Q_UNUSED(oldState);
+    Q_UNUSED(newState);
 }
 
 /*!

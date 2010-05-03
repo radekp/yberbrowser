@@ -403,3 +403,13 @@ void WebViewport::contentsSizeChangeCausedResize()
     stopPannedWidgetGeomAnim();
 }
 
+void WebViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState)
+{
+    PannableViewport::stateChanged(oldState, newState);
+    // turn on and off tile creating while autoscrolling
+    if (newState == YberHack_Qt::QAbstractKineticScroller::Pushing)
+        viewportWidget()->disableContentUpdates();
+    else if (newState == YberHack_Qt::QAbstractKineticScroller::Inactive)
+        viewportWidget()->enableContentUpdates();
+}
+
