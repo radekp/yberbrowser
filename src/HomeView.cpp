@@ -28,40 +28,23 @@ const int s_maxTileWidth = 200;
 const int s_defaultTileNumH = 3;
 const int s_defaultTileNumV = 6;
 const int s_tileHistoryPadding = 10;
-const int s_tileBookmarkPadding = -5;
+const int s_tileBookmarkPadding = 0;
 const int s_bookmarkStripeHeight = 70;
-const int s_bookmarksTileWidth = 120;
+const int s_bookmarksTileWidth = 135;
 const QColor s_TitleTextColor(0xFA, 0xFA, 0xFA);
+
+const int s_maxHistoryTileNum = s_defaultTileNumH * s_defaultTileNumV;
 }
 
 class HistoryWidget : public TileBaseWidget {
     Q_OBJECT
 public:
-    HistoryWidget(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+    HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) :TileBaseWidget(parent, wFlags) {}
 
-    void setupWidgetContent();
+    void layoutTiles();
 };
 
-class BookmarkWidget : public TileBaseWidget {
-    Q_OBJECT
-public:
-    BookmarkWidget(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
-
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
-
-    void setupWidgetContent();
-
-private:
-    QGraphicsRectItem* m_bckg;
-    QLinearGradient m_bckgGradient;
-};
-
-HistoryWidget::HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileBaseWidget(HistoryStore::instance()->list(), parent, wFlags)
-{
-}
-
-void HistoryWidget::setupWidgetContent()
+void HistoryWidget::layoutTiles()
 {
     int width = rect().width();
 
@@ -79,32 +62,54 @@ void HistoryWidget::setupWidgetContent()
     tileWidth = qMin(tileWidth, s_maxTileWidth);
 
     // keep height proposional
-    int height = rect().height();
     int vTileNum = s_defaultTileNumV;
-    int tileHeight = height / vTileNum;
-    int minHeight = tileWidth / 1.20;
-    int maxHeight = tileWidth / 1.10;
+    int tileHeight = tileWidth * 0.9;
 
-    if (height < minHeight)
-        return;
-    
-    // calculate tile height
-    while (tileHeight < minHeight && vTileNum > 0)
-        tileHeight = height / --vTileNum;
+    // the width of the view is unknow until we figure out how many items there are
+    QRectF r(rect()); r.setHeight(vTileNum * (tileHeight + s_tileHistoryPadding));
+    setGeometry(r);
 
-    tileHeight = qMin(tileHeight, maxHeight);
-
-    addTiles(rect(), hTileNum, tileWidth, vTileNum, tileHeight, s_tileHistoryPadding, s_tileHistoryPadding, TileItem::Vertical);
+    doLayoutTiles(rect(), hTileNum, tileWidth, vTileNum, tileHeight, s_tileHistoryPadding, s_tileHistoryPadding);
 }
 
+class BookmarkWidget : public TileBaseWidget {
+    Q_OBJECT
+public:
+    BookmarkWidget(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+
+    void layoutTiles();
+
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
+
+private:
+    QImage m_bookmarkIcon;
+    QLinearGradient m_bckgGradient;
+};
+
 BookmarkWidget::BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileBaseWidget(BookmarkStore::instance()->list(), parent, wFlags)
+    : TileBaseWidget(parent, wFlags)
+    , m_bookmarkIcon(":/data/icon/48x48/bookmarks_48.png")
 {
-    // setup bck gradient
+    // setup bckg gradient
     QGradientStops stops;
     stops << QGradientStop(0.00, QColor(240, 240, 240)) << QGradientStop(0.30, QColor(114, 114, 114)) << QGradientStop(0.50, QColor(144, 144, 144)) << QGradientStop(0.70, QColor(134, 134, 134)) << QGradientStop(1.00, QColor(40, 40, 40));
     for (int j=0; j<stops.size(); ++j)
         m_bckgGradient.setColorAt(stops.at(j).first, stops.at(j).second);
+}
+
+void BookmarkWidget::layoutTiles()
+{
+    // add bookmark tiles
+    QRectF r(rect());
+    r.setLeft(r.left() + m_bookmarkIcon.width());
+
+    int hTileNum = qMin(m_tileList.size(), (int)(r.width() / s_bookmarksTileWidth));
+    int vTileNum = 1;
+
+    doLayoutTiles(r, hTileNum, s_bookmarksTileWidth, vTileNum, r.height(), s_tileBookmarkPadding, s_tileBookmarkPadding);
+
+    m_bckgGradient.setStart(rect().topLeft());
+    m_bckgGradient.setFinalStop(rect().bottomLeft());
 }
 
 void BookmarkWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
@@ -115,38 +120,27 @@ void BookmarkWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* op
     painter->setBrush(m_bckgGradient);
     painter->setPen(QColor(20, 20, 20));
     painter->drawRoundedRect(r, 12, 12);
-    QImage bm(":/data/icon/48x48/bookmarks_48.png");
-    painter->drawImage(QPoint(10, rect().height() / 2 - bm.size().height() / 2), bm);
+    painter->drawImage(QPoint(10, rect().height() / 2 - m_bookmarkIcon.height() / 2), m_bookmarkIcon);
     TileBaseWidget::paint(painter, option, widget);
-}
-
-void BookmarkWidget::setupWidgetContent()
-{
-    // add bookmark tiles
-    QRectF r(rect());
-    m_bckgGradient.setStart(r.topLeft());
-    m_bckgGradient.setFinalStop(r.bottomLeft());
-    r.adjust(50, 10, -15, 0);
-    addTiles(r, qMin(m_urlList->size(), (int)(r.width() / s_bookmarksTileWidth)), s_bookmarksTileWidth, 1, r.height() - 10, s_tileBookmarkPadding, s_tileBookmarkPadding, TileItem::Horizontal);
 }
 
 HomeView::HomeView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(parent, wFlags)
-    , m_historyWidget(new HistoryWidget(this, wFlags))
     , m_bookmarkWidget(new BookmarkWidget(this, wFlags))
+    , m_historyWidget(new HistoryWidget(this, wFlags))
     , m_pannableHistoryContainer(new PannableTileContainer(this, wFlags))
 {
-    m_historyWidget->setZValue(1);
     m_bookmarkWidget->setZValue(1);
+    m_historyWidget->setZValue(1);
     m_pannableHistoryContainer->setWidget(m_historyWidget);
-    connect(m_historyWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
     connect(m_bookmarkWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
+    connect(m_historyWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
 }
 
 HomeView::~HomeView()
 {
-    delete m_historyWidget;
     delete m_bookmarkWidget;
+    delete m_historyWidget;
     delete m_pannableHistoryContainer;
 }
 
@@ -167,29 +161,28 @@ void HomeView::setGeometry(const QRectF& rect)
         r.moveTop(r.bottom());
         r.setBottom(rect.bottom());
         m_pannableHistoryContainer->setGeometry(r);
-        // and the panned widget is twice as the view
-        r.setHeight(2 * rect.height());
         m_historyWidget->setGeometry(r);
     }
     TileSelectionViewBase::setGeometry(rect);
 }
 
-void HomeView::tileItemActivated(UrlItem* item)
+void HomeView::tileItemActivated(TileItem* item)
 {
     TileSelectionViewBase::tileItemActivated(item);
 
-    if (!item)
+    if (!item || !item->urlItem())
         return;
-    emit urlSelected(item->m_url);
+    emit pageSelected(item->urlItem()->m_url);
 }
 
-void HomeView::tileItemClosed(UrlItem* item)
+void HomeView::tileItemClosed(TileItem* item)
 {
     TileSelectionViewBase::tileItemClosed(item);
+    // FIXME add bookmark content as well
     m_historyWidget->removeTile(*item);
 }
 
-void HomeView::tileItemEditingMode(UrlItem* item)
+void HomeView::tileItemEditingMode(TileItem* item)
 {
     TileSelectionViewBase::tileItemEditingMode(item);
     // FIXME bookmarks, not yet.
@@ -241,14 +234,50 @@ void HomeView::setupAnimation(bool in)
 
 void HomeView::destroyViewItems()
 {
-    m_historyWidget->destroyWidgetContent();
-    m_bookmarkWidget->destroyWidgetContent();
+    m_bookmarkWidget->removeAll();
+    m_historyWidget->removeAll();
 }
 
 void HomeView::createViewItems()
 {
-    m_historyWidget->setupWidgetContent();
-    m_bookmarkWidget->setupWidgetContent();
+    // recreate?
+    destroyViewItems();
+    //
+    createBookmarkContent();
+    createHistoryContent();
+}
+
+void HomeView::createBookmarkContent()
+{
+    UrlList* list = BookmarkStore::instance()->list();
+    // FIXME: this 'All bookmarks' urlItem is being leaked
+    TileItem* newTileItem = new TileItem(m_bookmarkWidget, *(new UrlItem(QUrl(), "All bookmarks", 0)), TileItem::Horizontal, false);
+    m_bookmarkWidget->addTile(*newTileItem);
+    connectItem(*newTileItem);
+    //
+    for (int i = 0; i < list->size(); ++i) {
+        newTileItem = new TileItem(m_bookmarkWidget, *list->at(i), TileItem::Horizontal);
+        m_bookmarkWidget->addTile(*newTileItem);
+        connectItem(*newTileItem);
+    }
+    m_bookmarkWidget->layoutTiles();
+}
+
+void HomeView::createHistoryContent()
+{
+    TileItem* newTileItem = 0;
+    UrlList* list = HistoryStore::instance()->list();
+    for (int i = 0; i < (s_maxHistoryTileNum - 1) && i < list->size(); ++i) {
+        newTileItem = new TileItem(m_historyWidget, *list->at(i), TileItem::Vertical);
+        m_historyWidget->addTile(*newTileItem);
+        connectItem(*newTileItem);
+    }
+    // FIXME: this 'All history'  is being leaked
+    newTileItem = new TileItem(m_historyWidget, *(new UrlItem(QUrl(), "All history", 0)), TileItem::Vertical, false);
+    m_historyWidget->addTile(*newTileItem);
+    connectItem(*newTileItem);
+
+    m_historyWidget->layoutTiles();
 }
 
 #include "HomeView.moc"

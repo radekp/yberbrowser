@@ -12,7 +12,7 @@
 
 const int s_padding = 10;
 
-TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout)
+TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout, bool editable)
     : QGraphicsRectItem(parent)
     , m_urlItem(&urlItem)
     , m_layout(layout)
@@ -20,6 +20,8 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout)
     , m_defaultIcon(0)
     , m_closeIcon(0)
     , m_dclick(false)
+    , m_editable(editable)
+    , m_context(0)
 {
     connect(m_urlItem, SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
     if (!m_urlItem->thumbnail())
@@ -44,7 +46,7 @@ void TileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
 
     // QGraphicsDropShadowEffect doesnt perform well on n900.
     addDropShadow(*painter, r);
-
+ 
     painter->setBrush(m_bckgGradient);
     painter->setPen(Qt::black);
     painter->drawRoundedRect(r, 5, 5);
@@ -105,12 +107,13 @@ void TileItem::setGeometry(const QRectF& rect)
 
     m_bckgGradient.setStart(r.topLeft());
     m_bckgGradient.setFinalStop(r.bottomLeft());
-    if (oldRect.size() != rect.size())
-        m_title = QFontMetrics(f).elidedText(m_urlItem->m_title, Qt::ElideRight, m_textRect.width());
+    m_title = QFontMetrics(f).elidedText(m_urlItem->m_title, Qt::ElideRight, m_textRect.width());
 }
 
 void TileItem::setEditMode(bool on) 
 { 
+    if (!m_editable)
+        return;
     if (on && !m_closeIcon) {
         m_closeIcon = new QImage(":/data/icon/48x48/close_item_48.png");
         setEditIconRect();
@@ -154,10 +157,10 @@ void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
         return;
 
     if (m_closeIcon && m_closeIconRect.contains(event->pos())) {
-        emit itemClosed(m_urlItem);
+        emit itemClosed(this);
     } else {    
         m_selected = true;
-        emit itemActivated(m_urlItem);
+        emit itemActivated(this);
     }
 }
 
@@ -167,7 +170,7 @@ void TileItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* /*event*/)
     // FIXME: this should be managed very differently. need to look at the gesture consumer
     m_dclick = true;
     QTimer::singleShot(500, this, SLOT(invalidateClick()));
-    emit itemEditingMode(m_urlItem);
+    emit itemEditingMode(this);
 }
 
 void TileItem::invalidateClick()

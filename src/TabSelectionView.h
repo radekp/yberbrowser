@@ -7,24 +7,25 @@
 class PannableTileContainer;
 class TabWidget;
 class WebView;
-class UrlItem;
+class TileItem;
 
 class TabSelectionView :  public TileSelectionViewBase {
     Q_OBJECT
 public:
-    TabSelectionView(QList<WebView*>& windowList, WebView* activeWindow, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    TabSelectionView(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~TabSelectionView();
 
+    void setWindowList(QList<WebView*>& windowList, WebView& activeWindow) { m_windowList = &windowList; m_activeWindow = &activeWindow; }
     void setGeometry(const QRectF& rect);
 
 Q_SIGNALS:
     void windowSelected(WebView* webView);
     void windowClosed(WebView* webView);
-    void createNewWindow();
+    void windowCreated();
 
 public Q_SLOTS:
-    void tileItemActivated(UrlItem*);
-    void tileItemClosed(UrlItem*);
+    void tileItemActivated(TileItem*);
+    void tileItemClosed(TileItem*);
 
 private:
     void setupAnimation(bool);
@@ -35,7 +36,7 @@ private:
     PannableTileContainer* m_pannableTabContainer;
     TabWidget* m_tabWidget;
     QList<WebView*>* m_windowList;
-    UrlList m_tabList;
+    WebView* m_activeWindow;
 };
 
 #endif

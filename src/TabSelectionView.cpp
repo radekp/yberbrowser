@@ -27,87 +27,75 @@ const int s_tilePadding = 20;
 class TabWidget : public TileBaseWidget {
     Q_OBJECT
 public:
-    TabWidget(UrlList*, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+    TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) : TileBaseWidget(parent, wFlags) {}
 
-    void setActiveTabItem(UrlItem* tabItem) { m_activeTabItem = tabItem; }
+    void setActiveTabItem(TileItem* tabItem) { m_activeTabItem = tabItem; }
     QRectF activeTabItemRect();  
 
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
+    void removeTile(TileItem& removed);
+    void removeAll();
 
-    void setupWidgetContent();
+    void layoutTiles();
 
 private:
-    UrlItem* m_activeTabItem;
+    TileItem* m_activeTabItem;
 };
-
-TabWidget::TabWidget(UrlList* tabList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileBaseWidget(tabList, parent, wFlags)
-{
-}
 
 QRectF TabWidget::activeTabItemRect()
 {
     if (!m_activeTabItem)
         return QRectF(0, 0, 0, 0);
 
-    for(int i = 0; i < m_tileList.size(); ++i) {
-        if (m_tileList.at(i)->urlItem() == m_activeTabItem)
-            return m_tileList.at(i)->rect();
-    }
-    return QRectF(0, 0, 0, 0);
+    return m_activeTabItem->rect();
 }
 
-void TabWidget::setupWidgetContent()
+void TabWidget::removeTile(TileItem& removed)
 {
-    int width = parentWidget()->geometry().width();
+    if (m_activeTabItem == &removed)
+        m_activeTabItem = 0;
+    // url list is created here (out of window list) unlike in other views, like history items.
+    delete removed.urlItem();
+    TileBaseWidget::removeTile(removed);
+}
+
+void TabWidget::removeAll()
+{
+    m_activeTabItem = 0;
+    // url list is created here (out of window list) unlike in other views, like history items.
+    for (int i = m_tileList.size() - 1; i >= 0; --i)
+        delete m_tileList.at(i)->urlItem();
+    TileBaseWidget::removeAll();
+}
+
+void TabWidget::layoutTiles()
+{
+    // and layout them
+    QRectF r(parentWidget()->rect());
 
     // default 
-    int hTileNum = m_urlList->size();
-    int tileWidth = (width / 3) - s_tilePadding;
+    int hTileNum = m_tileList.size();
+    int tileWidth = (r.width() / 3) - s_tilePadding;
     int tileHeight = tileWidth / 1.20;
-    
-    QRectF r(rect());
+
     r.setWidth((tileWidth + s_tilePadding) * hTileNum);
+    // the width of the view is unknow until we figure out how many items there are
     setGeometry(r);
 
     // move tiles to the middle
     r.setTop(r.center().y() - (tileHeight / 2));
     r.setHeight(tileHeight);
-
-    addTiles(r, hTileNum, tileWidth, 1, tileHeight, s_tilePadding, 0, TileItem::Vertical);
+    doLayoutTiles(r, hTileNum, tileWidth, 1, tileHeight, s_tilePadding, 0);
 }
 
-void TabWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
-{
-    TileBaseWidget::paint(painter, option, widget);
-}
-
-TabSelectionView::TabSelectionView(QList<WebView*>& windowList, WebView* activeWindow, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+TabSelectionView::TabSelectionView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(parent, wFlags)
     , m_pannableTabContainer(new PannableTileContainer(this, wFlags))
-    , m_tabWidget(new TabWidget(&m_tabList, this, wFlags))
-    , m_windowList(&windowList) 
+    , m_tabWidget(new TabWidget(this, wFlags))
+    , m_windowList(0) 
+    , m_activeWindow(0)
 {
-    // create url list out of window list
-    for (int i = 0; i < windowList.size(); ++i) {
-        WebView* view = windowList.at(i);
-        bool pageAvailable = !view->url().isEmpty();
-        QImage* thumbnail = 0;
-    
-        if (pageAvailable) {
-            // get the thumbnail from history view
-            if (UrlItem* item = HistoryStore::instance()->get(view->url().toString()))
-                thumbnail = item->thumbnail();      
-        }
-
-        UrlItem* newItem = new UrlItem(view->url(), pageAvailable ? view->title() : "no page loded yet", thumbnail, view);
-        m_tabList.append(newItem);
-        // remember the active window so that we can scroll to
-        if (view == activeWindow)
-            m_tabWidget->setActiveTabItem(newItem);
-    }
-    m_tabList.append(new UrlItem(QUrl(), "open new window", 0, 0));
     m_tabWidget->setZValue(1);
+    m_tabWidget->setEditMode(true);
     m_pannableTabContainer->setWidget(m_tabWidget);
     connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
 }
@@ -132,22 +120,25 @@ void TabSelectionView::setGeometry(const QRectF& rect)
     TileSelectionViewBase::setGeometry(rect);
 }
 
-void TabSelectionView::tileItemActivated(UrlItem* item)
+void TabSelectionView::tileItemActivated(TileItem* item)
 {
     TileSelectionViewBase::tileItemActivated(item);
-    if (!item->m_context)
-        emit createNewWindow();
+    if (item->context())
+        emit windowSelected((WebView*)item->context());
     else
-        emit windowSelected((WebView*)item->m_context);
+        emit windowCreated();
 }
 
-void TabSelectionView::tileItemClosed(UrlItem* item)
+void TabSelectionView::tileItemClosed(TileItem* item)
 {
     TileSelectionViewBase::tileItemClosed(item);
-    if (item->m_context) {
-        emit windowClosed((WebView*)item->m_context);
+    if (item->context()) {
+        emit windowClosed((WebView*)item->context());
         m_tabWidget->removeTile(*item);
     }
+    // close on last window close
+    if (m_tabWidget->tileList()->size() == 1)
+        disappear();
 }
 
 void TabSelectionView::setupAnimation(bool in)
@@ -178,13 +169,43 @@ void TabSelectionView::setupAnimation(bool in)
 
 void TabSelectionView::destroyViewItems()
 {
-    m_tabWidget->destroyWidgetContent();
+    m_tabWidget->removeAll();
 }
 
 void TabSelectionView::createViewItems()
 {
-   m_tabWidget->setupWidgetContent();
-    m_tabWidget->setEditMode(true);
+    // recreate?
+    destroyViewItems();
+
+    if (!m_windowList)
+        return;
+
+    // create tile list out of window list
+    for (int i = 0; i < m_windowList->size(); ++i) {
+        WebView* view = m_windowList->at(i);
+        bool pageAvailable = !view->url().isEmpty();
+        QImage* thumbnail = 0;
+    
+        if (pageAvailable) {
+            // get the thumbnail from history view
+            if (UrlItem* item = HistoryStore::instance()->get(view->url().toString()))
+                thumbnail = new QImage(*item->thumbnail());
+        }
+        // create a tile item with the window context set
+        TileItem* newTileItem = new TileItem(m_tabWidget, *(new UrlItem(view->url(), pageAvailable ? view->title() : "no page loded yet", thumbnail)), TileItem::Vertical);
+        newTileItem->setContext(view);
+
+        m_tabWidget->addTile(*newTileItem);
+        connectItem(*newTileItem);
+        // remember the active window so that we can scroll to
+        if (view == m_activeWindow)
+            m_tabWidget->setActiveTabItem(newTileItem);
+    }
+    TileItem* newTileItem = new TileItem(m_tabWidget, *(new UrlItem(QUrl(), "open new window", 0)), TileItem::Vertical, false);
+    m_tabWidget->addTile(*newTileItem);
+    connectItem(*newTileItem);
+
+    m_tabWidget->layoutTiles();
 }
 
 #include "TabSelectionView.moc"

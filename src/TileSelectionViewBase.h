@@ -6,6 +6,7 @@
 class QGraphicsRectItem;
 class ApplicationWindow;
 class QParallelAnimationGroup;
+class TileItem;
 
 class TileSelectionViewBase : public QGraphicsWidget {
     Q_OBJECT
@@ -25,9 +26,9 @@ public Q_SLOTS:
     void appear(ApplicationWindow*);
     void disappear();
     void animFinished();
-    virtual void tileItemActivated(UrlItem* item);
-    virtual void tileItemClosed(UrlItem*) {}
-    virtual void tileItemEditingMode(UrlItem*) {}
+    virtual void tileItemActivated(TileItem*);
+    virtual void tileItemClosed(TileItem*) {}
+    virtual void tileItemEditingMode(TileItem*) {}
 
 protected:
     void startAnimation(bool);
@@ -35,6 +36,7 @@ protected:
     virtual void createViewItems() = 0;
     virtual void destroyViewItems() = 0;
     virtual void setupAnimation(bool) = 0;
+    virtual void connectItem(TileItem&);
 
 protected:
     QParallelAnimationGroup* m_slideAnimationGroup;

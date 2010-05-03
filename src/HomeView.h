@@ -6,7 +6,7 @@
 class HistoryWidget;
 class BookmarkWidget;
 class PannableTileContainer;
-class UrlItem;
+class TileItem;
 
 class HomeView : public TileSelectionViewBase {
     Q_OBJECT
@@ -17,21 +17,24 @@ public:
     void setGeometry(const QRectF& rect);
 
 Q_SIGNALS:
-    void urlSelected(const QUrl&);
+    void pageSelected(const QUrl&);
 
 public Q_SLOTS:
-    void tileItemActivated(UrlItem*);
-    void tileItemClosed(UrlItem*);
-    void tileItemEditingMode(UrlItem*);
+    void tileItemActivated(TileItem*);
+    void tileItemClosed(TileItem*);
+    void tileItemEditingMode(TileItem*);
 
 private:
     void setupAnimation(bool);
     void createViewItems();
     void destroyViewItems();
 
+    void createBookmarkContent();
+    void createHistoryContent();
+
 private:
-    HistoryWidget* m_historyWidget;
     BookmarkWidget* m_bookmarkWidget;
+    HistoryWidget* m_historyWidget;
     PannableTileContainer* m_pannableHistoryContainer;
 };
 

@@ -50,9 +50,8 @@ void TileSelectionViewBase::setGeometry(const QRectF& rect)
     QGraphicsWidget::setGeometry(rect);
     m_bckg->setRect(rect);
     
-    if (rect.width() != currentRect.width() || rect.height() != currentRect.height()) {
+    if (m_active && (rect.width() != currentRect.width() || rect.height() != currentRect.height())) {
         // reconstuct tiles on size change
-        destroyViewItems();
         createViewItems();
     }
 }
@@ -90,7 +89,7 @@ void TileSelectionViewBase::animFinished()
     }
 }
 
-void TileSelectionViewBase::tileItemActivated(UrlItem* /*item*/)
+void TileSelectionViewBase::tileItemActivated(TileItem* /*item*/)
 {
     disappear();
 }
@@ -103,5 +102,12 @@ void TileSelectionViewBase::startAnimation(bool in)
 
     setupAnimation(in);
     m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
+}
+
+void TileSelectionViewBase::connectItem(TileItem& item)
+{
+    connect(&item, SIGNAL(itemActivated(TileItem*)), this, SLOT(tileItemActivated(TileItem*)));
+    connect(&item, SIGNAL(itemClosed(TileItem*)), this, SLOT(tileItemClosed(TileItem*)));
+    connect(&item, SIGNAL(itemEditingMode(TileItem*)), this, SLOT(tileItemEditingMode(TileItem*)));
 }
 

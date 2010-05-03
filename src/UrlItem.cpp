@@ -12,13 +12,12 @@ UrlItem::UrlItem()
 {
 }
 
-UrlItem::UrlItem(const QUrl& url, const QString& title, QImage* thumbnail, void* context)
+UrlItem::UrlItem(const QUrl& url, const QString& title, QImage* thumbnail)
     : m_url(url)
     , m_title(title)
     , m_refcount(1)
     , m_lastAccess(QDateTime::currentDateTime().toTime_t())
     , m_thumbnailChanged(thumbnail)
-    , m_context(context)
     , m_thumbnail(thumbnail)
 {
 }

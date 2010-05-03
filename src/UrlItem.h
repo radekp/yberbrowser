@@ -12,7 +12,7 @@ class UrlItem : public QObject {
     Q_OBJECT
 public:
     UrlItem();
-    UrlItem(const QUrl& url, const QString& title, QImage* image = 0, void* context = 0);
+    UrlItem(const QUrl& url, const QString& title, QImage* image = 0);
     ~UrlItem();
 
     bool thumbnailAvailable() const { return (m_thumbnail != 0 || !m_thumbnailPath.isEmpty()); }
@@ -30,7 +30,6 @@ public:
     uint m_refcount;
     uint m_lastAccess;
     bool m_thumbnailChanged;
-    void* m_context; // fake item, until i figure out how to tranform this class to a more generic one
 
 private:
     QImage* m_thumbnail;

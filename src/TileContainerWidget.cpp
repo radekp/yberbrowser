@@ -76,9 +76,8 @@ void PannableTileContainer::forwardEvent(QGraphicsSceneMouseEvent* event)
     m_selfSentEvent = 0;
 }
 
-TileBaseWidget::TileBaseWidget(UrlList* urlList, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+TileBaseWidget::TileBaseWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_urlList(urlList)
     , m_slideAnimationGroup(0)
     , m_editMode(false)
 {
@@ -86,24 +85,14 @@ TileBaseWidget::TileBaseWidget(UrlList* urlList, QGraphicsItem* parent, Qt::Wind
 
 TileBaseWidget::~TileBaseWidget()
 {
-    destroyWidgetContent();
+    removeAll();
     delete m_slideAnimationGroup;
 }
 
-void TileBaseWidget::setEditMode(bool on) 
-{ 
-    m_editMode = on;
-    for (int i = 0; i < m_tileList.size(); ++i)
-        m_tileList.at(i)->setEditMode(on);
-}
-
-void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, int vTileNum, int tileHeight, int paddingX, int paddingY, TileItem::TileLayout layout)
+void TileBaseWidget::doLayoutTiles(const QRectF& rect, int hTileNum, int tileWidth, int vTileNum, int tileHeight, int paddingX, int paddingY)
 {
-    //FIXME figure out how to get parentview
-    QGraphicsWidget* parentView = !parentWidget()->parentWidget() ? parentWidget() : parentWidget()->parentWidget();
-    if (m_tileList.size())
+    if (!m_tileList.size())
         return;
-
     int width = rect.width();
     int y = rect.top() + paddingY;
     for (int i = 0; i < vTileNum; ++i) {
@@ -112,31 +101,33 @@ void TileBaseWidget::addTiles(const QRectF& rect, int hTileNum, int tileWidth, i
         for (int j = 0; j < hTileNum; ++j) {
             // get the corresponding url entry
             int itemIndex = j + (i*hTileNum);
-            if (itemIndex >= m_urlList->size())
+            if (itemIndex >= m_tileList.size())
                 continue;
-
-            // create new tile item
-            TileItem* item = new TileItem(this, *m_urlList->at(itemIndex), layout);
-            connect(item, SIGNAL(itemActivated(UrlItem*)), parentView, SLOT(tileItemActivated(UrlItem*)));
-            connect(item, SIGNAL(itemClosed(UrlItem*)), parentView, SLOT(tileItemClosed(UrlItem*)));
-            connect(item, SIGNAL(itemEditingMode(UrlItem*)), parentView, SLOT(tileItemEditingMode(UrlItem*)));
             // padding
-            item->setGeometry(QRectF(x + paddingX, y + paddingY, tileWidth - (2*paddingX), tileHeight  - (2*paddingY)));
-            m_tileList.append(item);
+            m_tileList.at(itemIndex)->setGeometry(QRectF(x + paddingX, y + paddingY, tileWidth - (2*paddingX), tileHeight  - (2*paddingY)));
             x+=(tileWidth);
         }
         y+=(tileHeight);
     }
+    // leftovers are hidden
+    for (int i = vTileNum*hTileNum; i < m_tileList.size(); ++i)
+        m_tileList.at(i)->hide();
 }
 
-void TileBaseWidget::removeTile(UrlItem& removed)
+void TileBaseWidget::addTile(TileItem& newItem)
+{
+    m_tileList.append(&newItem);
+    newItem.setEditMode(m_editMode);
+}
+
+void TileBaseWidget::removeTile(TileItem& removed)
 {
     if (!m_slideAnimationGroup)
         m_slideAnimationGroup = new QParallelAnimationGroup();
 
     m_slideAnimationGroup->clear();
     for (int i = 0; i < m_tileList.size(); ++i) {
-        if (m_tileList.at(i)->urlItem() == &removed) {
+        if (m_tileList.at(i) == &removed) {
             for (int j = m_tileList.size() - 1; j > i; --j)
                 addMoveAnimation(*m_tileList.at(j), (j - i) * 100, m_tileList[j]->rect(), m_tileList[j-1]->rect());
             delete m_tileList.takeAt(i);
@@ -146,10 +137,17 @@ void TileBaseWidget::removeTile(UrlItem& removed)
     m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
 }
 
-void TileBaseWidget::destroyWidgetContent()
+void TileBaseWidget::removeAll()
 {
     for (int i = m_tileList.size() - 1; i >= 0; --i)
         delete m_tileList.takeAt(i);
+}
+
+void TileBaseWidget::setEditMode(bool on) 
+{ 
+    m_editMode = on;
+    for (int i = 0; i < m_tileList.size(); ++i)
+        m_tileList.at(i)->setEditMode(on);
 }
 
 void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)

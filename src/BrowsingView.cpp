@@ -293,9 +293,9 @@ void BrowsingView::setActiveWindow(WebView* webView)
 
 void BrowsingView::destroyWindow(WebView* webView)
 {
-    // no destroy on last window
+    // FIXME: create a new window on last window destory. better idea?
     if (m_windowList.size() == 1)
-        return;
+        newWindow();
     for (int i = 0; i < m_windowList.size(); ++i) {
         if (m_windowList.at(i) == webView) {
             // current? activate the next one, unless this is the last window
@@ -324,7 +324,7 @@ void BrowsingView::createHomeView()
     m_homeView = new HomeView();
     m_homeView->setGeometry(m_browsingViewport->rect());
     connect(m_homeView, SIGNAL(disappeared()), this, SLOT(deleteHomeView()));
-    connect(m_homeView, SIGNAL(urlSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+    connect(m_homeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
 }
 
 void BrowsingView::deleteHomeView()
@@ -338,12 +338,13 @@ void BrowsingView::createTabSelectionView()
     if (m_tabSelectionView)
         return;
     // FIXME: home view invokes should be moved to app framework
-    m_tabSelectionView = new TabSelectionView(m_windowList, m_activeWebView);
+    m_tabSelectionView = new TabSelectionView();
+    m_tabSelectionView->setWindowList(m_windowList, *m_activeWebView);
     m_tabSelectionView->setGeometry(m_browsingViewport->rect());
     connect(m_tabSelectionView, SIGNAL(disappeared()), this, SLOT(deleteTabSelectionView()));
     connect(m_tabSelectionView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
     connect(m_tabSelectionView, SIGNAL(windowClosed(WebView*)), this, SLOT(destroyWindow(WebView*)));
-    connect(m_tabSelectionView, SIGNAL(createNewWindow()), this, SLOT(newWindow()));
+    connect(m_tabSelectionView, SIGNAL(windowCreated()), this, SLOT(newWindow()));
 }
 
 void BrowsingView::deleteTabSelectionView()

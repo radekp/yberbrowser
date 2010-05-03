@@ -17,7 +17,7 @@ public:
         Horizontal,
         Vertical
     };
-    TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout);
+    TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout, bool editable = true);
     ~TileItem();
     
     void setGeometry(const QRectF& rect);
@@ -25,15 +25,17 @@ public:
     UrlItem* urlItem() const { return m_urlItem; }
 
     void setEditMode(bool on);
+    void setContext(void* context) { m_context = context; }
+    void* context() const { return m_context; }
 
 public Q_SLOTS:
     void thumbnailChanged();
     void invalidateClick();
 
 Q_SIGNALS:
-    void itemActivated(UrlItem*);
-    void itemClosed(UrlItem*);
-    void itemEditingMode(UrlItem*);
+    void itemActivated(TileItem*);
+    void itemClosed(TileItem*);
+    void itemEditingMode(TileItem*);
 
 private:
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
@@ -54,6 +56,10 @@ private:
     QImage* m_closeIcon;
     QRectF m_closeIconRect;
     bool m_dclick;
+    bool m_editable;
+    void* m_context; 
 };
+
+typedef QList<TileItem*> TileList;
 
 #endif

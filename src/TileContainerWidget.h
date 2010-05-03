@@ -3,8 +3,6 @@
 
 #include "PannableViewport.h"
 #include "CommonGestureRecognizer.h"
-#include <QList>
-#include "UrlItem.h"
 #include "TileItem.h"
 
 class QGraphicsSceneMouseEvent;
@@ -38,28 +36,31 @@ class TileBaseWidget : public QGraphicsWidget {
 public:
     ~TileBaseWidget();
 
-    virtual void setupWidgetContent() = 0;
-    void destroyWidgetContent();
+    virtual void addTile(TileItem& newItem);
+    virtual void removeTile(TileItem& removed);
+    virtual void removeAll();
 
     void setEditMode(bool on);
     bool editMode() const { return m_editMode; }
-    void removeTile(UrlItem& removed);
+
+    TileList* tileList() { return &m_tileList; }
+
+    virtual void layoutTiles() = 0;
 
 Q_SIGNALS:
     void closeWidget();
 
 protected:
-    TileBaseWidget(UrlList*, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+    TileBaseWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
 
-    void addTiles(const QRectF& rect, int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY, TileItem::TileLayout layout);
-
-protected:
-    const UrlList* m_urlList;
-    QList<TileItem*> m_tileList;
+    virtual void doLayoutTiles(const QRectF& rect, int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY);
 
 private:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent*);
     void addMoveAnimation(TileItem& item, int delay, const QRectF& oldPos, const QRectF& newPos);
+
+protected:
+    TileList m_tileList;
 
 private:
     QParallelAnimationGroup* m_slideAnimationGroup;
