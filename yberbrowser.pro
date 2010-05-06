@@ -11,6 +11,10 @@ isEmpty(PREFIX) {
 DATADIR = $$PREFIX/share
 BINDIR = $$PREFIX/bin
 
+MOC_DIR     = $$PWD/.moc
+OBJECTS_DIR = $$PWD/.obj
+RCC_DIR     = $$PWD/.rcc
+
 dui {
     CONFIG+=dui
     DEFINES+=USE_DUI=1
