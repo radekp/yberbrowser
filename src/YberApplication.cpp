@@ -13,6 +13,7 @@
 #include <QDebug>
 YberApplication::YberApplication(int & argc, char ** argv)
     : YberApplicationBase(argc, argv)
+    , m_cookieJar(0)
 {
     bool useSystemConf = true;
 
@@ -35,6 +36,7 @@ YberApplication::YberApplication(int & argc, char ** argv)
 
 YberApplication::~YberApplication()
 {
+    delete m_cookieJar;
 }
 
 void YberApplication::start()
@@ -64,3 +66,9 @@ void YberApplication::createMainView(const QUrl& url)
         page->load(url);
 }
 
+CookieJar* YberApplication::cookieJar() const
+{
+    if (!m_cookieJar)
+        m_cookieJar = new CookieJar;
+    return m_cookieJar;
+}

@@ -39,6 +39,8 @@ public:
     void setIsFullScreen(bool flag) { m_isFullScreen = flag;}
     bool isFullScreen() const { return m_isFullScreen; }
 
+    QString cookieFilePath() const { return privatePath() + "cookies.dat"; }
+
 private:
     Settings() {
         m_showToolbar = true;

@@ -126,6 +126,7 @@ HEADERS = \
   src/BookmarkStore.h \
   src/BrowsingView.h \
   src/CommonGestureRecognizer.h \
+  src/CookieJar.h \
   src/EnvHttpProxyFactory.h \
   src/EventHelpers.h \
   src/Helpers.h \
@@ -153,6 +154,7 @@ SOURCES = \
   src/BookmarkStore.cpp \
   src/BrowsingView.cpp \
   src/CommonGestureRecognizer.cpp \
+  src/CookieJar.cpp \
   src/EnvHttpProxyFactory.cpp\
   src/EventHelpers.cpp \
   src/Helpers.cpp \
