@@ -1,21 +1,14 @@
 #ifndef HomeView_h_
 #define HomeView_h_
 
-#include "PannableViewport.h"
-#include "CommonGestureRecognizer.h"
-#include <QList>
-#include "UrlItem.h"
-#include "TileItem.h"
+#include "TileSelectionViewBase.h"
 
-class QGraphicsRectItem;
-class ApplicationWindow;
-class PannableTileContainer;
 class HistoryWidget;
 class BookmarkWidget;
-class QGraphicsSceneMouseEvent;
-class QParallelAnimationGroup;
+class PannableTileContainer;
+class TileItem;
 
-class HomeView : public QGraphicsWidget {
+class HomeView : public TileSelectionViewBase {
     Q_OBJECT
 public:
     HomeView(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
@@ -23,91 +16,26 @@ public:
 
     void setGeometry(const QRectF& rect);
 
-    bool isActive() const { return m_active; }
-    void appear(ApplicationWindow*);
-    void disappear();
-
 Q_SIGNALS:
-    void appeared();
-    void disappeared();
-    void urlSelected(const QUrl&);
+    void pageSelected(const QUrl&);
 
 public Q_SLOTS:
-    void animFinished();
-    void tileItemActivated(UrlItem*);
+    void tileItemActivated(TileItem*);
+    void tileItemClosed(TileItem*);
+    void tileItemEditingMode(TileItem*);
 
 private:
-    void startAnimation(bool);
+    void setupAnimation(bool);
     void createViewItems();
     void destroyViewItems();
 
+    void createBookmarkContent();
+    void createHistoryContent();
+
 private:
-    QGraphicsRectItem* m_bckg;
-    PannableTileContainer* m_pannableHistoryContainer;
-    HistoryWidget* m_historyWidget;
     BookmarkWidget* m_bookmarkWidget;
-    QParallelAnimationGroup* m_slideAnimationGroup;
-    bool m_active;
-};
-
-class PannableTileContainer : public PannableViewport, private CommonGestureConsumer {
-    Q_OBJECT
-public:
-    PannableTileContainer(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
-    ~PannableTileContainer();
-    
-protected:
-    bool sceneEventFilter(QGraphicsItem*, QEvent*);
-    void cancelLeftMouseButtonPress(const QPoint&);
-
-    void mousePressEventFromChild(QGraphicsSceneMouseEvent*);
-    void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* event);
-    void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent*) {}
-    void adjustClickPosition(QPointF&) {}
-
-private:
-    CommonGestureRecognizer m_recognizer;
-    QGraphicsSceneMouseEvent* m_selfSentEvent;
-};
-
-class TileBaseWidget : public QGraphicsWidget {
-    Q_OBJECT
-public:
-    ~TileBaseWidget();
-
-    virtual void setupWidgetContent() = 0;
-    void destroyWidgetContent();
-
-protected:
-    TileBaseWidget(const UrlList&, QGraphicsItem*, Qt::WindowFlags wFlags = 0);
-
-    void addTiles(const QRectF& rect, int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY, TileItem::TileLayout layout);
-
-protected:
-    const UrlList* m_urlList;
-    QList<TileItem*> m_tileList;
-};
-
-class HistoryWidget : public TileBaseWidget {
-    Q_OBJECT
-public:
-    HistoryWidget(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
-
-    void setupWidgetContent();
-};
-
-class BookmarkWidget : public TileBaseWidget {
-    Q_OBJECT
-public:
-    BookmarkWidget(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
-
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
-
-    void setupWidgetContent();
-
-private:
-    QGraphicsRectItem* m_bckg;
-    QLinearGradient m_bckgGradient;
+    HistoryWidget* m_historyWidget;
+    PannableTileContainer* m_pannableHistoryContainer;
 };
 
 #endif

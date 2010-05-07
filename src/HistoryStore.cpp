@@ -95,12 +95,17 @@ void HistoryStore::accessed(const QUrl& url, const QString& title, QImage* thumb
     QTimer::singleShot(2000, this, SLOT(externalize()));
 }
 
-bool HistoryStore::contains(const QString& url)
+UrlItem* HistoryStore::get(const QString& url)
 {
     for (int i = 0; i < m_list.size(); ++i)
         if (m_list.at(i)->m_url.toString() == url)
-            return true;
-    return false;
+            return m_list.at(i);
+    return 0;
+}
+
+bool HistoryStore::contains(const QString& url)
+{
+    return get(url) != 0;
 }
 
 QString HistoryStore::match(const QString& url)

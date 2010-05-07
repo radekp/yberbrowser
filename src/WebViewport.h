@@ -49,6 +49,7 @@ protected:
     void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event);
     void adjustClickPosition(QPointF& pos);
     void setPannedWidgetGeometry(const QRectF& r);
+    bool processMaemo5ZoomKeys(QKeyEvent* event);
 
 protected Q_SLOTS:
     void contentsSizeChangeCausedResize();
@@ -59,6 +60,7 @@ private:
     void wheelEventFromChild(QGraphicsSceneWheelEvent *event);
     bool mouseEventFromChild(QGraphicsSceneMouseEvent *event);
     bool isZoomedIn() const;
+    void stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState);
 
     CommonGestureRecognizer m_recognizer;
     QEvent* m_selfSentEvent;

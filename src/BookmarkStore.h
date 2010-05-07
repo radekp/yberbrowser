@@ -16,7 +16,7 @@ public:
 
     void add(const QUrl& url, const QString& title, QIcon favicon);
     void remove(const QString& url);
-    const UrlList& list() const { return m_list; }
+    UrlList* list() { return &m_list; }
 
 private:
     BookmarkStore();

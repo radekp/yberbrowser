@@ -146,7 +146,7 @@ protected:
     virtual QPoint scrollPosition() const = 0;
     virtual void setScrollPosition(const QPoint &pos, const QPoint &overshootDelta) = 0;
 
-    virtual void stateChanged(State oldState);
+    virtual void stateChanged(State oldState, State newState);
     virtual bool canStartScrollingAt(const QPoint &globalPos) const;
     virtual void cancelLeftMouseButtonPress(const QPoint &globalPressPos);
 

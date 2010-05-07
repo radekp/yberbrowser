@@ -113,6 +113,12 @@ bool WebViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
         doFilter = true;
         break;
 
+#if defined(Q_WS_MAEMO_5)
+    case QEvent::KeyPress:
+        doFilter = processMaemo5ZoomKeys(static_cast<QKeyEvent*>(e));
+        break;
+#endif
+
     default:
         break;
     }
@@ -364,6 +370,32 @@ void WebViewport::setPannedWidgetGeometry(const QRectF& r)
     m_linkSelectionItem->moveBy(delta.x(), delta.y());
 }
 
+bool WebViewport::processMaemo5ZoomKeys(QKeyEvent* event)
+{
+    const bool zoomIn = event->key() == Qt::Key_F7;
+    const bool zoomOut = event->key() == Qt::Key_F8;
+
+    if (!zoomIn && !zoomOut)
+        return false;
+
+    event->accept();
+
+    qreal scale = 1;
+    if (zoomIn)
+        scale += s_zoomScaleWheelStep;
+    else
+        scale -= s_zoomScaleWheelStep;
+
+    // zoom to the center
+    QPointF center = sceneBoundingRect().center();
+    QPointF viewTargetCenter(viewportWidget()->mapToParent(center));
+
+    startZoomAnimToItemHotspot(center, viewTargetCenter, scale);
+    event->accept();
+
+    return true;
+}
+
 /*!
   \targetRect in viewport item coords
 */
@@ -401,5 +433,15 @@ void WebViewport::reset()
 void WebViewport::contentsSizeChangeCausedResize()
 {
     stopPannedWidgetGeomAnim();
+}
+
+void WebViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState)
+{
+    PannableViewport::stateChanged(oldState, newState);
+    // turn on and off tile creating while autoscrolling
+    if (newState == YberHack_Qt::QAbstractKineticScroller::Pushing)
+        viewportWidget()->disableContentUpdates();
+    else if (newState == YberHack_Qt::QAbstractKineticScroller::Inactive)
+        viewportWidget()->enableContentUpdates();
 }
 

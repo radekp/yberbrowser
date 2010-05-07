@@ -23,7 +23,7 @@ builddir:
 
 builddir/Makefile: builddir
 	$(QT_EXPORT_CMDS) && \
-	cd builddir && qmake PREFIX=/usr ../$(APPNAME).pro $(QMAKEFLAGS)
+	cd builddir && qmake WEBKIT=system PREFIX=/usr ../$(APPNAME).pro $(QMAKEFLAGS)
 
 build: build-stamp
 

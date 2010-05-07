@@ -9,6 +9,12 @@
 #include <QPen>
 #include <QPainter>
 #include <QLinearGradient>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValueIterator>
+#include <QNetworkRequest>
+#include <qgraphicswebview.h>
+#include <qwebpage.h>
+#include <qwebframe.h>
 
 #include <QDebug>
 
@@ -16,6 +22,73 @@ namespace {
 static uint s_currentVersion = 2;
 static int s_maxUrlItems = 50;
 static int s_notificationHeight = 50;
+}
+
+class Suggest : public QObject {
+    Q_OBJECT
+public:
+    static void query(const QString& text);
+
+    QList<QString>& suggestions();
+
+private Q_SLOTS:
+    void loadFinished(bool success);
+    
+Q_SIGNALS:
+    void suggestionsAvailable();
+
+private:
+    Suggest(const QString& text);
+
+private:
+    QGraphicsWebView m_view;
+    QString m_text;
+    QList<QString> m_suggestions;
+};
+
+static Suggest* s_suggest = 0;
+
+void Suggest::query(const QString& text)
+{
+    if (s_suggest)
+        delete s_suggest;
+    s_suggest = new Suggest(text);
+}
+
+Suggest::Suggest(const QString& text)
+    : m_text(text)
+{
+    m_view.load(QUrl("http://suggestqueries.google.com/complete/search?qu=" + text));
+    connect(&m_view, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));    
+}
+
+void Suggest::loadFinished(bool success)
+{
+    if (success) {
+        QString json = m_view.page()->mainFrame()->toPlainText();
+        int start = json.indexOf("(");
+        if (start != -1) {
+            json = json.mid(start);
+
+            QScriptEngine engine;
+            QScriptValue sc = engine.evaluate(json);
+
+            if (sc.property(1).isArray()) {
+                QScriptValueIterator it(sc.property(1));
+                while (it.hasNext()) {
+                    it.next();
+                    if (it.value().isArray()) {
+                        // only the first value is needed
+                        QScriptValueIterator itt(it.value());
+                        itt.next();
+                        m_suggestions.append(itt.value().toString());
+                    }
+                }
+            }
+        }
+        }
+    // even if no content received
+    emit suggestionsAvailable();
 }
 
 class NotificationWidget : public QGraphicsWidget {
@@ -103,6 +176,11 @@ void NotificationWidget::animFinished()
         s_notification = 0;
         // "this" is invalid at this point
     }
+}
+
+void googleSuggest(const QString& suggest)
+{
+    Suggest::query(suggest);
 }
 
 void notification(const QString& text, QGraphicsWidget* parent)

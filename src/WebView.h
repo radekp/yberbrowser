@@ -7,7 +7,6 @@
 
 class WebView : public QGraphicsWebView {
     Q_OBJECT
-
 public:
     WebView(QGraphicsItem* parent = 0);
 
