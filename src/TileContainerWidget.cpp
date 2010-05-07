@@ -80,6 +80,7 @@ TileBaseWidget::TileBaseWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_slideAnimationGroup(0)
     , m_editMode(false)
+    , m_maxTileCount(0)
 {
 }
 
@@ -91,13 +92,15 @@ TileBaseWidget::~TileBaseWidget()
 
 void TileBaseWidget::doLayoutTiles(const QRectF& rect, int hTileNum, int tileWidth, int vTileNum, int tileHeight, int paddingX, int paddingY)
 {
+    m_maxTileCount = hTileNum * vTileNum;
     if (!m_tileList.size())
         return;
     int width = rect.width();
     int y = rect.top() + paddingY;
+    int x = 0;
     for (int i = 0; i < vTileNum; ++i) {
         // move tiles to the middle
-        int x = qMax(0, (int)(rect.left() + (width - (hTileNum * tileWidth)) / 2));
+        x = qMax(0, (int)(rect.left() + (width - (hTileNum * tileWidth)) / 2));
         for (int j = 0; j < hTileNum; ++j) {
             // get the corresponding url entry
             int itemIndex = j + (i*hTileNum);
@@ -105,13 +108,17 @@ void TileBaseWidget::doLayoutTiles(const QRectF& rect, int hTileNum, int tileWid
                 continue;
             // padding
             m_tileList.at(itemIndex)->setGeometry(QRectF(x + paddingX, y + paddingY, tileWidth - (2*paddingX), tileHeight  - (2*paddingY)));
-            x+=(tileWidth);
+            x+=tileWidth;
         }
-        y+=(tileHeight);
+        y+=tileHeight;
     }
-    // leftovers are hidden
-    for (int i = vTileNum*hTileNum; i < m_tileList.size(); ++i)
+    // leftovers are hidden, lined up after the last item
+    y-=tileHeight;
+    for (int i = m_maxTileCount; i < m_tileList.size(); ++i) {
+        m_tileList.at(i)->setGeometry(QRectF(x + paddingX, y + paddingY, tileWidth - (2*paddingX), tileHeight  - (2*paddingY)));
+        x+=(tileWidth);
         m_tileList.at(i)->hide();
+    }
 }
 
 void TileBaseWidget::addTile(TileItem& newItem)
@@ -129,11 +136,14 @@ void TileBaseWidget::removeTile(TileItem& removed)
     for (int i = 0; i < m_tileList.size(); ++i) {
         if (m_tileList.at(i) == &removed) {
             for (int j = m_tileList.size() - 1; j > i; --j)
-                addMoveAnimation(*m_tileList.at(j), (j - i) * 100, m_tileList[j]->rect(), m_tileList[j-1]->rect());
+                addMoveAnimation(*m_tileList.at(j), (j - i) * 50, m_tileList[j]->rect(), m_tileList[j-1]->rect());
             delete m_tileList.takeAt(i);
             break;
         }
     }
+    // any hidden item to appear?
+    if (m_tileList.size() >= m_maxTileCount)
+        m_tileList.at(m_maxTileCount - 1)->show();
     m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
 }
 

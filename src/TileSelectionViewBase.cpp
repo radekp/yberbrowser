@@ -4,6 +4,7 @@
 #include <QGraphicsView>
 #include <QGraphicsWidget>
 #include <QGraphicsRectItem>
+#include <QTimer>
 #include <QGraphicsSceneMouseEvent>
 #include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
@@ -100,8 +101,10 @@ void TileSelectionViewBase::startAnimation(bool in)
     m_slideAnimationGroup->stop();
     m_slideAnimationGroup->clear();
 
-    setupAnimation(in);
-    m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
+    if (!setupAnimation(in))
+        QTimer::singleShot(0, this, SLOT(animFinished()));
+    else
+        m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
 }
 
 void TileSelectionViewBase::connectItem(TileItem& item)

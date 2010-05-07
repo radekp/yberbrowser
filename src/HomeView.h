@@ -25,7 +25,7 @@ public Q_SLOTS:
     void tileItemEditingMode(TileItem*);
 
 private:
-    void setupAnimation(bool);
+    bool setupAnimation(bool);
     void createViewItems();
     void destroyViewItems();
 

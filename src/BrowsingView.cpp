@@ -40,6 +40,8 @@
 
 #include "qwebframe.h"
 
+const int s_maxWindows = 6;
+
 /*!
    \class BrowsingView view displaying the web page, e.g the main browser UI.
 */
@@ -309,6 +311,8 @@ void BrowsingView::destroyWindow(WebView* webView)
 
 WebView* BrowsingView::newWindow()
 {
+    if (m_windowList.size() >= s_maxWindows)
+        return 0;
     WebView* webView = new WebView();
     m_windowList.append(webView);
     webView->setPage(new WebPage(webView, this));

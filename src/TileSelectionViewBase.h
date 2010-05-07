@@ -35,7 +35,7 @@ protected:
 
     virtual void createViewItems() = 0;
     virtual void destroyViewItems() = 0;
-    virtual void setupAnimation(bool) = 0;
+    virtual bool setupAnimation(bool) = 0;
     virtual void connectItem(TileItem&);
 
 protected:

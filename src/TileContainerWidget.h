@@ -65,6 +65,7 @@ protected:
 private:
     QParallelAnimationGroup* m_slideAnimationGroup;
     bool m_editMode;
+    int m_maxTileCount;
 };
 
 #endif

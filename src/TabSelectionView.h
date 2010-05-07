@@ -28,7 +28,7 @@ public Q_SLOTS:
     void tileItemClosed(TileItem*);
 
 private:
-    void setupAnimation(bool);
+    bool setupAnimation(bool);
     void createViewItems();
     void destroyViewItems();
 

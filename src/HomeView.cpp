@@ -29,9 +29,10 @@ const int s_defaultTileNumH = 3;
 const int s_defaultTileNumV = 6;
 const int s_tileHistoryPadding = 10;
 const int s_tileBookmarkPadding = 0;
-const int s_bookmarkStripeHeight = 70;
+const int s_bookmarkStripeHeight = 50;
 const int s_bookmarksTileWidth = 135;
-const QColor s_TitleTextColor(0xFA, 0xFA, 0xFA);
+const QColor s_bookmarkBckgColor(20, 20, 20, 209);
+const QColor s_bookmarkBorderColor(209, 209, 209);
 
 const int s_maxHistoryTileNum = s_defaultTileNumH * s_defaultTileNumV;
 }
@@ -66,7 +67,8 @@ void HistoryWidget::layoutTiles()
     int tileHeight = tileWidth * 0.9;
 
     // the width of the view is unknow until we figure out how many items there are
-    QRectF r(rect()); r.setHeight(vTileNum * (tileHeight + s_tileHistoryPadding));
+    QRectF r(rect()); 
+    r.setHeight(vTileNum * (tileHeight + s_tileHistoryPadding));
     setGeometry(r);
 
     doLayoutTiles(rect(), hTileNum, tileWidth, vTileNum, tileHeight, s_tileHistoryPadding, s_tileHistoryPadding);
@@ -83,18 +85,12 @@ public:
 
 private:
     QImage m_bookmarkIcon;
-    QLinearGradient m_bckgGradient;
 };
 
 BookmarkWidget::BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileBaseWidget(parent, wFlags)
     , m_bookmarkIcon(":/data/icon/48x48/bookmarks_48.png")
 {
-    // setup bckg gradient
-    QGradientStops stops;
-    stops << QGradientStop(0.00, QColor(240, 240, 240)) << QGradientStop(0.30, QColor(114, 114, 114)) << QGradientStop(0.50, QColor(144, 144, 144)) << QGradientStop(0.70, QColor(134, 134, 134)) << QGradientStop(1.00, QColor(40, 40, 40));
-    for (int j=0; j<stops.size(); ++j)
-        m_bckgGradient.setColorAt(stops.at(j).first, stops.at(j).second);
 }
 
 void BookmarkWidget::layoutTiles()
@@ -106,21 +102,17 @@ void BookmarkWidget::layoutTiles()
     int hTileNum = qMin(m_tileList.size(), (int)(r.width() / s_bookmarksTileWidth));
     int vTileNum = 1;
 
-    doLayoutTiles(r, hTileNum, s_bookmarksTileWidth, vTileNum, r.height(), s_tileBookmarkPadding, s_tileBookmarkPadding);
-
-    m_bckgGradient.setStart(rect().topLeft());
-    m_bckgGradient.setFinalStop(rect().bottomLeft());
+    doLayoutTiles(r, hTileNum, s_bookmarksTileWidth, vTileNum, r.height(), 0, 0);
 }
 
 void BookmarkWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
     // FIXME: optimize it
     QRectF r(rect());
-    r.adjust(10, -15, -10, 0);
-    painter->setBrush(m_bckgGradient);
-    painter->setPen(QColor(20, 20, 20));
-    painter->drawRoundedRect(r, 12, 12);
-    painter->drawImage(QPoint(10, rect().height() / 2 - m_bookmarkIcon.height() / 2), m_bookmarkIcon);
+    painter->setPen(s_bookmarkBorderColor);
+    painter->setBrush(s_bookmarkBckgColor);
+    painter->drawRect(r);
+    painter->drawImage(QPoint(10, r.height() / 2 - m_bookmarkIcon.height() / 2), m_bookmarkIcon);
     TileBaseWidget::paint(painter, option, widget);
 }
 
@@ -153,15 +145,14 @@ void HomeView::setGeometry(const QRectF& rect)
     if (rect.width() != currentRect.width() || rect.height() != currentRect.height()) {
         // readjust subcontainers' sizes in case of size chage
         QRectF r(rect);
-        // upper stripe for bookmarks
-        r.setHeight(s_bookmarkStripeHeight);
-        m_bookmarkWidget->setGeometry(r);
-
-        // history comes next
-        r.moveTop(r.bottom());
-        r.setBottom(rect.bottom());
+        // visited items come first        
+        r.setBottom(r.bottom() - s_bookmarkStripeHeight);
         m_pannableHistoryContainer->setGeometry(r);
         m_historyWidget->setGeometry(r);
+        // bookmarks next
+        r.setTop(r.bottom());
+        r.setBottom(rect.bottom());
+        m_bookmarkWidget->setGeometry(r);
     }
     TileSelectionViewBase::setGeometry(rect);
 }
@@ -191,7 +182,7 @@ void HomeView::tileItemEditingMode(TileItem* item)
     update();
 }
 
-void HomeView::setupAnimation(bool in)
+bool HomeView::setupAnimation(bool in)
 {
     // add both history and bookmark anim
     QPropertyAnimation* historyAnim = new QPropertyAnimation(m_historyWidget, "geometry");
@@ -212,11 +203,11 @@ void HomeView::setupAnimation(bool in)
     //
     QPropertyAnimation* bookmarkAnim = new QPropertyAnimation(m_bookmarkWidget, "geometry");
     bookmarkAnim->setDuration(800);
-    r = m_bookmarkWidget->geometry();
 
+    r = m_bookmarkWidget->geometry();
     if (in)
-        r.moveTop(rect().top());
-    QRectF hiddenBookmark(r); hiddenBookmark.moveBottom(r.top());
+        r.moveBottom(r.bottom());
+    QRectF hiddenBookmark(r); hiddenBookmark.moveTop(r.bottom());
 
     bookmarkAnim->setStartValue(in ?  hiddenBookmark : r);
     bookmarkAnim->setEndValue(in ? r : hiddenBookmark);
@@ -230,6 +221,8 @@ void HomeView::setupAnimation(bool in)
         m_historyWidget->setGeometry(hiddenHistory);
         m_bookmarkWidget->setGeometry(hiddenBookmark);
     }
+
+    return true;
 }
 
 void HomeView::destroyViewItems()

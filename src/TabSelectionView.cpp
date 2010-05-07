@@ -70,21 +70,19 @@ void TabWidget::removeAll()
 void TabWidget::layoutTiles()
 {
     // and layout them
-    QRectF r(parentWidget()->rect());
+    QRectF r(rect());
 
-    // default 
-    int hTileNum = m_tileList.size();
+    // 6 tabs max atm
+    // FIXME: this is landscape oriented. need to be dynamic to
+    // support portrait mode
+    int vTileNum = 2;
+    int hTileNum = qMin(3, m_tileList.size());
     int tileWidth = (r.width() / 3) - s_tilePadding;
     int tileHeight = tileWidth / 1.20;
 
-    r.setWidth((tileWidth + s_tilePadding) * hTileNum);
-    // the width of the view is unknow until we figure out how many items there are
-    setGeometry(r);
-
-    // move tiles to the middle
-    r.setTop(r.center().y() - (tileHeight / 2));
-    r.setHeight(tileHeight);
-    doLayoutTiles(r, hTileNum, tileWidth, 1, tileHeight, s_tilePadding, 0);
+    // FIXME: doLayoutTiles does horizontal centering. no need
+    r.setWidth(hTileNum * tileWidth);
+    doLayoutTiles(r, hTileNum, tileWidth, vTileNum, tileHeight, s_tilePadding, 0);
 }
 
 TabSelectionView::TabSelectionView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
@@ -141,30 +139,9 @@ void TabSelectionView::tileItemClosed(TileItem* item)
         disappear();
 }
 
-void TabSelectionView::setupAnimation(bool in)
+bool TabSelectionView::setupAnimation(bool /*in*/)
 {
-    // animate all the way down to the current window
-    QPropertyAnimation* tabAnim = new QPropertyAnimation(m_tabWidget, "geometry");
-    tabAnim->setDuration(800);
-    QRectF r(m_tabWidget->geometry());
-
-    if (in) {
-        // scroll all the way down to the active item
-        QRectF finishRect(m_tabWidget->activeTabItemRect());
-        r.moveLeft(finishRect.left() > 0 ? rect().center().x() - (finishRect.left() + finishRect.width()/2) : rect().left());
-    }
-    QRectF hiddenWidget(r); hiddenWidget.moveLeft(r.right());
-
-    tabAnim->setStartValue(in ?  hiddenWidget : r);
-    tabAnim->setEndValue(in ? r : hiddenWidget);
-
-    tabAnim->setEasingCurve(in ? QEasingCurve::OutBack : QEasingCurve::InCubic);
-
-    m_slideAnimationGroup->addAnimation(tabAnim);
-
-    // hide the container
-    if (in)
-        m_tabWidget->setGeometry(hiddenWidget);
+    return false;
 }
 
 void TabSelectionView::destroyViewItems()

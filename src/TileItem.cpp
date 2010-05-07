@@ -10,7 +10,7 @@
 #include "TileItem.h"
 #include "UrlItem.h"
 
-const int s_padding = 10;
+const int s_padding = 5;
 
 TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, TileLayout layout, bool editable)
     : QGraphicsRectItem(parent)
