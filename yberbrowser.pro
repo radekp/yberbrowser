@@ -117,6 +117,16 @@ target.path = $$BINDIR
 INSTALLS += target
 RESOURCES = yberbrowser.qrc
 
+maemo5 {
+    dotdesktop.files = data/yberbrowser-fremantle.desktop
+    dotdesktop.path = $$DATADIR/applications/hildon
+    INSTALLS += dotdesktop
+
+    icons.files = data/icon/*
+    icons.path = $$DATADIR/icons/hicolor
+    INSTALLS += icons
+}
+
 HEADERS = \
   src/ApplicationWindow.h \
   src/ApplicationWindowHost.h \
