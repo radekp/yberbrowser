@@ -49,6 +49,7 @@ protected:
     void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event);
     void adjustClickPosition(QPointF& pos);
     void setPannedWidgetGeometry(const QRectF& r);
+    bool processMaemo5ZoomKeys(QKeyEvent* event);
 
 protected Q_SLOTS:
     void contentsSizeChangeCausedResize();
