@@ -116,8 +116,7 @@ int main(int argc, char** argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalStorageEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::ZoomTextOnly, false);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, true);
-    QWebSettings::enablePersistentStorage();
-    QWebSettings::globalSettings()->setIconDatabasePath(settings->privatePath());
+    QWebSettings::enablePersistentStorage(settings->privatePath());
     
     QStringList args = app.arguments();
 
