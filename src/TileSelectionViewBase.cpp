@@ -45,16 +45,8 @@ TileSelectionViewBase::~TileSelectionViewBase()
 
 void TileSelectionViewBase::setGeometry(const QRectF& rect)
 {
-    QRectF currentRect(geometry());
-    if (rect == currentRect)
-        return;
     QGraphicsWidget::setGeometry(rect);
     m_bckg->setRect(rect);
-    
-    if (m_active && (rect.width() != currentRect.width() || rect.height() != currentRect.height())) {
-        // reconstuct tiles on size change
-        createViewItems();
-    }
 }
 
 void TileSelectionViewBase::appear(ApplicationWindow *window)
@@ -101,7 +93,7 @@ void TileSelectionViewBase::startAnimation(bool in)
     m_slideAnimationGroup->stop();
     m_slideAnimationGroup->clear();
 
-    if (!setupAnimation(in))
+    if (!setupInAndOutAnimation(in))
         QTimer::singleShot(0, this, SLOT(animFinished()));
     else
         m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);

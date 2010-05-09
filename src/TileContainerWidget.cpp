@@ -6,11 +6,16 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
+#include <QPainter>
+#include "HomeView.h"
+
+const int s_viewMargin = 40;
 
 PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : PannableViewport(parent, wFlags)
     , m_recognizer(this)
     , m_selfSentEvent(0)
+    , m_homeView(0)
 {
     m_recognizer.reset();
 }
@@ -37,13 +42,15 @@ bool PannableTileContainer::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneMouseMove:
     case QEvent::GraphicsSceneMouseRelease:
     case QEvent::GraphicsSceneMouseDoubleClick:
-        m_recognizer.filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
+        if (m_homeView)
+            doFilter = m_homeView->recognizeFlick(static_cast<QGraphicsSceneMouseEvent *>(e));
+        if (!doFilter)
+            m_recognizer.filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
         doFilter = true;
         break;
     default:
         break;
     }
-
     return doFilter;
 }
 
@@ -61,7 +68,7 @@ void PannableTileContainer::mousePressEventFromChild(QGraphicsSceneMouseEvent* e
 
 void PannableTileContainer::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* event)
 {
-    forwardEvent(event);
+   forwardEvent(event);
 }
 
 void  PannableTileContainer::mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent* event)
@@ -76,10 +83,12 @@ void PannableTileContainer::forwardEvent(QGraphicsSceneMouseEvent* event)
     m_selfSentEvent = 0;
 }
 
-TileBaseWidget::TileBaseWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
+TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_slideAnimationGroup(0)
+    , m_title(title)
     , m_editMode(false)
+    , m_active(false)
     , m_maxTileCount(0)
 {
 }
@@ -96,7 +105,7 @@ void TileBaseWidget::doLayoutTiles(const QRectF& rect, int hTileNum, int tileWid
     if (!m_tileList.size())
         return;
     int width = rect.width();
-    int y = rect.top() + paddingY;
+    int y = rect.top() + s_viewMargin;
     int x = 0;
     for (int i = 0; i < vTileNum; ++i) {
         // move tiles to the middle
@@ -158,6 +167,15 @@ void TileBaseWidget::setEditMode(bool on)
     m_editMode = on;
     for (int i = 0; i < m_tileList.size(); ++i)
         m_tileList.at(i)->setEditMode(on);
+}
+void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+{
+    QGraphicsWidget::paint(painter, option, widget);
+    painter->setFont(QFont("Times", 14));
+    painter->setPen(Qt::white);
+    QRectF r(rect());
+    r.setHeight(s_viewMargin);
+    painter->drawText(r, Qt::AlignCenter, m_title);
 }
 
 void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)

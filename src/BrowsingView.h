@@ -88,6 +88,8 @@ protected Q_SLOTS:
 
     void createHomeView();
     void deleteHomeView();
+    
+    void newWindowWithHomeView();
 
     void createTabSelectionView();
     void deleteTabSelectionView();

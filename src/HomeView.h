@@ -7,6 +7,7 @@ class HistoryWidget;
 class BookmarkWidget;
 class PannableTileContainer;
 class TileItem;
+class QGraphicsSceneMouseEvent;
 
 class HomeView : public TileSelectionViewBase {
     Q_OBJECT
@@ -15,17 +16,22 @@ public:
     ~HomeView();
 
     void setGeometry(const QRectF& rect);
+    bool sceneEventFilter(QGraphicsItem*, QEvent*);
+
+    bool recognizeFlick(QGraphicsSceneMouseEvent* e);
 
 Q_SIGNALS:
     void pageSelected(const QUrl&);
 
-public Q_SLOTS:
+private Q_SLOTS:
     void tileItemActivated(TileItem*);
     void tileItemClosed(TileItem*);
     void tileItemEditingMode(TileItem*);
 
 private:
-    bool setupAnimation(bool);
+    void moveViews(bool swap);
+
+    bool setupInAndOutAnimation(bool);
     void createViewItems();
     void destroyViewItems();
 
@@ -35,7 +41,12 @@ private:
 private:
     BookmarkWidget* m_bookmarkWidget;
     HistoryWidget* m_historyWidget;
-    PannableTileContainer* m_pannableHistoryContainer;
+    PannableTileContainer* m_pannableContainer;
+
+    // FIXME these should go to a gesture recognizer
+    bool m_mouseDown;
+    QPointF m_mousePos;
+    int m_hDelta;
 };
 
 #endif

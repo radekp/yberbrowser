@@ -337,6 +337,12 @@ void BrowsingView::deleteHomeView()
     m_homeView = 0;
 }
 
+void BrowsingView::newWindowWithHomeView()
+{
+    newWindow();
+    showHomeView();
+}
+
 void BrowsingView::createTabSelectionView() 
 {
     if (m_tabSelectionView)
@@ -348,7 +354,7 @@ void BrowsingView::createTabSelectionView()
     connect(m_tabSelectionView, SIGNAL(disappeared()), this, SLOT(deleteTabSelectionView()));
     connect(m_tabSelectionView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
     connect(m_tabSelectionView, SIGNAL(windowClosed(WebView*)), this, SLOT(destroyWindow(WebView*)));
-    connect(m_tabSelectionView, SIGNAL(windowCreated()), this, SLOT(newWindow()));
+    connect(m_tabSelectionView, SIGNAL(windowCreated()), this, SLOT(newWindowWithHomeView()));
 }
 
 void BrowsingView::deleteTabSelectionView()
@@ -361,10 +367,12 @@ void BrowsingView::toggleTabSelectionView()
 {
     createTabSelectionView();
 
-    if (m_tabSelectionView->isActive())
+    if (m_tabSelectionView->active())
         m_tabSelectionView->disappear();
-    else
+    else {
+        hideHomeView();
         m_tabSelectionView->appear(applicationWindow());
+    }
 }
 
 void BrowsingView::changeLocation()

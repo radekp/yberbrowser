@@ -38,6 +38,7 @@ public:
     void updateScrollbars();
 
     void setWidget(QGraphicsWidget*);
+    void detachWidget() { m_pannedWidget = 0; }
 
 protected:
     bool sceneEvent(QEvent* e);

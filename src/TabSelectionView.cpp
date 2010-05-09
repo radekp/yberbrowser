@@ -14,20 +14,15 @@
 #include "WebView.h"
 
 #include <QPropertyAnimation>
-#if USE_DUI
-#include <DuiScene>
-#endif
-
-// FIXME: this is a complete fixme class
 
 namespace {
-const int s_tilePadding = 20;
+const int s_tilePadding = 10;
 }
 
 class TabWidget : public TileBaseWidget {
     Q_OBJECT
 public:
-    TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) : TileBaseWidget(parent, wFlags) {}
+    TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) : TileBaseWidget("Window selection", parent, wFlags) {}
 
     void setActiveTabItem(TileItem* tabItem) { m_activeTabItem = tabItem; }
     QRectF activeTabItemRect();  
@@ -77,45 +72,34 @@ void TabWidget::layoutTiles()
     // support portrait mode
     int vTileNum = 2;
     int hTileNum = qMin(3, m_tileList.size());
-    int tileWidth = (r.width() / 3) - s_tilePadding;
-    int tileHeight = tileWidth / 1.20;
-
+    int tileWidth = (r.width() / 3) - 2 * s_tilePadding;
+    int tileHeight = tileWidth / 1.20 - 2 * s_tilePadding;
+ 
     // FIXME: doLayoutTiles does horizontal centering. no need
     r.setWidth(hTileNum * tileWidth);
-    doLayoutTiles(r, hTileNum, tileWidth, vTileNum, tileHeight, s_tilePadding, 0);
+    doLayoutTiles(r, hTileNum, tileWidth, vTileNum, tileHeight, s_tilePadding, s_tilePadding);
 }
 
 TabSelectionView::TabSelectionView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(parent, wFlags)
-    , m_pannableTabContainer(new PannableTileContainer(this, wFlags))
     , m_tabWidget(new TabWidget(this, wFlags))
     , m_windowList(0) 
     , m_activeWindow(0)
 {
     m_tabWidget->setZValue(1);
     m_tabWidget->setEditMode(true);
-    m_pannableTabContainer->setWidget(m_tabWidget);
     connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
 }
 
 TabSelectionView::~TabSelectionView()
 {
     delete m_tabWidget;
-    delete m_pannableTabContainer;
 }
 
 void TabSelectionView::setGeometry(const QRectF& rect)
 {
-    QRectF currentRect(geometry());
-    if (rect == currentRect)
-        return;
-    
-    if (rect.width() != currentRect.width() || rect.height() != currentRect.height()) {
-        // readjust subcontainers' sizes in case of size chage
-        m_pannableTabContainer->setGeometry(rect);
-        m_tabWidget->setGeometry(rect);
-    }
     TileSelectionViewBase::setGeometry(rect);
+    m_tabWidget->setGeometry(rect);
 }
 
 void TabSelectionView::tileItemActivated(TileItem* item)
@@ -139,9 +123,15 @@ void TabSelectionView::tileItemClosed(TileItem* item)
         disappear();
 }
 
-bool TabSelectionView::setupAnimation(bool /*in*/)
+bool TabSelectionView::setupInAndOutAnimation(bool in)
 {
-    return false;
+    QPropertyAnimation* tabAnim = new QPropertyAnimation(this, "opacity");
+    tabAnim->setDuration(500);
+    tabAnim->setStartValue(in ? 0 : 0.8);
+    tabAnim->setEndValue(in ? 0.8 : 0);
+    tabAnim->setEasingCurve(QEasingCurve::OutCubic);
+    m_slideAnimationGroup->addAnimation(tabAnim);
+    return true;
 }
 
 void TabSelectionView::destroyViewItems()
@@ -169,7 +159,7 @@ void TabSelectionView::createViewItems()
                 thumbnail = new QImage(*item->thumbnail());
         }
         // create a tile item with the window context set
-        TileItem* newTileItem = new TileItem(m_tabWidget, *(new UrlItem(view->url(), pageAvailable ? view->title() : "no page loded yet", thumbnail)), TileItem::Vertical);
+        ThumbnailTileItem* newTileItem = new ThumbnailTileItem(m_tabWidget, *(new UrlItem(view->url(), pageAvailable ? view->title() : "no page loded yet", thumbnail)));
         newTileItem->setContext(view);
 
         m_tabWidget->addTile(*newTileItem);
@@ -178,7 +168,8 @@ void TabSelectionView::createViewItems()
         if (view == m_activeWindow)
             m_tabWidget->setActiveTabItem(newTileItem);
     }
-    TileItem* newTileItem = new TileItem(m_tabWidget, *(new UrlItem(QUrl(), "open new window", 0)), TileItem::Vertical, false);
+    
+    NewWindowTileItem* newTileItem = new NewWindowTileItem(m_tabWidget, *(new UrlItem(QUrl(), "", 0)));
     m_tabWidget->addTile(*newTileItem);
     connectItem(*newTileItem);
 

@@ -4,7 +4,6 @@
 #include "TileSelectionViewBase.h"
 #include "UrlItem.h"
 
-class PannableTileContainer;
 class TabWidget;
 class WebView;
 class TileItem;
@@ -28,12 +27,11 @@ public Q_SLOTS:
     void tileItemClosed(TileItem*);
 
 private:
-    bool setupAnimation(bool);
+    bool setupInAndOutAnimation(bool);
     void createViewItems();
     void destroyViewItems();
 
 private:
-    PannableTileContainer* m_pannableTabContainer;
     TabWidget* m_tabWidget;
     QList<WebView*>* m_windowList;
     WebView* m_activeWindow;

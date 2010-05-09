@@ -16,7 +16,7 @@ public:
 
     void setGeometry(const QRectF& rect);
 
-    bool isActive() const { return m_active; }
+    bool active() const { return m_active; }
 
 Q_SIGNALS:
     void appeared();
@@ -35,7 +35,7 @@ protected:
 
     virtual void createViewItems() = 0;
     virtual void destroyViewItems() = 0;
-    virtual bool setupAnimation(bool) = 0;
+    virtual bool setupInAndOutAnimation(bool) = 0;
     virtual void connectItem(TileItem&);
 
 protected:
