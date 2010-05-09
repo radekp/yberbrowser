@@ -5,6 +5,8 @@
 #include "CommonGestureRecognizer.h"
 #include "TileItem.h"
 
+const int s_viewMargin = 40;
+
 class QGraphicsSceneMouseEvent;
 class QParallelAnimationGroup;
 class HomeView;

@@ -129,6 +129,7 @@ HEADERS = \
   src/HomeView.h \
   src/LinkSelectionItem.h \
   src/PannableViewport.h \
+  src/PopupView.h \
   src/ProgressWidget.h \
   src/ScrollbarItem.h \
   src/Settings.h \
@@ -155,6 +156,7 @@ SOURCES = \
   src/HistoryStore.cpp \
   src/HomeView.cpp \
   src/LinkSelectionItem.cpp \
+  src/PopupView.cpp \
   src/ProgressWidget.cpp \
   src/ScrollbarItem.cpp \
   src/TabSelectionView.cpp \

@@ -49,7 +49,7 @@ void TileSelectionViewBase::setGeometry(const QRectF& rect)
     m_bckg->setRect(rect);
 }
 
-void TileSelectionViewBase::appear(ApplicationWindow *window)
+void TileSelectionViewBase::appear(ApplicationWindow* window)
 {
     // FIXME: how to test if view is already in correct view?
     if (!scene()) {

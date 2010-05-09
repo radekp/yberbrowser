@@ -9,8 +9,6 @@
 #include <QPainter>
 #include "HomeView.h"
 
-const int s_viewMargin = 40;
-
 PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : PannableViewport(parent, wFlags)
     , m_recognizer(this)

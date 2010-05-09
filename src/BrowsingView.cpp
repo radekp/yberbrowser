@@ -8,6 +8,7 @@
 #include "Settings.h"
 #include "BackingStoreVisualizerWidget.h"
 #include "HomeView.h"
+#include "PopupView.h"
 #include "TabSelectionView.h"
 #include "Helpers.h"
 #include "ProgressWidget.h"
@@ -56,6 +57,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_webInteractionProxy(new WebViewportItem())
     , m_tabSelectionView(0)
     , m_homeView(0)
+    , m_urlPopupView(0)
     , m_urlEdit(0)
     , m_progressBox(0)
     , m_stopbackAction(0)
@@ -251,6 +253,24 @@ void BrowsingView::hideHomeView()
         m_homeView->disappear();
 }
 
+void BrowsingView::createUrlPopupView(const QString& filterText)
+{
+    if (m_urlPopupView)
+        return;
+    m_urlPopupView = new PopupView(filterText, this);
+    m_urlPopupView->setGeometry(m_browsingViewport->rect());
+    m_urlPopupView->appear(m_appWin);
+    connect(m_urlPopupView, SIGNAL(urlSelected(const QUrl&)), this, SLOT(urlSelected(const QUrl&)));
+    connect(m_urlPopupView, SIGNAL(disappeared()), this, SLOT(deleteUrlPopupView()));
+}
+
+void BrowsingView::deleteUrlPopupView()
+{
+    disconnect(m_urlPopupView, SIGNAL(urlSelected(const QUrl&)));
+    disconnect(m_urlPopupView, SIGNAL(disappeared()));
+    delete m_urlPopupView;
+    m_urlPopupView = 0;
+}
 #if !USE_DUI
 
 void BrowsingView::appear(ApplicationWindow *window)
@@ -379,6 +399,7 @@ void BrowsingView::changeLocation()
 {
     // nullify on hitting enter. end  of editing.
     m_lastEnteredText.resize(0);
+    deleteUrlPopupView();
     hideHomeView();
     if (!m_urlEdit)
         return;
@@ -397,12 +418,18 @@ void BrowsingView::urlTextEdited(const QString& newText)
     if (text.size() > m_lastEnteredText.size()) {
         // todo: make it async
         QString match = HistoryStore::instance()->match(text);
-        if (match.size()) {
+        if (!match.isEmpty()) {
             m_urlEdit->setText(match);
             m_urlEdit->setCursorPosition(text.size());
             m_urlEdit->setSelection(text.size(), match.size() - text.size());
         }
     }
+    // filter popup
+    if (!m_urlPopupView) {
+        hideHomeView();
+        createUrlPopupView(text);
+    } else
+        m_urlPopupView->setFilterText(text);
     m_lastEnteredText = text;
 }
 
@@ -460,6 +487,12 @@ void BrowsingView::urlChanged(const QUrl& url)
     if (!m_urlEdit)
         return;
     m_urlEdit->setText(url.toString());
+}
+
+void BrowsingView::urlSelected(const QUrl& url)
+{
+    // url popup item
+    load(url);
 }
 
 void BrowsingView::updateURL()

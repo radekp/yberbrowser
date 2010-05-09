@@ -27,7 +27,7 @@ class PannableViewport;
 class ApplicationWindow;
 class TabSelectionView;
 class HomeView;
-class BackingStoreVisualizerWidget;
+class PopupView;
 class ProgressWidget;
 class QAction;
 class AutoScrollTest;
@@ -75,6 +75,7 @@ protected Q_SLOTS:
     void urlTextEdited(const QString& newText);
     void urlEditfocusChanged(bool);
     void urlChanged(const QUrl& url);
+    void urlSelected(const QUrl&);
 
     void updateHistoryStore(bool successLoad);
 
@@ -94,6 +95,9 @@ protected Q_SLOTS:
     void createTabSelectionView();
     void deleteTabSelectionView();
     void toggleTabSelectionView();
+
+    void createUrlPopupView(const QString& filterText);
+    void deleteUrlPopupView();
 
     void prepareForResize();
 
@@ -123,6 +127,7 @@ private:
     WebViewportItem* m_webInteractionProxy;
     TabSelectionView* m_tabSelectionView;
     HomeView* m_homeView;
+    PopupView* m_urlPopupView;
     UrlEditWidget* m_urlEdit;
     ProgressWidget* m_progressBox;
     QSizeF m_sizeBeforeResize;
