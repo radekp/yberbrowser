@@ -31,7 +31,6 @@ private Q_SLOTS:
 private:
     void moveViews(bool swap);
 
-    bool setupInAndOutAnimation(bool);
     void createViewItems();
     void destroyViewItems();
 

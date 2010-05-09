@@ -306,17 +306,6 @@ void HomeView::moveViews(bool swap)
     m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
 }
 
-bool HomeView::setupInAndOutAnimation(bool in)
-{
-    QPropertyAnimation* tabAnim = new QPropertyAnimation(this, "opacity");
-    tabAnim->setDuration(500);
-    tabAnim->setStartValue(in ? 0 : 1);
-    tabAnim->setEndValue(in ? 1 : 0);
-    tabAnim->setEasingCurve(QEasingCurve::OutCubic);
-    m_slideAnimationGroup->addAnimation(tabAnim);
-    return true;
-}
-
 void HomeView::destroyViewItems()
 {
     m_bookmarkWidget->removeAll();

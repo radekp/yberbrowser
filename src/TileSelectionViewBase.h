@@ -31,11 +31,10 @@ public Q_SLOTS:
     virtual void tileItemEditingMode(TileItem*) {}
 
 protected:
-    void startAnimation(bool);
+    virtual void startInOutAnimation(bool);
 
     virtual void createViewItems() = 0;
     virtual void destroyViewItems() = 0;
-    virtual bool setupInAndOutAnimation(bool) = 0;
     virtual void connectItem(TileItem&);
 
 protected:

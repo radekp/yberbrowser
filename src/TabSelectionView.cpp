@@ -123,17 +123,6 @@ void TabSelectionView::tileItemClosed(TileItem* item)
         disappear();
 }
 
-bool TabSelectionView::setupInAndOutAnimation(bool in)
-{
-    QPropertyAnimation* tabAnim = new QPropertyAnimation(this, "opacity");
-    tabAnim->setDuration(500);
-    tabAnim->setStartValue(in ? 0 : 0.8);
-    tabAnim->setEndValue(in ? 0.8 : 0);
-    tabAnim->setEasingCurve(QEasingCurve::OutCubic);
-    m_slideAnimationGroup->addAnimation(tabAnim);
-    return true;
-}
-
 void TabSelectionView::destroyViewItems()
 {
     m_tabWidget->removeAll();

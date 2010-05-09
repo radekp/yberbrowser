@@ -60,13 +60,13 @@ void TileSelectionViewBase::appear(ApplicationWindow *window)
 
     m_active = true;
     createViewItems();
-    startAnimation(m_active);
+    startInOutAnimation(m_active);
 }
 
 void TileSelectionViewBase::disappear()
 {
     m_active = false;
-    startAnimation(m_active);
+    startInOutAnimation(m_active);
 }
 
 void TileSelectionViewBase::animFinished()
@@ -87,16 +87,19 @@ void TileSelectionViewBase::tileItemActivated(TileItem* /*item*/)
     disappear();
 }
 
-void TileSelectionViewBase::startAnimation(bool in)
+void TileSelectionViewBase::startInOutAnimation(bool in)
 {
     // ongoing?
     m_slideAnimationGroup->stop();
     m_slideAnimationGroup->clear();
 
-    if (!setupInAndOutAnimation(in))
-        QTimer::singleShot(0, this, SLOT(animFinished()));
-    else
-        m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
+    QPropertyAnimation* tabAnim = new QPropertyAnimation(this, "opacity");
+    tabAnim->setDuration(500);
+    tabAnim->setStartValue(in ? 0 : 1);
+    tabAnim->setEndValue(in ? 1 : 0);
+    tabAnim->setEasingCurve(QEasingCurve::OutCubic);
+    m_slideAnimationGroup->addAnimation(tabAnim);
+    m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
 }
 
 void TileSelectionViewBase::connectItem(TileItem& item)
