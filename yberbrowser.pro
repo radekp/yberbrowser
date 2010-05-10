@@ -11,6 +11,10 @@ isEmpty(PREFIX) {
 DATADIR = $$PREFIX/share
 BINDIR = $$PREFIX/bin
 
+MOC_DIR     = $$PWD/.moc
+OBJECTS_DIR = $$PWD/.obj
+RCC_DIR     = $$PWD/.rcc
+
 dui {
     CONFIG+=dui
     DEFINES+=USE_DUI=1
@@ -113,6 +117,16 @@ target.path = $$BINDIR
 INSTALLS += target
 RESOURCES = yberbrowser.qrc
 
+maemo5 {
+    dotdesktop.files = data/yberbrowser-fremantle.desktop
+    dotdesktop.path = $$DATADIR/applications/hildon
+    INSTALLS += dotdesktop
+
+    icons.files = data/icon/*
+    icons.path = $$DATADIR/icons/hicolor
+    INSTALLS += icons
+}
+
 HEADERS = \
   src/ApplicationWindow.h \
   src/ApplicationWindowHost.h \
@@ -122,6 +136,7 @@ HEADERS = \
   src/BookmarkStore.h \
   src/BrowsingView.h \
   src/CommonGestureRecognizer.h \
+  src/CookieJar.h \
   src/EnvHttpProxyFactory.h \
   src/EventHelpers.h \
   src/Helpers.h \
@@ -150,6 +165,7 @@ SOURCES = \
   src/BookmarkStore.cpp \
   src/BrowsingView.cpp \
   src/CommonGestureRecognizer.cpp \
+  src/CookieJar.cpp \
   src/EnvHttpProxyFactory.cpp\
   src/EventHelpers.cpp \
   src/Helpers.cpp \

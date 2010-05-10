@@ -13,6 +13,8 @@
 #include <QDebug>
 YberApplication::YberApplication(int & argc, char ** argv)
     : YberApplicationBase(argc, argv)
+    , appwin(0)
+    , m_cookieJar(0)
 {
     bool useSystemConf = true;
 
@@ -35,12 +37,13 @@ YberApplication::YberApplication(int & argc, char ** argv)
 
 YberApplication::~YberApplication()
 {
+    delete m_cookieJar;
 }
 
 void YberApplication::start()
 {
     if (!appwin) {
-        appwin.reset(new ApplicationWindow());
+        appwin = new ApplicationWindow();
         if (Settings::instance()->isFullScreen())
             appwin->showFullScreen();
         else
@@ -53,12 +56,18 @@ void YberApplication::createMainView(const QUrl& url)
     BrowsingView* page = new BrowsingView(*this);
 
 #if USE_DUI
-    page->appear(appwin.data(), DuiSceneWindow::DestroyWhenDone);
+    page->appear(appwin, DuiSceneWindow::DestroyWhenDone);
 #else
-    page->appear(appwin.data());
+    page->appear(appwin);
 #endif
 
     if (!url.isEmpty())
         page->load(url);
 }
 
+CookieJar* YberApplication::cookieJar() const
+{
+    if (!m_cookieJar)
+        m_cookieJar = new CookieJar;
+    return m_cookieJar;
+}
