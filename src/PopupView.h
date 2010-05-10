@@ -10,7 +10,7 @@ class TileItem;
 class PopupView : public TileSelectionViewBase {
     Q_OBJECT
 public:
-    PopupView(const QString& filterText, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    PopupView(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~PopupView();
 
     void setGeometry(const QRectF& rect);
@@ -18,7 +18,7 @@ public:
     void setFilterText(const QString& text);
 
 Q_SIGNALS:
-    void urlSelected(const QUrl&);
+    void pageSelected(const QUrl&);
 
 private Q_SLOTS:
     void tileItemActivated(TileItem*);

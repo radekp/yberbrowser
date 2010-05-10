@@ -18,11 +18,12 @@
 // FIXME: HomeView should be either a top level view, or just a central widget of the browsingview, probably the first one
 // also, LAF is not finalized yet.
 
-TileSelectionViewBase::TileSelectionViewBase(QGraphicsItem* parent, Qt::WindowFlags wFlags)
+TileSelectionViewBase::TileSelectionViewBase(ViewType type, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_slideAnimationGroup(new QParallelAnimationGroup())
     , m_bckg(new QGraphicsRectItem(rect(), this))
     , m_active(false)
+    , m_type(type)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);

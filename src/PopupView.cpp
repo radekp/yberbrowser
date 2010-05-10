@@ -47,11 +47,10 @@ void PopupWidget::layoutTiles()
     doLayoutTiles(r, hTileNum, r.width() - 60, vTileNum, tileHeight, 0, 0);
 }
 
-PopupView::PopupView(const QString& filterText, QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileSelectionViewBase(parent, wFlags)
+PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
+    : TileSelectionViewBase(TileSelectionViewBase::UrlPopup, parent, wFlags)
     , m_popupWidget(new PopupWidget(this, wFlags))
     , m_pannableContainer(new PannableTileContainer(this, wFlags))
-    , m_filterText(filterText)
 {
     m_popupWidget->setZValue(1);
     m_pannableContainer->setWidget(m_popupWidget);
@@ -82,7 +81,7 @@ void PopupView::setFilterText(const QString& text)
 void PopupView::tileItemActivated(TileItem* item)
 {
     TileSelectionViewBase::tileItemActivated(item);
-    emit urlSelected(item->urlItem()->m_url);
+    emit pageSelected(item->urlItem()->m_url);
 }
 
 void PopupView::destroyViewItems()

@@ -20,7 +20,7 @@ public:
 Q_SIGNALS:
     void windowSelected(WebView* webView);
     void windowClosed(WebView* webView);
-    void windowCreated();
+    void windowCreated(bool);
 
 public Q_SLOTS:
     void tileItemActivated(TileItem*);

@@ -81,7 +81,7 @@ void TabWidget::layoutTiles()
 }
 
 TabSelectionView::TabSelectionView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileSelectionViewBase(parent, wFlags)
+    : TileSelectionViewBase(TileSelectionViewBase::TabSelect, parent, wFlags)
     , m_tabWidget(new TabWidget(this, wFlags))
     , m_windowList(0) 
     , m_activeWindow(0)
@@ -108,19 +108,16 @@ void TabSelectionView::tileItemActivated(TileItem* item)
     if (item->context())
         emit windowSelected((WebView*)item->context());
     else
-        emit windowCreated();
+        emit windowCreated(true);
 }
 
 void TabSelectionView::tileItemClosed(TileItem* item)
 {
     TileSelectionViewBase::tileItemClosed(item);
     if (item->context()) {
-        emit windowClosed((WebView*)item->context());
         m_tabWidget->removeTile(*item);
+        emit windowClosed((WebView*)item->context());
     }
-    // close on last window close
-    if (m_tabWidget->tileList()->size() == 1)
-        disappear();
 }
 
 void TabSelectionView::destroyViewItems()

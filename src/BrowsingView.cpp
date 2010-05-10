@@ -6,7 +6,6 @@
 #include "YberApplication.h"
 #include "ApplicationWindow.h"
 #include "Settings.h"
-#include "BackingStoreVisualizerWidget.h"
 #include "HomeView.h"
 #include "PopupView.h"
 #include "TabSelectionView.h"
@@ -14,10 +13,11 @@
 #include "ProgressWidget.h"
 #include "HistoryStore.h"
 #include "BookmarkStore.h"
+#include "AutoScrollTest.h"
 #include <QAction>
 #include <QGraphicsLinearLayout>
+#include <QGraphicsProxyWidget>
 
-#include "AutoScrollTest.h"
 
 #if USE_DUI
 #include <DuiTextEdit>
@@ -33,11 +33,7 @@
 #include <QToolBar>
 #include <QStyle>
 #include <QMenuBar>
-
-
 #endif
-
-#include <QGraphicsProxyWidget>
 
 #include "qwebframe.h"
 
@@ -55,14 +51,11 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
 #endif
     , m_activeWebView(0)
     , m_webInteractionProxy(new WebViewportItem())
-    , m_tabSelectionView(0)
-    , m_homeView(0)
-    , m_urlPopupView(0)
     , m_urlEdit(0)
     , m_progressBox(0)
     , m_stopbackAction(0)
-    , m_loadIndProgress(false)
     , m_autoScrollTest(0)
+    , m_activeView(0)
 {
 #if USE_DUI
     setPannableAreaInteractive(false);
@@ -72,10 +65,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     m_browsingViewport = new WebViewport(m_webInteractionProxy);
 #endif
     m_browsingViewport->setAutoRange(false);
-
     m_progressBox = new ProgressWidget(m_browsingViewport);
-    // create and activate new window
-    newWindow();
 
     YberWidget* w = centralWidget();
     QGraphicsLinearLayout* layout = new QGraphicsLinearLayout(Qt::Vertical, w);
@@ -83,16 +73,18 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     layout->setSpacing(0.);
     layout->addItem(m_browsingViewport);
     layout->addItem(createNavigationToolBar());
+
+    // create and activate new window
+    newWindow();
 }
 
 BrowsingView::~BrowsingView()
 {
     delete m_autoScrollTest;
-    deleteHomeView();
-    deleteTabSelectionView();
+    delete m_activeView;
 }
 
-void BrowsingView::connectSignals(WebView* currentView, WebView* oldView)
+void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
 {
     if (oldView) {
         disconnect(oldView, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
@@ -186,14 +178,13 @@ YberWidget* BrowsingView::createNavigationToolBar()
 
 void BrowsingView::addBookmark()
 {
-    // FIXME: check if webviewport is active
-    if (!m_activeWebView)
+    if (m_activeView)
         return;
     if (m_activeWebView->url().isEmpty()) {
         notification("No page, no save.", m_browsingViewport);
         return;
     }
-    // FIXME webkit returns empty favicon
+    // webkit returns empty favicon
     BookmarkStore::instance()->add(m_activeWebView->url(), m_activeWebView->title(), QIcon());
     notification("Bookmark saved.", m_browsingViewport);
 }
@@ -205,7 +196,8 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     YberWidget* w = centralWidget();
     w->setGeometry(QRectF(w->pos(), size()));
     w->setPreferredSize(size());
-    updateViews();
+    if (m_activeView)
+        m_activeView->setGeometry(m_browsingViewport->geometry());
     m_progressBox->updateGeometry(m_browsingViewport->rect());
 
 #if !USE_DUI
@@ -235,49 +227,14 @@ void BrowsingView::pageBack()
     m_activeWebView->triggerPageAction(QWebPage::Back);
 }
 
-void BrowsingView::showHomeView()
-{
-    if (m_homeView && m_homeView->isActive())
-        return;
-    createHomeView();
-#if USE_DUI
-    m_homeView->appear(0);
-#else
-    m_homeView->appear(applicationWindow());
-#endif
-}
-
-void BrowsingView::hideHomeView()
-{
-    if (m_homeView && m_homeView->isActive())
-        m_homeView->disappear();
-}
-
-void BrowsingView::createUrlPopupView(const QString& filterText)
-{
-    if (m_urlPopupView)
-        return;
-    m_urlPopupView = new PopupView(filterText, this);
-    m_urlPopupView->setGeometry(m_browsingViewport->rect());
-    m_urlPopupView->appear(m_appWin);
-    connect(m_urlPopupView, SIGNAL(urlSelected(const QUrl&)), this, SLOT(urlSelected(const QUrl&)));
-    connect(m_urlPopupView, SIGNAL(disappeared()), this, SLOT(deleteUrlPopupView()));
-}
-
-void BrowsingView::deleteUrlPopupView()
-{
-    disconnect(m_urlPopupView, SIGNAL(urlSelected(const QUrl&)));
-    disconnect(m_urlPopupView, SIGNAL(disappeared()));
-    delete m_urlPopupView;
-    m_urlPopupView = 0;
-}
 #if !USE_DUI
-
 void BrowsingView::appear(ApplicationWindow *window)
 {
     m_appWin = window;
     window->setPage(this);
     window->setMenuBar(createMenu(window));
+    // create home view on startup
+    createActiveView(TileSelectionViewBase::Home);
 }
 
 QMenuBar* BrowsingView::createMenu(QWidget* parent)
@@ -298,13 +255,12 @@ QMenuBar* BrowsingView::createMenu(QWidget* parent)
 
 void BrowsingView::setActiveWindow(WebView* webView)
 {
-    // FIXME
     if (webView == m_activeWebView)
         return;
     // invalidate url bar
     if (m_urlEdit)
         m_urlEdit->setText(webView->url().toString());
-    connectSignals(webView, m_activeWebView);
+    connectWebViewSignals(webView, m_activeWebView);
     if (m_activeWebView)
         m_activeWebView->hide();
     webView->show();
@@ -315,9 +271,9 @@ void BrowsingView::setActiveWindow(WebView* webView)
 
 void BrowsingView::destroyWindow(WebView* webView)
 {
-    // FIXME: create a new window on last window destory. better idea?
+    // create a new window on last window destory. better idea?
     if (m_windowList.size() == 1)
-        newWindow();
+        newWindow(true);
     for (int i = 0; i < m_windowList.size(); ++i) {
         if (m_windowList.at(i) == webView) {
             // current? activate the next one, unless this is the last window
@@ -329,7 +285,7 @@ void BrowsingView::destroyWindow(WebView* webView)
     }
 }
 
-WebView* BrowsingView::newWindow()
+WebView* BrowsingView::newWindow(bool homeViewOn)
 {
     if (m_windowList.size() >= s_maxWindows)
         return 0;
@@ -337,70 +293,69 @@ WebView* BrowsingView::newWindow()
     m_windowList.append(webView);
     webView->setPage(new WebPage(webView, this));
     setActiveWindow(webView);
+    if (homeViewOn)
+        createActiveView(TileSelectionViewBase::Home);
     return webView;
 }
 
-void BrowsingView::createHomeView() 
+void BrowsingView::createActiveView(TileSelectionViewBase::ViewType type)
 {
-    if (m_homeView)
-        return;
-    // FIXME: home view invokes should be moved to app framework
-    m_homeView = new HomeView();
-    m_homeView->setGeometry(m_browsingViewport->rect());
-    connect(m_homeView, SIGNAL(disappeared()), this, SLOT(deleteHomeView()));
-    connect(m_homeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+    // check active view first
+    if (m_activeView) {
+        if (m_activeView->viewtype() == type)
+            return;
+        else
+            deleteActiveView();
+    }   
+    // create new view
+    switch (type) {
+        case TileSelectionViewBase::Home: {
+            m_activeView = new HomeView(this);
+            connect(m_activeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+            break;
+        }
+        case TileSelectionViewBase::TabSelect: {
+            m_activeView = new TabSelectionView(this);
+            (static_cast<TabSelectionView*>(m_activeView))->setWindowList(m_windowList, *m_activeWebView);
+            connect(m_activeView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
+            connect(m_activeView, SIGNAL(windowClosed(WebView*)), this, SLOT(destroyWindow(WebView*)));
+            connect(m_activeView, SIGNAL(windowCreated(bool)), this, SLOT(newWindow(bool)));
+            break;
+        }
+        case TileSelectionViewBase::UrlPopup: {
+            m_activeView = new PopupView(this);
+            connect(m_activeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+            break;
+        }
+    }
+    connect(m_activeView, SIGNAL(disappeared()), this, SLOT(deleteActiveView()));
+    m_activeView->setGeometry(m_browsingViewport->rect());
+#if USE_DUI
+    m_activeView->appear(0);
+#else
+    m_activeView->appear(applicationWindow());
+#endif
 }
 
-void BrowsingView::deleteHomeView()
+void BrowsingView::deleteActiveView()
 {
-    delete m_homeView;
-    m_homeView = 0;
-}
-
-void BrowsingView::newWindowWithHomeView()
-{
-    newWindow();
-    showHomeView();
-}
-
-void BrowsingView::createTabSelectionView() 
-{
-    if (m_tabSelectionView)
-        return;
-    // FIXME: home view invokes should be moved to app framework
-    m_tabSelectionView = new TabSelectionView();
-    m_tabSelectionView->setWindowList(m_windowList, *m_activeWebView);
-    m_tabSelectionView->setGeometry(m_browsingViewport->rect());
-    connect(m_tabSelectionView, SIGNAL(disappeared()), this, SLOT(deleteTabSelectionView()));
-    connect(m_tabSelectionView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
-    connect(m_tabSelectionView, SIGNAL(windowClosed(WebView*)), this, SLOT(destroyWindow(WebView*)));
-    connect(m_tabSelectionView, SIGNAL(windowCreated()), this, SLOT(newWindowWithHomeView()));
-}
-
-void BrowsingView::deleteTabSelectionView()
-{
-    delete m_tabSelectionView;
-    m_tabSelectionView = 0;
+    delete m_activeView;
+    m_activeView = 0;
 }
 
 void BrowsingView::toggleTabSelectionView()
 {
-    createTabSelectionView();
-
-    if (m_tabSelectionView->active())
-        m_tabSelectionView->disappear();
-    else {
-        hideHomeView();
-        m_tabSelectionView->appear(applicationWindow());
-    }
+    if (m_activeView && m_activeView->viewtype() == TileSelectionViewBase::TabSelect)
+        m_activeView->disappear();
+    else
+        createActiveView(TileSelectionViewBase::TabSelect);
 }
 
 void BrowsingView::changeLocation()
 {
     // nullify on hitting enter. end  of editing.
     m_lastEnteredText.resize(0);
-    deleteUrlPopupView();
-    hideHomeView();
+    deleteActiveView();
     if (!m_urlEdit)
         return;
     load(urlFromUserInput(m_urlEdit->text()));
@@ -425,18 +380,16 @@ void BrowsingView::urlTextEdited(const QString& newText)
         }
     }
     // filter popup
-    if (!m_urlPopupView) {
-        hideHomeView();
-        createUrlPopupView(text);
-    } else
-        m_urlPopupView->setFilterText(text);
+    if (!m_activeView || m_activeView->viewtype() != TileSelectionViewBase::UrlPopup)   
+        createActiveView(TileSelectionViewBase::UrlPopup);
+    (static_cast<PopupView*>(m_activeView))->setFilterText(text);
     m_lastEnteredText = text;
 }
 
 void BrowsingView::urlEditfocusChanged(bool focused)
 {
     if (focused) {
-        showHomeView();
+        createActiveView(TileSelectionViewBase::Home);
     } else {
         // FIXME: this is a hack to not to get urleditor focused back
         // when the toolbar is focused, only when the actual edior is focused
@@ -463,23 +416,16 @@ void BrowsingView::updateHistoryStore(bool successLoad)
     HistoryStore::instance()->accessed(m_activeWebView->page()->mainFrame()->url(), m_activeWebView->page()->mainFrame()->title(), thumbnail);
 }
 
-void BrowsingView::setLoadInProgress(bool loadInProgress)
-{
-    m_loadIndProgress = loadInProgress;
-    toggleStopBackIcon();
-}
-
 void BrowsingView::loadStarted()
 {
-    setLoadInProgress(true);
+    toggleStopBackIcon(true);
 }
 
 void BrowsingView::loadFinished(bool success)
 {
-    setLoadInProgress(false);
+    toggleStopBackIcon(false);
     updateURL();
     updateHistoryStore(success);
-//    QTimer::singleShot(1000, this, SLOT(updateHistoryStore()));
 }
 
 void BrowsingView::urlChanged(const QUrl& url)
@@ -487,12 +433,6 @@ void BrowsingView::urlChanged(const QUrl& url)
     if (!m_urlEdit)
         return;
     m_urlEdit->setText(url.toString());
-}
-
-void BrowsingView::urlSelected(const QUrl& url)
-{
-    // url popup item
-    load(url);
 }
 
 void BrowsingView::updateURL()
@@ -530,15 +470,6 @@ void BrowsingView::toggleFullScreen()
 #endif
 }
 
-void BrowsingView::updateViews()
-{
-    if (m_homeView)
-        m_homeView->setGeometry(m_browsingViewport->geometry());
-
-    if (m_tabSelectionView)
-        m_tabSelectionView->setGeometry(m_browsingViewport->geometry());
-}
-
 void BrowsingView::prepareForResize()
 {
 #if !USE_DUI
@@ -561,12 +492,12 @@ void BrowsingView::finishedAutoScrollTest()
     m_autoScrollTest = 0;
 }
 
-void BrowsingView::toggleStopBackIcon()
+void BrowsingView::toggleStopBackIcon(bool loadInProgress)
 {
-    m_stopbackAction->setIcon(QIcon(m_loadIndProgress ? ":/data/icon/48x48/stop_48.png" : ":/data/icon/48x48/back_48.png"));
-    m_stopbackAction->setIconText(m_loadIndProgress ? "Stop" : "Back");
+    m_stopbackAction->setIcon(QIcon(loadInProgress ? ":/data/icon/48x48/stop_48.png" : ":/data/icon/48x48/back_48.png"));
+    m_stopbackAction->setIconText(loadInProgress ? "Stop" : "Back");
     
-    disconnect(m_stopbackAction, SIGNAL(triggered()), this, m_loadIndProgress ? SLOT(pageBack()) : SLOT(stopLoad()));
-    connect(m_stopbackAction, SIGNAL(triggered()), this, m_loadIndProgress ? SLOT(stopLoad()) : SLOT(pageBack()));
+    disconnect(m_stopbackAction, SIGNAL(triggered()), this, loadInProgress ? SLOT(pageBack()) : SLOT(stopLoad()));
+    connect(m_stopbackAction, SIGNAL(triggered()), this, loadInProgress ? SLOT(stopLoad()) : SLOT(pageBack()));
 }
 

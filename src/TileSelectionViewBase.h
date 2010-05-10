@@ -11,12 +11,18 @@ class TileItem;
 class TileSelectionViewBase : public QGraphicsWidget {
     Q_OBJECT
 public:
-    TileSelectionViewBase(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    enum ViewType {
+        Home,
+        TabSelect,
+        UrlPopup
+    };
+
     virtual ~TileSelectionViewBase();
 
     void setGeometry(const QRectF& rect);
 
     bool active() const { return m_active; }
+    ViewType viewtype() const { return m_type; }
 
 Q_SIGNALS:
     void appeared();
@@ -31,6 +37,8 @@ public Q_SLOTS:
     virtual void tileItemEditingMode(TileItem*) {}
 
 protected:
+    TileSelectionViewBase(ViewType type, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+
     virtual void startInOutAnimation(bool);
 
     virtual void createViewItems() = 0;
@@ -43,5 +51,6 @@ protected:
 private:
     QGraphicsRectItem* m_bckg;
     bool m_active;
+    ViewType m_type;
 };
 #endif

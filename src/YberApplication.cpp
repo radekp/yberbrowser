@@ -58,9 +58,7 @@ void YberApplication::createMainView(const QUrl& url)
     page->appear(appwin.data());
 #endif
 
-    if (url.isEmpty())
-        page->showHomeView();
-    else
+    if (!url.isEmpty())
         page->load(url);
 }
 

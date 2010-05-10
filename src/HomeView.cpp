@@ -49,7 +49,7 @@ private:
     void layoutHint(const QSizeF& constraint, int& hTileNum, int& vTileNum, QSizeF& tileSize) const;
 };
 
-QSizeF HistoryWidget::sizeHint (Qt::SizeHint /*which*/, const QSizeF & constraint) const
+QSizeF HistoryWidget::sizeHint(Qt::SizeHint /*which*/, const QSizeF& constraint) const
 {
     int hTileNum;
     int vTileNum;
@@ -57,9 +57,11 @@ QSizeF HistoryWidget::sizeHint (Qt::SizeHint /*which*/, const QSizeF & constrain
     QSizeF cSize(constraint);
 
     if (cSize.width() == -1)
-        cSize.setWidth(parentWidget()->rect().size().width());
-    layoutHint(cSize, hTileNum, vTileNum, tileSize);
+        cSize.setWidth(qMax(parentWidget()->rect().size().width(), (qreal)800));
+    if (cSize.height() == -1)
+        cSize.setHeight(qMax(parentWidget()->rect().size().height(), (qreal)600));
 
+    layoutHint(cSize, hTileNum, vTileNum, tileSize);
     return QSizeF(hTileNum * (tileSize.width() + s_tileHistoryHMargin), vTileNum * (tileSize.height() + s_tileHistoryVMargin));
 }
 
@@ -124,7 +126,7 @@ void BookmarkWidget::layoutTiles()
 }
 
 HomeView::HomeView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileSelectionViewBase(parent, wFlags)
+    : TileSelectionViewBase(TileSelectionViewBase::Home, parent, wFlags)
     , m_bookmarkWidget(new BookmarkWidget(this, wFlags))
     , m_historyWidget(new HistoryWidget(this, wFlags))
     , m_pannableContainer(new PannableTileContainer(this, wFlags))
