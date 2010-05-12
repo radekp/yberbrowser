@@ -21,6 +21,7 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable)
     , m_editable(editable)
     , m_context(0)
     , m_dirty(true)
+    , m_fixed(false)
 {
 }
 
@@ -211,6 +212,7 @@ NewWindowMarkerTileItem::NewWindowMarkerTileItem(QGraphicsWidget* parent, UrlIte
     : ThumbnailTileItem(parent, item, false)
 
 {
+    setFixed(true);
 }
 
 void NewWindowMarkerTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)

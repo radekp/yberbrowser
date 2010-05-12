@@ -90,6 +90,8 @@ protected Q_SLOTS:
 
     void deleteActiveView();
 
+    void createHomeView() { createActiveView(TileSelectionViewBase::Home); }
+
 private:
     Q_DISABLE_COPY(BrowsingView);
     YberWidget* createNavigationToolBar();

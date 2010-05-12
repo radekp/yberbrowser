@@ -24,14 +24,12 @@
 // FIXME: HomeView should be either a top level view, or just a central widget of the browsingview, probably the first one
 // also, LAF is not finalized yet.
 
-namespace {
 const int s_containerMargin = 40;
 const int s_tileMargin = 20;
 const int s_historyTileMargin = 30;
 const int s_bookmarksTileHeight = 70;
 const int s_maxHistoryTileNum = 20;
 const int s_maxWindows = 6;
-}
 
 class TabWidget : public TileBaseWidget {
     Q_OBJECT
@@ -45,6 +43,16 @@ public:
 
 void TabWidget::removeTile(TileItem& removed)
 {
+    // FIXME: when tab is full fake items dont work
+    // insert a fake marker item in place
+    NewWindowMarkerTileItem* emptyItem = new NewWindowMarkerTileItem(this, *(new UrlItem(QUrl(), "", 0)));
+    for (int i = 0; i < m_tileList.size(); ++i) {
+        if (m_tileList.at(i)->fixed()) {
+            emptyItem->setRect(m_tileList.at(i-1)->rect());
+            m_tileList.insert(i, emptyItem);
+            break;
+        }            
+    }
     // url list is created here (out of window list) unlike in other views, like history items.
     delete removed.urlItem();
     TileBaseWidget::removeTile(removed);
@@ -80,7 +88,7 @@ void HistoryWidget::layoutTiles()
     QRectF r(rect());
     r.setHeight(parentWidget()->size().height() - s_viewMargin);
     // FIXME: this is landscape oriented. check aspect ratio
-    setMinimumHeight(doLayoutTiles(r, 3, 2, s_historyTileMargin, s_historyTileMargin).height());
+    setMinimumHeight(doLayoutTiles(r, 3, 2, s_historyTileMargin, s_historyTileMargin).height()); 
 }
 
 class BookmarkWidget : public TileBaseWidget {
@@ -215,8 +223,9 @@ void HomeView::tileItemActivated(TileItem* item)
     if (m_activeWidget == WindowSelect) {
         if (item->context())
             emit windowSelected((WebView*)item->context());
-        else
+        else {
             emit windowCreated(true);
+        }
     } else {
         emit pageSelected(item->urlItem()->m_url);
     }
@@ -225,11 +234,10 @@ void HomeView::tileItemActivated(TileItem* item)
 void HomeView::tileItemClosed(TileItem* item)
 {
     TileSelectionViewBase::tileItemClosed(item);
+    widgetByType(m_activeWidget)->removeTile(*item);
 
     if (m_activeWidget == WindowSelect)
         emit windowClosed((WebView*)item->context());
-
-    widgetByType(m_activeWidget)->removeTile(*item);
 }
 
 void HomeView::tileItemEditingMode(TileItem* item)
@@ -273,8 +281,8 @@ void HomeView::moveViews()
     slideAnim->setStartValue(geometry());
     slideAnim->setEndValue(to);
 
-    slideAnim->setDuration(800);
-    slideAnim->setEasingCurve(QEasingCurve::OutCubic);
+    slideAnim->setDuration(500);
+    slideAnim->setEasingCurve(QEasingCurve::OutExpo);
     m_slideAnimationGroup->addAnimation(slideAnim);
     m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
 }

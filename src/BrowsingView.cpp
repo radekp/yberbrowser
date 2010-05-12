@@ -298,7 +298,7 @@ WebView* BrowsingView::newWindow(bool homeViewOn)
     webView->setPage(new WebPage(webView, this));
     setActiveWindow(webView);
     if (homeViewOn)
-        createActiveView(TileSelectionViewBase::Home);
+        QTimer::singleShot(500, this, SLOT(createHomeView()));
     return webView;
 }
 
@@ -411,7 +411,7 @@ void BrowsingView::updateHistoryStore(bool successLoad)
     bool update = successLoad || !item || (item && !item->thumbnailAvailable());
 
     if (update) {
-        QSize thumbnailSize(500, 400);
+        QSizeF thumbnailSize(m_browsingViewport->size());
         thumbnail = new QImage(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
         QPainter p(thumbnail);
         m_activeWebView->page()->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));

@@ -127,7 +127,7 @@ QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTile
             m_tileList.at(j)->hide();
         }
     }
-    return QSize(tileWidth * hTileNum, y);
+    return QSize(tileWidth * hTileNum, y + tileHeight);
 }
 
 void TileBaseWidget::addTile(TileItem& newItem)
@@ -141,19 +141,23 @@ void TileBaseWidget::removeTile(TileItem& removed)
     if (!m_slideAnimationGroup)
         m_slideAnimationGroup = new QParallelAnimationGroup();
 
+    int hiddenIndex = -1;
     m_slideAnimationGroup->clear();
     for (int i = 0; i < m_tileList.size(); ++i) {
         if (m_tileList.at(i) == &removed) {
-            for (int j = m_tileList.size() - 1; j > i; --j)
-                addMoveAnimation(*m_tileList.at(j), (j - i) * 50, m_tileList[j]->rect().topLeft(), m_tileList[j-1]->rect().topLeft());
+            for (int j = m_tileList.size() - 1; j > i; --j) {
+                if (!m_tileList.at(j)->isVisible())
+                    hiddenIndex = j;
+                if (!m_tileList.at(j)->fixed())
+                    addMoveAnimation(*m_tileList.at(j), (j - i) * 50, m_tileList[j]->rect().topLeft(), m_tileList[j-1]->rect().topLeft());
+            }
             delete m_tileList.takeAt(i);
             break;
         }
     }
-    // any hidden item to appear?
-// do ishidden()
-//    if (m_tileList.size() >= m_maxTileCount)
-//        m_tileList.at(m_maxTileCount - 1)->show();
+    // hidden item to appear?
+    if (hiddenIndex > -1)    
+        m_tileList.at(hiddenIndex - 1)->show();
     m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
 }
 

@@ -22,6 +22,8 @@ public:
     void setTilePos(const QPointF& pos) { m_dirty = true; setRect(QRectF(pos, rect().size())); }
     QPointF tilePos() const { return rect().topLeft(); }
     void setEditMode(bool on);
+    void setFixed(bool on) { m_fixed = on; }
+    bool fixed() const { return m_fixed; }
     void setContext(void* context) { m_context = context; }
     void* context() const { return m_context; }
 
@@ -58,6 +60,7 @@ private:
     bool m_editable;
     void* m_context; 
     bool m_dirty;
+    bool m_fixed;
 };
 
 class ThumbnailTileItem : public TileItem {

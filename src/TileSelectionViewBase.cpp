@@ -30,6 +30,7 @@ TileSelectionViewBase::TileSelectionViewBase(ViewType type, QGraphicsItem* paren
 
     m_bckg->setBrush(QColor(20, 20, 20));
     m_bckg->setZValue(0);
+//    m_bckg->setOpacity(0.8);
 
     connect(m_slideAnimationGroup, SIGNAL(finished()), this, SLOT(animFinished()));
 }
@@ -74,8 +75,6 @@ void TileSelectionViewBase::animFinished()
 {
     // destroy thumbs when animation finished (outbound)
     if (m_active) {
-        // set transparency
-        m_bckg->setOpacity(0.8);
         emit appeared();
     } else {
         destroyViewItems();
