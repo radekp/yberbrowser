@@ -27,6 +27,7 @@
 namespace {
 const int s_containerMargin = 40;
 const int s_tileMargin = 20;
+const int s_historyTileMargin = 30;
 const int s_bookmarksTileHeight = 70;
 const int s_maxHistoryTileNum = 20;
 const int s_maxWindows = 6;
@@ -79,7 +80,7 @@ void HistoryWidget::layoutTiles()
     QRectF r(rect());
     r.setHeight(parentWidget()->size().height() - s_viewMargin);
     // FIXME: this is landscape oriented. check aspect ratio
-    setMinimumHeight(doLayoutTiles(r, 3, 2, s_tileMargin, s_tileMargin).height());
+    setMinimumHeight(doLayoutTiles(r, 3, 2, s_historyTileMargin, s_historyTileMargin).height());
 }
 
 class BookmarkWidget : public TileBaseWidget {

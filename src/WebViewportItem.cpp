@@ -93,7 +93,6 @@ WebViewportItem::~WebViewportItem()
 
 void WebViewportItem::setWebView(QGraphicsWebView* webView) 
 { 
-    Q_ASSERT(!m_webView);
     m_webView = webView; 
 
     m_webView->setResizesToContents(true);
