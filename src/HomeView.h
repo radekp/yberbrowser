@@ -5,23 +5,35 @@
 
 class HistoryWidget;
 class BookmarkWidget;
+class TabWidget;
 class PannableTileContainer;
 class TileItem;
 class QGraphicsSceneMouseEvent;
+class WebView;
 
 class HomeView : public TileSelectionViewBase {
     Q_OBJECT
 public:
-    HomeView(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    enum HomeWidgetType {
+        WindowSelect,
+        VisitedPages,
+        Bookmarks
+    };
+   
+    HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~HomeView();
-
-    void setGeometry(const QRectF& rect);
+    
+    void setWindowList(QList<WebView*>& windowList) { m_windowList = &windowList; }
+    HomeWidgetType activeWidget() const { return m_activeWidget; }
+    void resizeEvent(QGraphicsSceneResizeEvent* event);
     bool sceneEventFilter(QGraphicsItem*, QEvent*);
-
     bool recognizeFlick(QGraphicsSceneMouseEvent* e);
 
 Q_SIGNALS:
     void pageSelected(const QUrl&);
+    void windowSelected(WebView* webView);
+    void windowClosed(WebView* webView);
+    void windowCreated(bool);
 
 private Q_SLOTS:
     void tileItemActivated(TileItem*);
@@ -29,18 +41,25 @@ private Q_SLOTS:
     void tileItemEditingMode(TileItem*);
 
 private:
-    void moveViews(bool swap);
+    void moveViews();
 
     void createViewItems();
     void destroyViewItems();
 
     void createBookmarkContent();
     void createHistoryContent();
+    void createTabSelectContent();
+
+    TileBaseWidget* widgetByType(HomeWidgetType type);
 
 private:
+    HomeWidgetType m_activeWidget;
     BookmarkWidget* m_bookmarkWidget;
     HistoryWidget* m_historyWidget;
-    PannableTileContainer* m_pannableContainer;
+    TabWidget* m_tabWidget;
+    PannableTileContainer* m_pannableHistoryContainer;
+    PannableTileContainer* m_pannableBookmarkContainer;
+    QList<WebView*>* m_windowList;
 
     // FIXME these should go to a gesture recognizer
     bool m_mouseDown;

@@ -148,7 +148,6 @@ HEADERS = \
   src/ProgressWidget.h \
   src/ScrollbarItem.h \
   src/Settings.h \
-  src/TabSelectionView.h \
   src/TileContainerWidget.h \
   src/TileItem.h \
   src/TileSelectionViewBase.h \
@@ -175,7 +174,6 @@ SOURCES = \
   src/PopupView.cpp \
   src/ProgressWidget.cpp \
   src/ScrollbarItem.cpp \
-  src/TabSelectionView.cpp \
   src/TileContainerWidget.cpp \
   src/TileItem.cpp \
   src/TileSelectionViewBase.cpp \

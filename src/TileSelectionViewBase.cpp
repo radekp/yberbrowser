@@ -21,14 +21,13 @@
 TileSelectionViewBase::TileSelectionViewBase(ViewType type, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_slideAnimationGroup(new QParallelAnimationGroup())
-    , m_bckg(new QGraphicsRectItem(rect(), this))
+    , m_bckg(new QGraphicsRectItem(this))
     , m_active(false)
     , m_type(type)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
 
-    m_bckg->setPen(QPen(QBrush(QColor(10, 10, 10)), 3));
     m_bckg->setBrush(QColor(20, 20, 20));
 
     m_bckg->setZValue(0);
@@ -44,10 +43,11 @@ TileSelectionViewBase::~TileSelectionViewBase()
     delete m_bckg;
 }
 
-void TileSelectionViewBase::setGeometry(const QRectF& rect)
+void TileSelectionViewBase::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
-    QGraphicsWidget::setGeometry(rect);
-    m_bckg->setRect(rect);
+    m_bckg->setRect(rect());
+    createViewItems();
+    QGraphicsWidget::resizeEvent(event);
 }
 
 void TileSelectionViewBase::appear(ApplicationWindow* window)

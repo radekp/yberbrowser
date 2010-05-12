@@ -3,6 +3,7 @@
 
 #include "yberconfig.h"
 #include "TileSelectionViewBase.h"
+#include "HomeView.h"
 
 #if USE_DUI
 #include <DuiApplicationPage>
@@ -117,6 +118,7 @@ private:
     AutoScrollTest* m_autoScrollTest;
     QList<WebView*> m_windowList;
     TileSelectionViewBase* m_activeView;
+    HomeView::HomeWidgetType m_initialHomeWidget;
 };
 
 

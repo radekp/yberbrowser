@@ -13,13 +13,12 @@ class TileSelectionViewBase : public QGraphicsWidget {
 public:
     enum ViewType {
         Home,
-        TabSelect,
         UrlPopup
     };
 
     virtual ~TileSelectionViewBase();
 
-    void setGeometry(const QRectF& rect);
+    void resizeEvent(QGraphicsSceneResizeEvent* event);
 
     bool active() const { return m_active; }
     ViewType viewtype() const { return m_type; }

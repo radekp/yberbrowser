@@ -12,18 +12,21 @@ class PopupWidget : public TileBaseWidget {
     Q_OBJECT
 public:
     PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) : TileBaseWidget("Search result", parent, wFlags) {}
-
     void layoutTiles();
+
 };
 
 void PopupWidget::layoutTiles()
 {
-    int vTileNum = m_tileList.size();
-    int hTileNum = 1;
-    int tileHeight = 65;
+/*    QRectF r(rect());
 
-    QRectF r(rect());
-    r.setHeight(tileHeight * m_tileList.size());
+    int hTileNum;
+    int vTileNum;
+    QSizeF tileSize;
+
+    layoutHint(Qt::PreferredSize, r.size(), hTileNum, vTileNum, tileSize);
+
+    r.setHeight(tileSize.height() * m_tileList.size());
     
     // adjust it to the bottom url bar
     QRectF gRect(geometry());
@@ -44,7 +47,8 @@ void PopupWidget::layoutTiles()
 
     // vertical adjustment
     r.adjust(10, 0, 0, -10);
-    doLayoutTiles(r, hTileNum, r.width() - 60, vTileNum, tileHeight, 0, 0);
+    doLayoutTiles(r, hTileNum, tileSize.width(), vTileNum, tileSize.height(), 0, 0);
+*/
 }
 
 PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)

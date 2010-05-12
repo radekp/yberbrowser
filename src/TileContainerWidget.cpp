@@ -86,8 +86,6 @@ TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::
     , m_slideAnimationGroup(0)
     , m_title(title)
     , m_editMode(false)
-    , m_active(false)
-    , m_maxTileCount(0)
 {
 }
 
@@ -97,35 +95,39 @@ TileBaseWidget::~TileBaseWidget()
     delete m_slideAnimationGroup;
 }
 
-void TileBaseWidget::doLayoutTiles(const QRectF& rect, int hTileNum, int tileWidth, int vTileNum, int tileHeight, int paddingX, int paddingY)
+QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed)
 {
-    m_maxTileCount = hTileNum * vTileNum;
     if (!m_tileList.size())
-        return;
-    int width = rect.width();
-    int y = rect.top() + s_viewMargin;
-    int x = 0;
-    for (int i = 0; i < vTileNum; ++i) {
-        // move tiles to the middle
-        x = qMax(0, (int)(rect.left() + (width - (hTileNum * tileWidth)) / 2));
-        for (int j = 0; j < hTileNum; ++j) {
-            // get the corresponding url entry
-            int itemIndex = j + (i*hTileNum);
-            if (itemIndex >= m_tileList.size())
-                continue;
-            // padding
-            m_tileList.at(itemIndex)->setGeometry(QRectF(x + paddingX, y + paddingY, tileWidth - (2*paddingX), tileHeight  - (2*paddingY)));
-            x+=tileWidth;
+        return QSize(0, 0) ;
+
+    int width = rect_.width() - (hTileNum + 1)*marginX;
+    int height = rect_.height() - (vTileNum + 1)*marginY;
+
+    int tileWidth = width / hTileNum;
+    int tileHeight = height / vTileNum; 
+
+    int tileCount = fixed ? qMin(hTileNum * vTileNum, m_tileList.size()) : m_tileList.size();
+    int y = rect_.top() + s_viewMargin - tileHeight;
+    int x = rect_.left() + marginX;
+    int i = 0;
+    for (; i < tileCount; ++i) {
+        if (i%hTileNum == 0) {
+            y+=(tileHeight + marginY);
+            x = rect_.left() + marginX;
         }
-        y+=tileHeight;
+        m_tileList.at(i)->setRect(QRectF(x, y, tileWidth, tileHeight));
+        x+=(tileWidth + marginX);
     }
-    // leftovers are hidden, lined up after the last item
-    y-=tileHeight;
-    for (int i = m_maxTileCount; i < m_tileList.size(); ++i) {
-        m_tileList.at(i)->setGeometry(QRectF(x + paddingX, y + paddingY, tileWidth - (2*paddingX), tileHeight  - (2*paddingY)));
-        x+=(tileWidth);
-        m_tileList.at(i)->hide();
+
+    if (fixed) {
+        // leftovers are hidden, lined up after the last item
+        for (int j = i; j < m_tileList.size(); ++j) {
+            m_tileList.at(j)->setRect(QRectF(x, y, tileWidth, tileHeight));
+            x+=(tileWidth + marginX);
+            m_tileList.at(j)->hide();
+        }
     }
+    return QSize(tileWidth * hTileNum, y);
 }
 
 void TileBaseWidget::addTile(TileItem& newItem)
@@ -149,8 +151,9 @@ void TileBaseWidget::removeTile(TileItem& removed)
         }
     }
     // any hidden item to appear?
-    if (m_tileList.size() >= m_maxTileCount)
-        m_tileList.at(m_maxTileCount - 1)->show();
+// do ishidden()
+//    if (m_tileList.size() >= m_maxTileCount)
+//        m_tileList.at(m_maxTileCount - 1)->show();
     m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
 }
 
@@ -166,6 +169,7 @@ void TileBaseWidget::setEditMode(bool on)
     for (int i = 0; i < m_tileList.size(); ++i)
         m_tileList.at(i)->setEditMode(on);
 }
+
 void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
     QGraphicsWidget::paint(painter, option, widget);
@@ -178,7 +182,7 @@ void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* op
 
 void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
 {
-    emit closeWidget();
+//    emit closeWidget();
 }
 
 void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QRectF& oldPos, const QRectF& newPos)

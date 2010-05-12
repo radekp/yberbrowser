@@ -20,6 +20,7 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable)
     , m_dclick(false)
     , m_editable(editable)
     , m_context(0)
+    , m_dirty(true)
 {
 }
 
@@ -28,11 +29,9 @@ TileItem::~TileItem()
     delete m_closeIcon;
 }
 
-void TileItem::setGeometry(const QRectF& rect)
+void TileItem::resizeEvent(QGraphicsSceneResizeEvent* /*event*/)
 {
-    setRect(rect);
-    layoutTile();
-    setEditIconRect();
+    m_dirty = true;
 }
 
 void TileItem::setEditMode(bool on) 
@@ -77,6 +76,15 @@ void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
     painter.drawRoundedRect(r, 5, 5);
 }
 
+void TileItem::layoutTile()
+{
+    if (!m_dirty)
+        return;
+    doLayoutTile();
+    setEditIconRect();
+    m_dirty = false;
+}
+
 void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* /*event*/)
 {
 }
@@ -94,6 +102,7 @@ void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
     } else {    
         m_selected = true;
         emit itemActivated(this);
+        update();
     }
 }
 
@@ -136,7 +145,7 @@ void ThumbnailTileItem::thumbnailChanged()
     update(); 
 }
 
-void ThumbnailTileItem::layoutTile()
+void ThumbnailTileItem::doLayoutTile()
 {
     QFont f("Times", 10);
     QRectF r(rect()); 
@@ -156,7 +165,10 @@ void ThumbnailTileItem::layoutTile()
 
 void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
+    layoutTile();
+
     painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
+
     QRectF r(rect()); 
 
     // QGraphicsDropShadowEffect doesnt perform well on n900.
@@ -182,6 +194,10 @@ NewWindowTileItem::NewWindowTileItem(QGraphicsWidget* parent, UrlItem& item)
 
 void NewWindowTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
+    layoutTile();
+
+    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
+
     painter->setPen(Qt::white);
     painter->setBrush(Qt::black);
     painter->drawRoundedRect(rect(), 5, 5);
@@ -191,13 +207,32 @@ void NewWindowTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     painter->drawText(rect(), Qt::AlignCenter, "Open new window");
 }
 
+NewWindowMarkerTileItem::NewWindowMarkerTileItem(QGraphicsWidget* parent, UrlItem& item)
+    : ThumbnailTileItem(parent, item, false)
+
+{
+}
+
+void NewWindowMarkerTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
+{
+    layoutTile();
+
+    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
+
+    QPen p(Qt::DashLine);
+    p.setColor(QColor(100, 100, 100));
+    painter->setPen(p);
+    painter->setBrush(Qt::NoBrush);
+    painter->drawRoundedRect(rect(), 5, 5);
+}
+
 //
 ListTileItem::ListTileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable)
     : TileItem(parent, urlItem, editable)
 {
 }
 
-void ListTileItem::layoutTile()
+void ListTileItem::doLayoutTile()
 {
     QRectF r(rect()); 
     r.adjust(s_hTextMargin, 0, -s_hTextMargin, 0);
@@ -219,7 +254,10 @@ void ListTileItem::layoutTile()
 
 void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
+    layoutTile();
+
     painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
+
     QRectF r(rect()); 
 
     // QGraphicsDropShadowEffect doesnt perform well on n900.

@@ -40,30 +40,23 @@ private:
 class TileBaseWidget : public QGraphicsWidget {
     Q_OBJECT
 public:
-    ~TileBaseWidget();
+    virtual ~TileBaseWidget();
 
     virtual void addTile(TileItem& newItem);
     virtual void removeTile(TileItem& removed);
     virtual void removeAll();
-
-    void setActive(bool active) { m_active = active; }
-    bool active() const { return m_active; }
+    virtual void layoutTiles() = 0;
 
     void setEditMode(bool on);
     bool editMode() const { return m_editMode; }
 
-    TileList* tileList() { return &m_tileList; }
-
-    virtual void layoutTiles() = 0;
-
 Q_SIGNALS:
     void closeWidget();
-    void deactivateWidget();
 
 protected:
     TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
 
-    virtual void doLayoutTiles(const QRectF& rect, int vTileNum, int tileWidth, int hTileNum, int tileHeight, int paddingX, int paddingY);
+    QSize doLayoutTiles(const QRectF& rect, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed = false);
 
 private:
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
@@ -77,8 +70,6 @@ private:
     QParallelAnimationGroup* m_slideAnimationGroup;
     QString m_title;
     bool m_editMode;
-    bool m_active;
-    int m_maxTileCount;
 };
 
 #endif

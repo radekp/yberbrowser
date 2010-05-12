@@ -8,7 +8,6 @@
 #include "Settings.h"
 #include "HomeView.h"
 #include "PopupView.h"
-#include "TabSelectionView.h"
 #include "Helpers.h"
 #include "ProgressWidget.h"
 #include "HistoryStore.h"
@@ -56,6 +55,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_stopbackAction(0)
     , m_autoScrollTest(0)
     , m_activeView(0)
+    , m_initialHomeWidget(HomeView::VisitedPages)
 {
 #if USE_DUI
     setPannableAreaInteractive(false);
@@ -196,8 +196,11 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     YberWidget* w = centralWidget();
     w->setGeometry(QRectF(w->pos(), size()));
     w->setPreferredSize(size());
-    if (m_activeView)
-        m_activeView->setGeometry(m_browsingViewport->geometry());
+    if (m_activeView) {
+        QSizeF s(m_browsingViewport->size());
+        s.setWidth(3 * s.width());
+        m_activeView->resize(s);
+    }
     m_progressBox->updateGeometry(m_browsingViewport->rect());
 
 #if !USE_DUI
@@ -310,13 +313,9 @@ void BrowsingView::createActiveView(TileSelectionViewBase::ViewType type)
     // create new view
     switch (type) {
         case TileSelectionViewBase::Home: {
-            m_activeView = new HomeView(this);
+            m_activeView = new HomeView(m_initialHomeWidget, this);
+            (static_cast<HomeView*>(m_activeView))->setWindowList(m_windowList);
             connect(m_activeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
-            break;
-        }
-        case TileSelectionViewBase::TabSelect: {
-            m_activeView = new TabSelectionView(this);
-            (static_cast<TabSelectionView*>(m_activeView))->setWindowList(m_windowList, *m_activeWebView);
             connect(m_activeView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
             connect(m_activeView, SIGNAL(windowClosed(WebView*)), this, SLOT(destroyWindow(WebView*)));
             connect(m_activeView, SIGNAL(windowCreated(bool)), this, SLOT(newWindow(bool)));
@@ -329,7 +328,9 @@ void BrowsingView::createActiveView(TileSelectionViewBase::ViewType type)
         }
     }
     connect(m_activeView, SIGNAL(disappeared()), this, SLOT(deleteActiveView()));
-    m_activeView->setGeometry(m_browsingViewport->rect());
+    QSizeF s(m_browsingViewport->size());
+    s.setWidth(3 * s.width());
+    m_activeView->resize(s);
 #if USE_DUI
     m_activeView->appear(0);
 #else
@@ -339,16 +340,18 @@ void BrowsingView::createActiveView(TileSelectionViewBase::ViewType type)
 
 void BrowsingView::deleteActiveView()
 {
+    if (m_activeView && m_activeView->viewtype() == TileSelectionViewBase::Home) {
+        // no window select for initial view please
+        m_initialHomeWidget = ((static_cast<HomeView*>(m_activeView))->activeWidget() == HomeView::WindowSelect ? HomeView::VisitedPages : (static_cast<HomeView*>(m_activeView))->activeWidget());
+    }
     delete m_activeView;
     m_activeView = 0;
 }
 
 void BrowsingView::toggleTabSelectionView()
 {
-    if (m_activeView && m_activeView->viewtype() == TileSelectionViewBase::TabSelect)
-        m_activeView->disappear();
-    else
-        createActiveView(TileSelectionViewBase::TabSelect);
+    m_initialHomeWidget = HomeView::WindowSelect;
+    createActiveView(TileSelectionViewBase::Home);
 }
 
 void BrowsingView::changeLocation()

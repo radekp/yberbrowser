@@ -8,15 +8,14 @@
 #include "UrlItem.h"
 
 class QGraphicsWidget;
+class QGraphicsSceneResizeEvent;
 
 class TileItem : public QObject, public QGraphicsRectItem {
     Q_OBJECT
-    Q_PROPERTY(QRectF geometry READ geometry WRITE setGeometry)
 public:
     virtual ~TileItem();
     
-    void setGeometry(const QRectF& rect);
-    QRectF geometry() { return rect(); }
+    void resizeEvent(QGraphicsSceneResizeEvent* event);
     UrlItem* urlItem() const { return m_urlItem; }
 
     void setEditMode(bool on);
@@ -33,9 +32,11 @@ Q_SIGNALS:
 
 protected:
     TileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable = true);
-    void addDropShadow(QPainter& painter, const QRectF rect);
     void paintExtra(QPainter* painter);
-    virtual void layoutTile() = 0;
+    void addDropShadow(QPainter& painter, const QRectF rect);
+    void layoutTile();
+
+    virtual void doLayoutTile() = 0;
 
 protected:
     UrlItem* m_urlItem;
@@ -53,6 +54,7 @@ private:
     bool m_dclick;
     bool m_editable;
     void* m_context; 
+    bool m_dirty;
 };
 
 class ThumbnailTileItem : public TileItem {
@@ -65,7 +67,7 @@ public Q_SLOTS:
     void thumbnailChanged();
 
 private:
-    void layoutTile();
+    void doLayoutTile();
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 
 private:
@@ -81,10 +83,18 @@ public:
     NewWindowTileItem(QGraphicsWidget* parent, UrlItem& urlItem);
 
 private:
+    void doLayoutTile() {}
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
+};
+
+class NewWindowMarkerTileItem : public ThumbnailTileItem {
+    Q_OBJECT
+public:
+    NewWindowMarkerTileItem(QGraphicsWidget* parent, UrlItem& urlItem);
 
 private:
-    UrlItem m_fakeItem;
+    void doLayoutTile() {}
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 };
 
 class ListTileItem : public TileItem {
@@ -92,7 +102,7 @@ public:
     ListTileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable = true);
     
 private:
-    void layoutTile();
+    void doLayoutTile();
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 
 private:
