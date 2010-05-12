@@ -101,8 +101,8 @@ void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
         emit itemClosed(this);
     } else {    
         m_selected = true;
-        emit itemActivated(this);
         update();
+        emit itemActivated(this);
     }
 }
 

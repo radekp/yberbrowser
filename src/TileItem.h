@@ -12,12 +12,15 @@ class QGraphicsSceneResizeEvent;
 
 class TileItem : public QObject, public QGraphicsRectItem {
     Q_OBJECT
+    Q_PROPERTY(QPointF tilePos READ tilePos WRITE setTilePos)
 public:
     virtual ~TileItem();
     
     void resizeEvent(QGraphicsSceneResizeEvent* event);
     UrlItem* urlItem() const { return m_urlItem; }
 
+    void setTilePos(const QPointF& pos) { m_dirty = true; setRect(QRectF(pos, rect().size())); }
+    QPointF tilePos() const { return rect().topLeft(); }
     void setEditMode(bool on);
     void setContext(void* context) { m_context = context; }
     void* context() const { return m_context; }

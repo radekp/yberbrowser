@@ -198,7 +198,8 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     w->setPreferredSize(size());
     if (m_activeView) {
         QSizeF s(m_browsingViewport->size());
-        s.setWidth(3 * s.width());
+        if (m_activeView->viewtype() == TileSelectionViewBase::Home)
+            s.setWidth(3 * s.width());
         m_activeView->resize(s);
     }
     m_progressBox->updateGeometry(m_browsingViewport->rect());
@@ -303,13 +304,7 @@ WebView* BrowsingView::newWindow(bool homeViewOn)
 
 void BrowsingView::createActiveView(TileSelectionViewBase::ViewType type)
 {
-    // check active view first
-    if (m_activeView) {
-        if (m_activeView->viewtype() == type)
-            return;
-        else
-            deleteActiveView();
-    }   
+    deleteActiveView();
     // create new view
     switch (type) {
         case TileSelectionViewBase::Home: {
@@ -329,7 +324,8 @@ void BrowsingView::createActiveView(TileSelectionViewBase::ViewType type)
     }
     connect(m_activeView, SIGNAL(disappeared()), this, SLOT(deleteActiveView()));
     QSizeF s(m_browsingViewport->size());
-    s.setWidth(3 * s.width());
+    if (m_activeView->viewtype() == TileSelectionViewBase::Home)
+        s.setWidth(3 * s.width());
     m_activeView->resize(s);
 #if USE_DUI
     m_activeView->appear(0);
@@ -382,10 +378,14 @@ void BrowsingView::urlTextEdited(const QString& newText)
             m_urlEdit->setSelection(text.size(), match.size() - text.size());
         }
     }
-    // filter popup
-    if (!m_activeView || m_activeView->viewtype() != TileSelectionViewBase::UrlPopup)   
+    // create home view when no text in the url field
+    bool deletePopup = newText.isEmpty() && m_activeView && m_activeView->viewtype() == TileSelectionViewBase::UrlPopup;
+    if (deletePopup)
+        createActiveView(TileSelectionViewBase::Home);
+    else if (!m_activeView || m_activeView->viewtype() != TileSelectionViewBase::UrlPopup)
         createActiveView(TileSelectionViewBase::UrlPopup);
-    (static_cast<PopupView*>(m_activeView))->setFilterText(text);
+    if (!deletePopup)
+        (static_cast<PopupView*>(m_activeView))->setFilterText(text);
     m_lastEnteredText = text;
 }
 

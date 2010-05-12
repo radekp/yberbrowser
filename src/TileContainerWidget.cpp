@@ -145,7 +145,7 @@ void TileBaseWidget::removeTile(TileItem& removed)
     for (int i = 0; i < m_tileList.size(); ++i) {
         if (m_tileList.at(i) == &removed) {
             for (int j = m_tileList.size() - 1; j > i; --j)
-                addMoveAnimation(*m_tileList.at(j), (j - i) * 50, m_tileList[j]->rect(), m_tileList[j-1]->rect());
+                addMoveAnimation(*m_tileList.at(j), (j - i) * 50, m_tileList[j]->rect().topLeft(), m_tileList[j-1]->rect().topLeft());
             delete m_tileList.takeAt(i);
             break;
         }
@@ -182,13 +182,13 @@ void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* op
 
 void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
 {
-//    emit closeWidget();
+    emit closeWidget();
 }
 
-void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QRectF& oldPos, const QRectF& newPos)
+void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QPointF& oldPos, const QPointF& newPos)
 {
     // animate all the way down to the current window
-    QPropertyAnimation* moveAnim = new QPropertyAnimation(&item, "geometry");
+    QPropertyAnimation* moveAnim = new QPropertyAnimation(&item, "tilePos");
     moveAnim->setDuration(500 + delay);
 
     moveAnim->setStartValue(oldPos);

@@ -29,8 +29,8 @@ TileSelectionViewBase::TileSelectionViewBase(ViewType type, QGraphicsItem* paren
     setFlag(QGraphicsItem::ItemClipsToShape, true);
 
     m_bckg->setBrush(QColor(20, 20, 20));
-
     m_bckg->setZValue(0);
+
     connect(m_slideAnimationGroup, SIGNAL(finished()), this, SLOT(animFinished()));
 }
 
@@ -88,9 +88,11 @@ void TileSelectionViewBase::tileItemActivated(TileItem* /*item*/)
     disappear();
 }
 
-void TileSelectionViewBase::startInOutAnimation(bool in)
+void TileSelectionViewBase::startInOutAnimation(bool /*in*/)
 {
-    // ongoing?
+    QTimer::singleShot(0, this, SLOT(animFinished()));
+    
+/*    // ongoing?
     m_slideAnimationGroup->stop();
     m_slideAnimationGroup->clear();
 
@@ -101,7 +103,7 @@ void TileSelectionViewBase::startInOutAnimation(bool in)
     tabAnim->setEasingCurve(QEasingCurve::OutCubic);
     m_slideAnimationGroup->addAnimation(tabAnim);
     m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
-}
+*/}
 
 void TileSelectionViewBase::connectItem(TileItem& item)
 {

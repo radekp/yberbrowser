@@ -8,47 +8,26 @@
 #include "UrlItem.h"
 #include "HistoryStore.h"
 
+const int s_searchItemTileHeight = 60;
+const int s_tileMargin = 20;
+
 class PopupWidget : public TileBaseWidget {
     Q_OBJECT
 public:
     PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) : TileBaseWidget("Search result", parent, wFlags) {}
     void layoutTiles();
-
 };
 
 void PopupWidget::layoutTiles()
 {
-/*    QRectF r(rect());
-
-    int hTileNum;
-    int vTileNum;
-    QSizeF tileSize;
-
-    layoutHint(Qt::PreferredSize, r.size(), hTileNum, vTileNum, tileSize);
-
-    r.setHeight(tileSize.height() * m_tileList.size());
-    
-    // adjust it to the bottom url bar
-    QRectF gRect(geometry());
-    QRectF parentRect(parentWidget()->geometry());
-
-    // too few items to cover the view?
-    if (r.height() <= parentRect.height()) {
-        gRect = parentRect;
-        gRect.setTop(gRect.height() - r.height() - s_viewMargin);
-        setGeometry(gRect);
-    } else {
-        setGeometry(parentRect);
-    }
-
-    // adjust the height of the view
-    setMinimumHeight(r.height());
-    setMaximumWidth(rect().width());
-
-    // vertical adjustment
-    r.adjust(10, 0, 0, -10);
-    doLayoutTiles(r, hTileNum, tileSize.width(), vTileNum, tileSize.height(), 0, 0);
-*/
+    QRectF r(rect());
+    r.setHeight(parentWidget()->size().height() - s_viewMargin);
+    int popupHeight = doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height();
+    // position to the bottom of the container, when there are too few items
+    if (popupHeight < r.height()) 
+        setGeometry(QRectF(QPointF(0, parentWidget()->size().height() - popupHeight - s_viewMargin), QSizeF(rect().width(), popupHeight)));
+    else
+        setGeometry(QRect(0, 0, r.width(), popupHeight));
 }
 
 PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
@@ -56,23 +35,21 @@ PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_popupWidget(new PopupWidget(this, wFlags))
     , m_pannableContainer(new PannableTileContainer(this, wFlags))
 {
-    m_popupWidget->setZValue(1);
     m_pannableContainer->setWidget(m_popupWidget);
     connect(m_popupWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
 }
 
 PopupView::~PopupView()
 {
-    delete m_popupWidget;
     delete m_pannableContainer;
 }
 
-void PopupView::setGeometry(const QRectF& rect)
+void PopupView::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
-    TileSelectionViewBase::setGeometry(rect);
+    m_pannableContainer->setGeometry(rect());
+    m_popupWidget->resize(rect().size());
 
-    m_pannableContainer->setGeometry(rect);
-    m_popupWidget->setGeometry(rect);
+    TileSelectionViewBase::resizeEvent(event);
 }
 
 void PopupView::setFilterText(const QString& text)

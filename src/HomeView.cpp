@@ -211,11 +211,10 @@ void HomeView::resizeEvent(QGraphicsSceneResizeEvent* event)
 void HomeView::tileItemActivated(TileItem* item)
 {
     TileSelectionViewBase::tileItemActivated(item);
-
     if (m_activeWidget == WindowSelect) {
         if (item->context())
             emit windowSelected((WebView*)item->context());
-        else 
+        else
             emit windowCreated(true);
     } else {
         emit pageSelected(item->urlItem()->m_url);

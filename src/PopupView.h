@@ -13,7 +13,7 @@ public:
     PopupView(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~PopupView();
 
-    void setGeometry(const QRectF& rect);
+    void resizeEvent(QGraphicsSceneResizeEvent* event);
 
     void setFilterText(const QString& text);
 

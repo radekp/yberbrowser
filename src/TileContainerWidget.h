@@ -61,7 +61,7 @@ protected:
 private:
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
     virtual void mousePressEvent(QGraphicsSceneMouseEvent*);
-    void addMoveAnimation(TileItem& item, int delay, const QRectF& oldPos, const QRectF& newPos);
+    void addMoveAnimation(TileItem& item, int delay, const QPointF& oldPos, const QPointF& newPos);
 
 protected:
     TileList m_tileList;
