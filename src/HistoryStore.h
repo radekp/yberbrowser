@@ -13,8 +13,10 @@ public:
 
     void accessed(const QUrl& url, const QString& title, QImage* thumbnail);
     bool contains(const QString& url);
+    UrlItem* get(const QString& url);
     QString match(const QString& url);
-    const UrlList& list() const { return m_list; }
+    void match(const QString& url, UrlList& matchedItems);
+    UrlList* list() { return &m_list; }
 
 private:
     HistoryStore();

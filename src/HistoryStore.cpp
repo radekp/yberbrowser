@@ -2,6 +2,7 @@
 #include <QDateTime>
 #include <QImage>
 #include <QTimer>
+#include <QRegExp>
 #include "Helpers.h"
 
 //#define ENABLE_HISTORYSTORE_DEBUG 1
@@ -95,17 +96,22 @@ void HistoryStore::accessed(const QUrl& url, const QString& title, QImage* thumb
     QTimer::singleShot(2000, this, SLOT(externalize()));
 }
 
-bool HistoryStore::contains(const QString& url)
+UrlItem* HistoryStore::get(const QString& url)
 {
     for (int i = 0; i < m_list.size(); ++i)
         if (m_list.at(i)->m_url.toString() == url)
-            return true;
-    return false;
+            return m_list.at(i);
+    return 0;
+}
+
+bool HistoryStore::contains(const QString& url)
+{
+    return get(url) != 0;
 }
 
 QString HistoryStore::match(const QString& url)
 {
-    if (!url.size())
+    if (url.isEmpty())
         return QString();
     for (int i = 0; i < m_list.size(); ++i) {
         // do a very simply startWith matching first.
@@ -119,6 +125,21 @@ QString HistoryStore::match(const QString& url)
         }
     }
     return QString();
+}
+
+void HistoryStore::match(const QString& url, UrlList& matchedItems)
+{
+    // FIXME should do some crazy regexp, for now just be stupid
+    if (url.isEmpty())
+        return;
+    QString text = url;
+    text.replace(" ", "|");
+    QRegExp rx(text);
+    for (int i = 0; i < m_list.size(); ++i) {
+        UrlItem* item = m_list.at(i);
+        if (item->m_url.toString().indexOf(rx) > -1 || item->m_title.indexOf(rx) > -1)
+           matchedItems.append(m_list.at(i));
+    }
 }
 
 bool HistoryStore::matchUrls(const QString& url1, const QString& url2) 

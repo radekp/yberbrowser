@@ -39,6 +39,8 @@ public:
     void setIsFullScreen(bool flag) { m_isFullScreen = flag;}
     bool isFullScreen() const { return m_isFullScreen; }
 
+    QString cookieFilePath() const { return privatePath() + "cookies.dat"; }
+
 private:
     Settings() {
         m_showToolbar = true;
@@ -48,7 +50,7 @@ private:
         m_autoCompleteEnabled = true;
         m_tilingEnabled = true;
         m_engineThreadEnabled = false;
-#if defined(Q_WS_MAEMO_5) || defined(Q_WS_SYMBIAN) || defined(USE_DUI)
+#if defined(Q_WS_MAEMO_5) || defined(Q_WS_SYMBIAN) || USE_DUI
         m_isFullScreen = true;
 #else
         m_isFullScreen = false;

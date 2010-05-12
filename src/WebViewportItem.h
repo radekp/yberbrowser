@@ -41,10 +41,11 @@ class WebViewportItem : public QGraphicsWidget
     Q_PROPERTY(qreal zoomScale READ zoomScale WRITE setZoomScale)
 
 public:
-    WebViewportItem(QGraphicsWebView*, QGraphicsWidget* parent = 0, Qt::WindowFlags wFlags = 0);
+    WebViewportItem(QGraphicsWidget* parent = 0, Qt::WindowFlags wFlags = 0);
     ~WebViewportItem();
 
-    QGraphicsWebView* webView();
+    void setWebView(QGraphicsWebView* webView);
+    QGraphicsWebView* webView() const { return m_webView; }
 
     QSize contentsSize() const;
 

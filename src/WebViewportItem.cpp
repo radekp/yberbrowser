@@ -70,14 +70,12 @@ const qreal s_zoomRectAdjustWidth = 5.;
 /*!
  * \view ownership transfer
  */
-WebViewportItem::WebViewportItem(QGraphicsWebView* view, QGraphicsWidget* parent, Qt::WindowFlags wFlags)
+WebViewportItem::WebViewportItem(QGraphicsWidget* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_webView(view)
+    , m_webView(0)
     , m_zoomCommitTimer(this)
     , m_resizeMode(WebViewportItem::ResizeWidgetHeightToContent)
 {
-    Q_ASSERT(m_webView);
-
 #if !defined(ENABLE_PAINT_DEBUG)
     setFlag(QGraphicsItem::ItemHasNoContents, true);
 #endif
@@ -85,6 +83,17 @@ WebViewportItem::WebViewportItem(QGraphicsWebView* view, QGraphicsWidget* parent
     setFlag(QGraphicsItem::ItemClipsToShape, true);
 
     setFiltersChildEvents(true);
+    connect(&m_zoomCommitTimer, SIGNAL(timeout()), this, SLOT(commitZoom()));
+    m_zoomCommitTimer.setSingleShot(true);
+}
+
+WebViewportItem::~WebViewportItem()
+{
+}
+
+void WebViewportItem::setWebView(QGraphicsWebView* webView) 
+{ 
+    m_webView = webView; 
 
     m_webView->setResizesToContents(true);
 
@@ -94,24 +103,12 @@ WebViewportItem::WebViewportItem(QGraphicsWebView* view, QGraphicsWidget* parent
     updatePreferredSize();
 
     connect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
-
-    connect(&m_zoomCommitTimer, SIGNAL(timeout()), this, SLOT(commitZoom()));
-    m_zoomCommitTimer.setSingleShot(true);
-}
-
-WebViewportItem::~WebViewportItem()
-{
 }
 
 void WebViewportItem::commitZoom()
 {
     m_webView->setTiledBackingStoreFrozen(false);
     m_zoomCommitTimer.stop();
-}
-
-QGraphicsWebView* WebViewportItem::webView()
-{
-    return m_webView;
 }
 
 /*!
@@ -161,7 +158,9 @@ void WebViewportItem::disableContentUpdates()
 
 void WebViewportItem::enableContentUpdates()
 {
-    m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
+    m_webView->setTiledBackingStoreFrozen(false);
+    // FIXME what to do with this?
+//    m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
 }
 
 void WebViewportItem::updatePreferredSize()

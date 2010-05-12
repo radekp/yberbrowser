@@ -11,6 +11,10 @@ isEmpty(PREFIX) {
 DATADIR = $$PREFIX/share
 BINDIR = $$PREFIX/bin
 
+MOC_DIR     = $$PWD/.moc
+OBJECTS_DIR = $$PWD/.obj
+RCC_DIR     = $$PWD/.rcc
+
 dui {
     CONFIG+=dui
     DEFINES+=USE_DUI=1
@@ -18,10 +22,12 @@ dui {
     DEFINES+=USE_DUI=0
 }
 
-QMAKE_CXXFLAGS += -Werror
+*-g++*: QMAKE_CXXFLAGS += -Werror
 
-QT += network opengl
-QT += xml xmlpatterns
+QT += network
+QT += xml xmlpatterns script
+
+contains(QT_CONFIG, opengl): QT += opengl
 
 # Add $$PWD to include path so we can include from 3rdparty/file.h.
 # we want to specify '3rdparty/' explicitly to avoid name clashes
@@ -111,6 +117,16 @@ target.path = $$BINDIR
 INSTALLS += target
 RESOURCES = yberbrowser.qrc
 
+maemo5 {
+    dotdesktop.files = data/yberbrowser-fremantle.desktop
+    dotdesktop.path = $$DATADIR/applications/hildon
+    INSTALLS += dotdesktop
+
+    icons.files = data/icon/*
+    icons.path = $$DATADIR/icons/hicolor
+    INSTALLS += icons
+}
+
 HEADERS = \
   src/ApplicationWindow.h \
   src/ApplicationWindowHost.h \
@@ -120,17 +136,21 @@ HEADERS = \
   src/BookmarkStore.h \
   src/BrowsingView.h \
   src/CommonGestureRecognizer.h \
+  src/CookieJar.h \
   src/EnvHttpProxyFactory.h \
   src/EventHelpers.h \
   src/Helpers.h \
   src/HistoryStore.h \
-  src/TileItem.h \
   src/HomeView.h \
   src/LinkSelectionItem.h \
   src/PannableViewport.h \
+  src/PopupView.h \
   src/ProgressWidget.h \
   src/ScrollbarItem.h \
   src/Settings.h \
+  src/TileContainerWidget.h \
+  src/TileItem.h \
+  src/TileSelectionViewBase.h \
   src/UrlItem.h \
   src/WebPage.h \
   src/WebView.h \
@@ -144,15 +164,19 @@ SOURCES = \
   src/BookmarkStore.cpp \
   src/BrowsingView.cpp \
   src/CommonGestureRecognizer.cpp \
+  src/CookieJar.cpp \
   src/EnvHttpProxyFactory.cpp\
   src/EventHelpers.cpp \
   src/Helpers.cpp \
   src/HistoryStore.cpp \
-  src/TileItem.cpp \
   src/HomeView.cpp \
   src/LinkSelectionItem.cpp \
+  src/PopupView.cpp \
   src/ProgressWidget.cpp \
   src/ScrollbarItem.cpp \
+  src/TileContainerWidget.cpp \
+  src/TileItem.cpp \
+  src/TileSelectionViewBase.cpp \
   src/UrlItem.cpp \
   src/WebPage.cpp \
   src/WebView.cpp \

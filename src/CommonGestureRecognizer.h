@@ -15,15 +15,14 @@ class CommonGestureConsumer
 
 public:
     virtual void mousePressEventFromChild(QGraphicsSceneMouseEvent*) = 0;
-    virtual void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* ) = 0;
+    virtual void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent*) = 0;
     virtual void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent*) = 0;
-    virtual void adjustClickPosition(QPointF& pos) = 0;
+    virtual void adjustClickPosition(QPointF&) = 0;
 };
 
 class CommonGestureRecognizer : public QObject
 {
     Q_OBJECT
-
 public:
     CommonGestureRecognizer(CommonGestureConsumer*);
     ~CommonGestureRecognizer();

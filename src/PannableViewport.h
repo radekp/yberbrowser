@@ -38,6 +38,7 @@ public:
     void updateScrollbars();
 
     void setWidget(QGraphicsWidget*);
+    void detachWidget() { m_pannedWidget = 0; }
 
 protected:
     bool sceneEvent(QEvent* e);
@@ -48,7 +49,7 @@ protected:
     QPoint scrollPosition() const;
     void setScrollPosition(const QPoint &pos, const QPoint &overShootDelta);
 
-    void stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState);
+    virtual void stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState);
     bool canStartScrollingAt(const QPoint &globalPos) const;
     QPointF clipPointToViewport(const QPointF& p) const;
 

@@ -34,7 +34,7 @@ PannableViewport::PannableViewport(QGraphicsItem* parent, Qt::WindowFlags wFlags
     setFiltersChildEvents(true);
 
     setScrollsPerSecond(s_scrollsPerSecond);
-    setOvershootPolicy(YberHack_Qt::QAbstractKineticScroller::OvershootAlwaysOn);
+    setOvershootPolicy(YberHack_Qt::QAbstractKineticScroller::OvershootWhenScrollable);
     setAxisLockThreshold(s_axisLockThreshold);
 }
 
@@ -118,9 +118,9 @@ void PannableViewport::setScrollPosition(const QPoint &pos, const QPoint &overSh
     setPanPos(-pos);
 }
 
-void PannableViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState)
+void PannableViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState)
 {
-    YberHack_Qt::QAbstractKineticScroller::stateChanged(oldState);
+    YberHack_Qt::QAbstractKineticScroller::stateChanged(oldState, newState);
     updateScrollbars();
 }
 

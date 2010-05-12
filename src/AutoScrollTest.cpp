@@ -242,8 +242,6 @@ void AutoScrollTest::starScrollTest()
     if (!m_browsingView)
         return;
 
-    m_browsingView->hideHomeView();
-
     // load news.google.com if nothing is loaded.
     QGraphicsWebView* webView = ((WebViewport*)m_browsingView->pannableViewport())->viewportWidget()->webView();
     if (webView->url().isEmpty()) {

@@ -57,9 +57,6 @@
 
 //#include <QGLWidget>
 //#include <Qt/QtOpenGL>
-#include <QX11Info>
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
 
 #include "YberApplication.h"
 #include "Settings.h"
@@ -119,8 +116,7 @@ int main(int argc, char** argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalStorageEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::ZoomTextOnly, false);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, true);
-    QWebSettings::enablePersistentStorage();
-    QWebSettings::globalSettings()->setIconDatabasePath(settings->privatePath());
+    QWebSettings::enablePersistentStorage(settings->privatePath());
     
     QStringList args = app.arguments();
 
@@ -179,8 +175,7 @@ int main(int argc, char** argv)
         QWebSettings::enableEngineThread();
 #endif
     
-    if (settings->tileCacheEnabled())
-        QWebSettings::globalSettings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, true);
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, settings->tileCacheEnabled());
 
     app.start();
     app.createMainView(urlFromUserInput(url));

@@ -6,16 +6,17 @@
 #include "YberApplication.h"
 #include "ApplicationWindow.h"
 #include "Settings.h"
-#include "BackingStoreVisualizerWidget.h"
 #include "HomeView.h"
+#include "PopupView.h"
 #include "Helpers.h"
 #include "ProgressWidget.h"
 #include "HistoryStore.h"
 #include "BookmarkStore.h"
+#include "AutoScrollTest.h"
 #include <QAction>
 #include <QGraphicsLinearLayout>
+#include <QGraphicsProxyWidget>
 
-#include "AutoScrollTest.h"
 
 #if USE_DUI
 #include <DuiTextEdit>
@@ -31,14 +32,11 @@
 #include <QToolBar>
 #include <QStyle>
 #include <QMenuBar>
-
-
 #endif
 
-#include <QGraphicsProxyWidget>
-#include <QGLWidget>
-
 #include "qwebframe.h"
+
+const int s_maxWindows = 6;
 
 /*!
    \class BrowsingView view displaying the web page, e.g the main browser UI.
@@ -50,27 +48,24 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_appWin(0)
     , m_centralWidget(new QGraphicsWidget(this))
 #endif
-    , m_backingStoreVisualizer(0)
-    , m_homeView(0)
+    , m_activeWebView(0)
+    , m_webInteractionProxy(new WebViewportItem())
+    , m_urlEdit(0)
+    , m_progressBox(0)
     , m_stopbackAction(0)
-    , m_loadIndProgress(false)
     , m_autoScrollTest(0)
+    , m_activeView(0)
+    , m_initialHomeWidget(HomeView::VisitedPages)
 {
 #if USE_DUI
     setPannableAreaInteractive(false);
-#endif
-    m_webView = new WebView();
-    m_page = new WebPage(m_webView);
-    m_webView->setPage(m_page);
-    WebViewportItem* webInteractionProxy = new WebViewportItem(m_webView);
-
-#if USE_DUI
     m_browsingViewport = new PannableViewport();
-    m_browsingViewport->setWidget(webInteractionProxy);
+    m_browsingViewport->setWidget(m_webInteractionProxy);
 #else
-    m_browsingViewport = new WebViewport(webInteractionProxy);
+    m_browsingViewport = new WebViewport(m_webInteractionProxy);
 #endif
     m_browsingViewport->setAutoRange(false);
+    m_progressBox = new ProgressWidget(m_browsingViewport);
 
     YberWidget* w = centralWidget();
     QGraphicsLinearLayout* layout = new QGraphicsLinearLayout(Qt::Vertical, w);
@@ -79,28 +74,42 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     layout->addItem(m_browsingViewport);
     layout->addItem(createNavigationToolBar());
 
-    m_progressBox = new ProgressWidget(m_browsingViewport);
-    connectSignals();
+    // create and activate new window
+    newWindow();
 }
 
 BrowsingView::~BrowsingView()
 {
     delete m_autoScrollTest;
+    delete m_activeView;
 }
 
-void BrowsingView::connectSignals()
+void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
 {
-    connect(m_webView, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
-    connect(m_webView, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
-    connect(m_webView, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
-    connect(m_webView, SIGNAL(titleChanged(const QString&)), this, SLOT(setTitle(const QString&)));
-    //connect(m_webPage, SIGNAL(windowCloseRequested()), this, SLOT(close()));
+    if (oldView) {
+        disconnect(oldView, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
+        disconnect(oldView, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
+        disconnect(oldView, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
+        disconnect(oldView, SIGNAL(titleChanged(const QString&)), this, SLOT(setTitle(const QString&)));
 
-    connect(m_webView->page(), SIGNAL(loadStarted()), m_progressBox, SLOT(loadStarted()));
-    connect(m_webView->page(), SIGNAL(loadProgress(int)), m_progressBox, SLOT(progressChanged(int)));
-    connect(m_webView->page(), SIGNAL(loadFinished(bool)), m_progressBox, SLOT(loadFinished(bool)));
+        disconnect(oldView->page(), SIGNAL(loadStarted()), m_progressBox, SLOT(loadStarted()));
+        disconnect(oldView->page(), SIGNAL(loadProgress(int)), m_progressBox, SLOT(progressChanged(int)));
+        disconnect(oldView->page(), SIGNAL(loadFinished(bool)), m_progressBox, SLOT(loadFinished(bool)));
+    #if !USE_DUI
+        disconnect(oldView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
+    #endif
+    }
+
+    connect(currentView, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
+    connect(currentView, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
+    connect(currentView, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
+    connect(currentView, SIGNAL(titleChanged(const QString&)), this, SLOT(setTitle(const QString&)));
+
+    connect(currentView->page(), SIGNAL(loadStarted()), m_progressBox, SLOT(loadStarted()));
+    connect(currentView->page(), SIGNAL(loadProgress(int)), m_progressBox, SLOT(progressChanged(int)));
+    connect(currentView->page(), SIGNAL(loadFinished(bool)), m_progressBox, SLOT(loadFinished(bool)));
 #if !USE_DUI
-    connect(m_webView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
+    connect(currentView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
 #endif
 
 }
@@ -126,7 +135,7 @@ YberWidget* BrowsingView::createNavigationToolBar()
     }
 
     DEFINE_TOOLBAR_ITEM("R");
-    DEFINE_TOOLBAR_ITEM_CB("H", this, SLOT(toggleHomeView()));
+    DEFINE_TOOLBAR_ITEM_CB("H", this, SLOT(toggleTabSelectionView()));
 
     m_urlEdit = new DuiTextEdit(DuiTextEditModel::SingleLine, QString(), naviToolbar);
     m_urlEdit->setViewType("toolbar");
@@ -147,40 +156,37 @@ YberWidget* BrowsingView::createNavigationToolBar()
 #else
 
     QGraphicsProxyWidget* naviToolbar = new QGraphicsProxyWidget();
-    QToolBar* qtoolbar = new QToolBar("Navigation");
-    m_urlEdit = new UrlEditWidget(qtoolbar);
+    m_toolbar = new QToolBar("Navigation");
+    m_urlEdit = new UrlEditWidget(m_toolbar);
     m_urlEdit->setSizePolicy(QSizePolicy::Expanding, m_urlEdit->sizePolicy().verticalPolicy());
+    m_urlEdit->setFocusPolicy(Qt::ClickFocus);
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
     connect(m_urlEdit, SIGNAL(editCancelled()), SLOT(updateURL()));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
-    qtoolbar->addAction(QIcon(":/data/icon/48x48/history_48.png"), "Home", this, SLOT(toggleHomeView()));
-    qtoolbar->addAction(QIcon(":/data/icon/48x48/bookmarks_48.png"), "Add bookmark", this, SLOT(addBookmark()));
-    qtoolbar->addWidget(m_urlEdit);
+    connect(m_urlEdit, SIGNAL(focusChanged(bool)), SLOT(urlEditfocusChanged(bool)));
+    m_toolbar->addAction(QIcon(":/data/icon/48x48/history_48.png"), "Tab selection", this, SLOT(toggleTabSelectionView()));
+    m_toolbar->addAction(QIcon(":/data/icon/48x48/bookmarks_48.png"), "Add bookmark", this, SLOT(addBookmark()));
+    m_toolbar->addWidget(m_urlEdit);
     m_stopbackAction = new QAction(QIcon(":/data/icon/48x48/back_48.png"), "Back", 0);
     connect(m_stopbackAction, SIGNAL(triggered()), this, SLOT(pageBack()));
-    qtoolbar->addAction(m_stopbackAction);
-    qtoolbar->addAction(QIcon(":/data/icon/48x48/screen_toggle_48.png"), "Fullscreen", this, SLOT(toggleFullScreen()));
-    naviToolbar->setWidget(qtoolbar);
+    m_toolbar->addAction(m_stopbackAction);
+    m_toolbar->addAction(QIcon(":/data/icon/48x48/screen_toggle_48.png"), "Fullscreen", this, SLOT(toggleFullScreen()));
+    naviToolbar->setWidget(m_toolbar);
 #endif
     return naviToolbar;
 }
 
 void BrowsingView::addBookmark()
 {
-    if (!m_webView || (m_homeView && m_homeView->isActive()))
+    if (m_activeView)
         return;
-    if (m_webView->url().isEmpty()) {
+    if (m_activeWebView->url().isEmpty()) {
         notification("No page, no save.", m_browsingViewport);
         return;
     }
-    // FIXME webkit returns empty favicon
-    BookmarkStore::instance()->add(m_webView->url(), m_webView->title(), QIcon());
+    // webkit returns empty favicon
+    BookmarkStore::instance()->add(m_activeWebView->url(), m_activeWebView->title(), QIcon());
     notification("Bookmark saved.", m_browsingViewport);
-}
-
-YberWidget* BrowsingView::navigationToolbar()
-{
-    return (YberWidget*)centralWidget()->layout()->itemAt(1);
 }
 
 void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
@@ -190,7 +196,12 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     YberWidget* w = centralWidget();
     w->setGeometry(QRectF(w->pos(), size()));
     w->setPreferredSize(size());
-    updateHomeView();
+    if (m_activeView) {
+        QSizeF s(m_browsingViewport->size());
+        if (m_activeView->viewtype() == TileSelectionViewBase::Home)
+            s.setWidth(3 * s.width());
+        m_activeView->resize(s);
+    }
     m_progressBox->updateGeometry(m_browsingViewport->rect());
 
 #if !USE_DUI
@@ -207,157 +218,145 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
 void BrowsingView::load(const QUrl& url)
 {
     if (url.isValid())
-        m_webView->load(url.toString());
-
-/*    m_vp->updateGeometry();
-    qDebug() << m_webView->size() << " " << m_vp->size();
-    qDebug() << m_vp->sizeHint(Qt::PreferredSize) << m_vp->sizeHint(Qt::MinimumSize) << m_vp->sizeHint(Qt::MaximumSize) << m_webView->sizeHint(Qt::PreferredSize, QSize());
-*/
+        m_activeWebView->load(url.toString());
 }
 
 void BrowsingView::stopLoad()
 {
-    m_webView->triggerPageAction(QWebPage::Stop);
+    m_activeWebView->triggerPageAction(QWebPage::Stop);
 }
 
 void BrowsingView::pageBack()
 {
-    m_webView->triggerPageAction(QWebPage::Back);
-}
-
-void BrowsingView::showHomeView()
-{
-    createHomeView();
-#if USE_DUI
-    m_homeView->appear(0);
-#else
-    m_homeView->appear(applicationWindow());
-#endif
-}
-
-void BrowsingView::hideHomeView()
-{
-    if (m_homeView && m_homeView->isActive())
-        m_homeView->disappear();
+    m_activeWebView->triggerPageAction(QWebPage::Back);
 }
 
 #if !USE_DUI
-
 void BrowsingView::appear(ApplicationWindow *window)
 {
     m_appWin = window;
     window->setPage(this);
     window->setMenuBar(createMenu(window));
+    // create home view on startup
+    createActiveView(TileSelectionViewBase::Home);
 }
 
 QMenuBar* BrowsingView::createMenu(QWidget* parent)
 {
-    QWebPage* page = m_page;
     QMenuBar* menuBar = new QMenuBar(parent);
 
     QMenu* fileMenu = menuBar->addMenu("&File");
-    fileMenu->addAction(new QAction("New Window", this));
     fileMenu->addAction(new QAction("Close", this));
-
-    QMenu* viewMenu = menuBar->addMenu("&Navigation");
-    viewMenu->addAction(page->action(QWebPage::Back));
-    viewMenu->addAction(page->action(QWebPage::Forward));
-    viewMenu->addAction(page->action(QWebPage::Stop));
-    viewMenu->addAction(page->action(QWebPage::Reload));
 
     QMenu* developerMenu = menuBar->addMenu("&Developer");
 
     QAction* fpsTestAction = new QAction("FPS test", this);
     developerMenu->addAction(fpsTestAction);
     connect(fpsTestAction, SIGNAL(triggered(bool)), this, SLOT(startAutoScrollTest()));
-    
-    // fps
-    QAction* fpsAction = new QAction("Show FPS", this);
-    fpsAction->setCheckable(true);
-    fpsAction->setChecked(Settings::instance()->FPSEnabled());
-    connect(fpsAction, SIGNAL(toggled(bool)), this, SLOT(showFPSChanged(bool)));
-    developerMenu->addAction(fpsAction);
-    // tiling visualization
-    QAction* tileAction = new QAction("Show tiles", this);
-    tileAction->setCheckable(true);
-    tileAction->setChecked(Settings::instance()->tileVisualizationEnabled());
-    connect(tileAction, SIGNAL(toggled(bool)), this, SLOT(showTilesChanged(bool)));
-    developerMenu->addAction(tileAction);
     return menuBar;
 }
 #endif
 
-void BrowsingView::showFPSChanged(bool )
+void BrowsingView::setActiveWindow(WebView* webView)
 {
-#if 0
-    Settings::instance()->enableFPS(checked);
-    setFPSCalculation(checked);
-#endif
+    if (webView == m_activeWebView)
+        return;
+    // invalidate url bar
+    if (m_urlEdit)
+        m_urlEdit->setText(webView->url().toString());
+    connectWebViewSignals(webView, m_activeWebView);
+    if (m_activeWebView)
+        m_activeWebView->hide();
+    webView->show();
+    m_activeWebView = webView;
+    m_webInteractionProxy->setWebView(webView);
+    m_webInteractionProxy->setPos(QPointF(0,0));
 }
 
-void BrowsingView::setFPSCalculation(bool )
+void BrowsingView::destroyWindow(WebView* webView)
 {
-#if 0
-    if (fpsOn) {
-        m_fpsTimerId = startTimer(s_fpsTimerInterval);
-        m_fpsTicks = m_webViewItem->fpsTicks();
-        m_fpsTimestamp.start();
-    } else
-        killTimer(m_fpsTimerId);
-#endif
-}
-
-void BrowsingView::showTilesChanged(bool showTiles)
-{
-    Settings::instance()->enableTileVisualization(showTiles);
-
-    if (showTiles) {
-        if (!m_backingStoreVisualizer) {
-            m_backingStoreVisualizer = new BackingStoreVisualizerWidget(m_webView, centralWidget());
+    // create a new window on last window destory. better idea?
+    if (m_windowList.size() == 1)
+        newWindow(true);
+    for (int i = 0; i < m_windowList.size(); ++i) {
+        if (m_windowList.at(i) == webView) {
+            // current? activate the next one, unless this is the last window
+            if (webView == m_activeWebView)
+                setActiveWindow(m_windowList.at((i == m_windowList.size() - 1) ? m_windowList.size() - 2 : i + 1));
+            delete m_windowList.takeAt(i);
+            break;
         }
-    } else {
-        delete m_backingStoreVisualizer;
-        m_backingStoreVisualizer = 0;
     }
 }
 
-BrowsingView* BrowsingView::newWindow(const QString &)
+WebView* BrowsingView::newWindow(bool homeViewOn)
 {
-    return 0;
+    if (m_windowList.size() >= s_maxWindows)
+        return 0;
+    WebView* webView = new WebView();
+    m_windowList.append(webView);
+    webView->setPage(new WebPage(webView, this));
+    setActiveWindow(webView);
+    if (homeViewOn)
+        QTimer::singleShot(500, this, SLOT(createHomeView()));
+    return webView;
 }
 
-void BrowsingView::createHomeView() 
+void BrowsingView::createActiveView(TileSelectionViewBase::ViewType type)
 {
-    if (m_homeView)
-        return;
-    // FIXME: home view invokes should be moved to app framework
-    m_homeView = new HomeView();
-    updateHomeView();
-    connect(m_homeView, SIGNAL(disappeared()), this, SLOT(deleteHomeView()));
-    connect(m_homeView, SIGNAL(urlSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+    deleteActiveView();
+    // create new view
+    switch (type) {
+        case TileSelectionViewBase::Home: {
+            m_activeView = new HomeView(m_initialHomeWidget, this);
+            (static_cast<HomeView*>(m_activeView))->setWindowList(m_windowList);
+            connect(m_activeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+            connect(m_activeView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
+            connect(m_activeView, SIGNAL(windowClosed(WebView*)), this, SLOT(destroyWindow(WebView*)));
+            connect(m_activeView, SIGNAL(windowCreated(bool)), this, SLOT(newWindow(bool)));
+            break;
+        }
+        case TileSelectionViewBase::UrlPopup: {
+            m_activeView = new PopupView(this);
+            connect(m_activeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+            break;
+        }
+    }
+    connect(m_activeView, SIGNAL(disappeared()), this, SLOT(deleteActiveView()));
+    QSizeF s(m_browsingViewport->size());
+    if (m_activeView->viewtype() == TileSelectionViewBase::Home)
+        s.setWidth(3 * s.width());
+    m_activeView->resize(s);
+#if USE_DUI
+    m_activeView->appear(0);
+#else
+    m_activeView->appear(applicationWindow());
+#endif
 }
 
-void BrowsingView::deleteHomeView()
+void BrowsingView::deleteActiveView()
 {
-    delete m_homeView;
-    m_homeView = 0;
+    if (m_activeView && m_activeView->viewtype() == TileSelectionViewBase::Home) {
+        // no window select for initial view please
+        m_initialHomeWidget = ((static_cast<HomeView*>(m_activeView))->activeWidget() == HomeView::WindowSelect ? HomeView::VisitedPages : (static_cast<HomeView*>(m_activeView))->activeWidget());
+    }
+    delete m_activeView;
+    m_activeView = 0;
 }
 
-void BrowsingView::toggleHomeView()
+void BrowsingView::toggleTabSelectionView()
 {
-    createHomeView();
-
-    if (m_homeView->isActive())
-        m_homeView->disappear();
-    else
-        showHomeView();
+    m_initialHomeWidget = HomeView::WindowSelect;
+    createActiveView(TileSelectionViewBase::Home);
 }
 
 void BrowsingView::changeLocation()
 {
     // nullify on hitting enter. end  of editing.
     m_lastEnteredText.resize(0);
-    hideHomeView();
+    deleteActiveView();
+    if (!m_urlEdit)
+        return;
     load(urlFromUserInput(m_urlEdit->text()));
 }
 
@@ -367,64 +366,81 @@ void BrowsingView::urlTextEdited(const QString& newText)
         return;
 
     QString text = newText;
-    if (m_urlEdit->selectionStart() > -1)
+    if (m_urlEdit && m_urlEdit->selectionStart() > -1)
         text = newText.left(m_urlEdit->selectionStart());
     // autocomplete only when adding text, not when deleting or backspacing
     if (text.size() > m_lastEnteredText.size()) {
         // todo: make it async
         QString match = HistoryStore::instance()->match(text);
-        if (match.size()) {
+        if (!match.isEmpty()) {
             m_urlEdit->setText(match);
             m_urlEdit->setCursorPosition(text.size());
             m_urlEdit->setSelection(text.size(), match.size() - text.size());
         }
     }
+    // create home view when no text in the url field
+    bool deletePopup = newText.isEmpty() && m_activeView && m_activeView->viewtype() == TileSelectionViewBase::UrlPopup;
+    if (deletePopup)
+        createActiveView(TileSelectionViewBase::Home);
+    else if (!m_activeView || m_activeView->viewtype() != TileSelectionViewBase::UrlPopup)
+        createActiveView(TileSelectionViewBase::UrlPopup);
+    if (!deletePopup)
+        (static_cast<PopupView*>(m_activeView))->setFilterText(text);
     m_lastEnteredText = text;
 }
 
-void BrowsingView::updateHistoryStore()
+void BrowsingView::urlEditfocusChanged(bool focused)
 {
-    // render thumbnail
-    // todo: render thumbnail if it is really needed
-    // todo: update them, right now thumbnails get saved only when accessed first
-    QImage* thumbnail = 0;
-    //if (!m_urlStore->contains(m_webViewItem->url().toString())) 
-    {
-        QSize thumbnailSize(500, 400);
-        thumbnail = new QImage(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
-        QPainter p(thumbnail);
-        m_page->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
+    if (focused) {
+        createActiveView(TileSelectionViewBase::Home);
+    } else {
+        // FIXME: this is a hack to not to get urleditor focused back
+        // when the toolbar is focused, only when the actual edior is focused
+        // currently, even if a button gets pressed, the urleditor gets 
+        // focused back, if it was focused the last time
+        m_toolbar->widgetForAction(m_stopbackAction)->setFocus(Qt::MouseFocusReason);
     }
-    HistoryStore::instance()->accessed(m_page->mainFrame()->url(), m_page->mainFrame()->title(), thumbnail);
 }
 
-void BrowsingView::setLoadInProgress(bool loadInProgress)
+void BrowsingView::updateHistoryStore(bool successLoad)
 {
-    m_loadIndProgress = loadInProgress;
-    toggleStopBackIcon();
+    // render thumbnail
+    QImage* thumbnail = 0;
+    UrlItem* item = HistoryStore::instance()->get(m_activeWebView->page()->mainFrame()->url().toString());
+    // update thumbnail even if load failed (cancelled?) when there is no thumbnail yet.
+    bool update = successLoad || !item || (item && !item->thumbnailAvailable());
+
+    if (update) {
+        QSizeF thumbnailSize(m_browsingViewport->size());
+        thumbnail = new QImage(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
+        QPainter p(thumbnail);
+        m_activeWebView->page()->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
+    }
+    HistoryStore::instance()->accessed(m_activeWebView->page()->mainFrame()->url(), m_activeWebView->page()->mainFrame()->title(), thumbnail);
 }
 
 void BrowsingView::loadStarted()
 {
-    setLoadInProgress(true);
+    toggleStopBackIcon(true);
 }
 
 void BrowsingView::loadFinished(bool success)
 {
-    setLoadInProgress(false);
+    toggleStopBackIcon(false);
     updateURL();
-    if (success)
-        QTimer::singleShot(1000, this, SLOT(updateHistoryStore()));
+    updateHistoryStore(success);
 }
 
 void BrowsingView::urlChanged(const QUrl& url)
 {
+    if (!m_urlEdit)
+        return;
     m_urlEdit->setText(url.toString());
 }
 
 void BrowsingView::updateURL()
 {
-    urlChanged(m_webView->url());
+    urlChanged(m_activeWebView->url());
 }
 
 #if !USE_DUI
@@ -457,12 +473,6 @@ void BrowsingView::toggleFullScreen()
 #endif
 }
 
-void BrowsingView::updateHomeView()
-{
-    if (m_homeView)
-        m_homeView->setGeometry(m_browsingViewport->geometry());
-}
-
 void BrowsingView::prepareForResize()
 {
 #if !USE_DUI
@@ -485,12 +495,12 @@ void BrowsingView::finishedAutoScrollTest()
     m_autoScrollTest = 0;
 }
 
-void BrowsingView::toggleStopBackIcon()
+void BrowsingView::toggleStopBackIcon(bool loadInProgress)
 {
-    m_stopbackAction->setIcon(QIcon(m_loadIndProgress ? ":/data/icon/48x48/stop_48.png" : ":/data/icon/48x48/back_48.png"));
-    m_stopbackAction->setIconText(m_loadIndProgress ? "Stop" : "Back");
+    m_stopbackAction->setIcon(QIcon(loadInProgress ? ":/data/icon/48x48/stop_48.png" : ":/data/icon/48x48/back_48.png"));
+    m_stopbackAction->setIconText(loadInProgress ? "Stop" : "Back");
     
-    disconnect(m_stopbackAction, SIGNAL(triggered()), this, m_loadIndProgress ? SLOT(pageBack()) : SLOT(stopLoad()));
-    connect(m_stopbackAction, SIGNAL(triggered()), this, m_loadIndProgress ? SLOT(stopLoad()) : SLOT(pageBack()));
+    disconnect(m_stopbackAction, SIGNAL(triggered()), this, loadInProgress ? SLOT(pageBack()) : SLOT(stopLoad()));
+    connect(m_stopbackAction, SIGNAL(triggered()), this, loadInProgress ? SLOT(stopLoad()) : SLOT(pageBack()));
 }
 

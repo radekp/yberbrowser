@@ -15,7 +15,7 @@ public:
     UrlItem(const QUrl& url, const QString& title, QImage* image = 0);
     ~UrlItem();
 
-    bool thumbnailAvailable() const { return m_thumbnail != 0; }
+    bool thumbnailAvailable() const { return (m_thumbnail != 0 || !m_thumbnailPath.isEmpty()); }
     void setThumbnail(QImage* thumbnail);
     QImage* thumbnail();
     void setThumbnailPath(const QString& path) { m_thumbnailPath = path; }
