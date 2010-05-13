@@ -311,4 +311,3 @@ TileBaseWidget* HomeView::widgetByType(HomeWidgetType type)
     return 0;    
 }
 
-#include "HomeView.moc"
