@@ -25,7 +25,7 @@ public:
 
 Q_SIGNALS:
     void appeared();
-    void disappeared();
+    void disappeared(TileSelectionViewBase*);
 
 public Q_SLOTS:
     void appear(ApplicationWindow*);

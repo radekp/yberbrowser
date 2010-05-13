@@ -25,6 +25,7 @@ public:
     
     void setWindowList(QList<WebView*>& windowList) { m_windowList = &windowList; }
     HomeWidgetType activeWidget() const { return m_activeWidget; }
+    void setActiveWidget(HomeWidgetType widget);
     void resizeEvent(QGraphicsSceneResizeEvent* event);
     bool sceneEventFilter(QGraphicsItem*, QEvent*);
     bool recognizeFlick(QGraphicsSceneMouseEvent* e);

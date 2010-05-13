@@ -78,7 +78,7 @@ void TileSelectionViewBase::animFinished()
         emit appeared();
     } else {
         destroyViewItems();
-        emit disappeared();
+        emit disappeared(this);
     }
 }
 

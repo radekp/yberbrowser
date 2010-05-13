@@ -54,7 +54,8 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_progressBox(0)
     , m_stopbackAction(0)
     , m_autoScrollTest(0)
-    , m_activeView(0)
+    , m_homeView(0)
+    , m_urlfilterPopup(0)
     , m_initialHomeWidget(HomeView::VisitedPages)
 {
 #if USE_DUI
@@ -81,7 +82,8 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
 BrowsingView::~BrowsingView()
 {
     delete m_autoScrollTest;
-    delete m_activeView;
+    delete m_homeView;
+    delete m_urlfilterPopup;
 }
 
 void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
@@ -178,8 +180,6 @@ YberWidget* BrowsingView::createNavigationToolBar()
 
 void BrowsingView::addBookmark()
 {
-    if (m_activeView)
-        return;
     if (m_activeWebView->url().isEmpty()) {
         notification("No page, no save.", m_browsingViewport);
         return;
@@ -196,12 +196,10 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     YberWidget* w = centralWidget();
     w->setGeometry(QRectF(w->pos(), size()));
     w->setPreferredSize(size());
-    if (m_activeView) {
-        QSizeF s(m_browsingViewport->size());
-        if (m_activeView->viewtype() == TileSelectionViewBase::Home)
-            s.setWidth(3 * s.width());
-        m_activeView->resize(s);
-    }
+    if (m_homeView)
+        m_homeView->resize(QSize(3*m_browsingViewport->size().width(), m_browsingViewport->size().height()));
+    if (m_urlfilterPopup)
+        m_urlfilterPopup->resize(m_browsingViewport->size());
     m_progressBox->updateGeometry(m_browsingViewport->rect());
 
 #if !USE_DUI
@@ -238,7 +236,7 @@ void BrowsingView::appear(ApplicationWindow *window)
     window->setPage(this);
     window->setMenuBar(createMenu(window));
     // create home view on startup
-    createActiveView(TileSelectionViewBase::Home);
+    createHomeView(HomeView::VisitedPages);
 }
 
 QMenuBar* BrowsingView::createMenu(QWidget* parent)
@@ -298,64 +296,78 @@ WebView* BrowsingView::newWindow(bool homeViewOn)
     webView->setPage(new WebPage(webView, this));
     setActiveWindow(webView);
     if (homeViewOn)
-        QTimer::singleShot(500, this, SLOT(createHomeView()));
+        createHomeView(HomeView::VisitedPages);
     return webView;
 }
 
-void BrowsingView::createActiveView(TileSelectionViewBase::ViewType type)
+void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
 {
-    deleteActiveView();
-    // create new view
-    switch (type) {
-        case TileSelectionViewBase::Home: {
-            m_activeView = new HomeView(m_initialHomeWidget, this);
-            (static_cast<HomeView*>(m_activeView))->setWindowList(m_windowList);
-            connect(m_activeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
-            connect(m_activeView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
-            connect(m_activeView, SIGNAL(windowClosed(WebView*)), this, SLOT(destroyWindow(WebView*)));
-            connect(m_activeView, SIGNAL(windowCreated(bool)), this, SLOT(newWindow(bool)));
-            break;
-        }
-        case TileSelectionViewBase::UrlPopup: {
-            m_activeView = new PopupView(this);
-            connect(m_activeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
-            break;
-        }
+    if (m_homeView) {
+        if (m_homeView->activeWidget() != type)
+            m_homeView->setActiveWidget(type);
+        return;
     }
-    connect(m_activeView, SIGNAL(disappeared()), this, SLOT(deleteActiveView()));
-    QSizeF s(m_browsingViewport->size());
-    if (m_activeView->viewtype() == TileSelectionViewBase::Home)
-        s.setWidth(3 * s.width());
-    m_activeView->resize(s);
-#if USE_DUI
-    m_activeView->appear(0);
-#else
-    m_activeView->appear(applicationWindow());
-#endif
+        
+    // create and display new home view
+    m_homeView = new HomeView(type, this);
+    m_homeView->setWindowList(m_windowList);
+    connect(m_homeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+    connect(m_homeView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
+    connect(m_homeView, SIGNAL(windowClosed(WebView*)), this, SLOT(destroyWindow(WebView*)));
+    connect(m_homeView, SIGNAL(windowCreated(bool)), this, SLOT(newWindow(bool)));
+    connect(m_homeView, SIGNAL(disappeared(TileSelectionViewBase*)), this, SLOT(deleteView(TileSelectionViewBase*)));
+    m_homeView->resize(QSize(3*m_browsingViewport->size().width(), m_browsingViewport->size().height()));
+    m_homeView->appear(applicationWindow());
 }
 
-void BrowsingView::deleteActiveView()
+void BrowsingView::createUrlEditFilterPopup()
 {
-    if (m_activeView && m_activeView->viewtype() == TileSelectionViewBase::Home) {
+    if (m_urlfilterPopup)
+        return;
+    m_urlfilterPopup = new PopupView(this);
+    connect(m_urlfilterPopup, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+    connect(m_urlfilterPopup, SIGNAL(disappeared(TileSelectionViewBase*)), this, SLOT(deleteView(TileSelectionViewBase*)));
+    m_urlfilterPopup->resize(m_browsingViewport->size());
+    m_urlfilterPopup->appear(applicationWindow());
+}
+
+void BrowsingView::deleteView(TileSelectionViewBase* view)
+{
+    if (!view)
+        return;
+
+    if (view == m_homeView) {
+        // save homeview state, so that it is positioned back to the same view when reopened
+        m_initialHomeWidget = m_homeView->activeWidget();
         // no window select for initial view please
-        m_initialHomeWidget = ((static_cast<HomeView*>(m_activeView))->activeWidget() == HomeView::WindowSelect ? HomeView::VisitedPages : (static_cast<HomeView*>(m_activeView))->activeWidget());
+        if (m_initialHomeWidget == HomeView::WindowSelect)
+             m_initialHomeWidget = HomeView::VisitedPages;
+        delete m_homeView;
+        m_homeView = 0; 
+    } else if (view == m_urlfilterPopup)  {
+        delete m_urlfilterPopup;
+        m_urlfilterPopup = 0;
     }
-    delete m_activeView;
-    m_activeView = 0;
 }
 
 void BrowsingView::toggleTabSelectionView()
 {
-    deleteActiveView();
-    m_initialHomeWidget = HomeView::WindowSelect;
-    createActiveView(TileSelectionViewBase::Home);
+    if (!m_homeView)
+        createHomeView(HomeView::WindowSelect);
+    else if (m_homeView->activeWidget() != HomeView::WindowSelect)
+        m_homeView->setActiveWidget(HomeView::WindowSelect);
+    else 
+        deleteView(m_homeView);
 }
 
 void BrowsingView::changeLocation()
 {
     // nullify on hitting enter. end  of editing.
     m_lastEnteredText.resize(0);
-    deleteActiveView();
+    if (m_homeView)
+        deleteView(m_homeView);
+    if (m_urlfilterPopup)
+        deleteView(m_urlfilterPopup);
     if (!m_urlEdit)
         return;
     load(urlFromUserInput(m_urlEdit->text()));
@@ -379,21 +391,23 @@ void BrowsingView::urlTextEdited(const QString& newText)
             m_urlEdit->setSelection(text.size(), match.size() - text.size());
         }
     }
-    // create home view when no text in the url field
-    bool deletePopup = newText.isEmpty() && m_activeView && m_activeView->viewtype() == TileSelectionViewBase::UrlPopup;
-    if (deletePopup)
-        createActiveView(TileSelectionViewBase::Home);
-    else if (!m_activeView || m_activeView->viewtype() != TileSelectionViewBase::UrlPopup)
-        createActiveView(TileSelectionViewBase::UrlPopup);
-    if (!deletePopup)
-        (static_cast<PopupView*>(m_activeView))->setFilterText(text);
+    // create home view and remove popupview when no text in the url field
+    if (newText.isEmpty()) {
+        deleteView(m_urlfilterPopup);
+        createHomeView(m_initialHomeWidget);
+    } else {
+        deleteView(m_homeView);
+        createUrlEditFilterPopup();
+    }
+    if (m_urlfilterPopup)
+        m_urlfilterPopup->setFilterText(text);
     m_lastEnteredText = text;
 }
 
 void BrowsingView::urlEditfocusChanged(bool focused)
 {
     if (focused) {
-        createActiveView(TileSelectionViewBase::Home);
+        createHomeView(m_initialHomeWidget);
     } else {
         // FIXME: this is a hack to not to get urleditor focused back
         // when the toolbar is focused, only when the actual edior is focused

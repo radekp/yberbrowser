@@ -31,6 +31,7 @@ class ProgressWidget;
 class QAction;
 class AutoScrollTest;
 class QToolBar;
+class PopupView;
 
 class BrowsingView : public BrowsingViewBase
 {
@@ -50,6 +51,8 @@ public:
     void appear(ApplicationWindow* window);
     YberWidget* centralWidget()  { return m_centralWidget; }
     PannableViewport* pannableViewport() { return m_browsingViewport; }
+
+    void createHomeView(HomeView::HomeWidgetType type);
 
 #endif
 public Q_SLOTS:
@@ -88,15 +91,13 @@ protected Q_SLOTS:
     void startAutoScrollTest();
     void finishedAutoScrollTest();
 
-    void deleteActiveView();
-
-    void createHomeView() { createActiveView(TileSelectionViewBase::Home); }
+    void deleteView(TileSelectionViewBase* view);
 
 private:
     Q_DISABLE_COPY(BrowsingView);
     YberWidget* createNavigationToolBar();
     void connectWebViewSignals(WebView* currentView, WebView* oldView);
-    void createActiveView(TileSelectionViewBase::ViewType type);
+    void createUrlEditFilterPopup();
     void toggleStopBackIcon(bool loadInProgress);
 
 #if !USE_DUI
@@ -119,7 +120,8 @@ private:
     QAction* m_stopbackAction;
     AutoScrollTest* m_autoScrollTest;
     QList<WebView*> m_windowList;
-    TileSelectionViewBase* m_activeView;
+    HomeView* m_homeView;
+    PopupView* m_urlfilterPopup;
     HomeView::HomeWidgetType m_initialHomeWidget;
 };
 

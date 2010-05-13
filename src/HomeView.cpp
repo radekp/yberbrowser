@@ -43,7 +43,7 @@ public:
 
 void TabWidget::removeTile(TileItem& removed)
 {
-    // FIXME: when tab is full fake items dont work
+    // FIXME: when tab is full, fake items dont work
     // insert a fake marker item in place
     NewWindowMarkerTileItem* emptyItem = new NewWindowMarkerTileItem(this, *(new UrlItem(QUrl(), "", 0)));
     for (int i = 0; i < m_tileList.size(); ++i) {
@@ -134,6 +134,23 @@ HomeView::~HomeView()
     delete m_tabWidget;
     delete m_pannableHistoryContainer;
     delete m_pannableBookmarkContainer;
+}
+
+void HomeView::setActiveWidget(HomeWidgetType widget)
+{
+    if (widget == m_activeWidget)
+        return;
+
+    m_activeWidget = widget;
+    int containerWidth = rect().width() / 3 - s_containerMargin;
+
+    // repositon view
+    if (m_activeWidget == WindowSelect)
+        setPos(0, 0);
+    else if (m_activeWidget == VisitedPages)
+        setPos(QPointF(-(containerWidth - s_containerMargin), 0));
+    else if (m_activeWidget == Bookmarks)
+        setPos(QPointF(-(2*containerWidth - 2*s_containerMargin), 0));
 }
 
 bool HomeView::sceneEventFilter(QGraphicsItem* /*i*/, QEvent* e)
