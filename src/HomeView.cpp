@@ -72,7 +72,10 @@ void TabWidget::layoutTiles()
     // FIXME: this is landscape oriented. check aspect ratio
     QRectF r(rect());
     r.setHeight(r.height() - s_viewMargin);
-    doLayoutTiles(r, 3, 2, s_tileMargin, s_tileMargin, true);
+    bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
+    int hTileNum = landscape ? 3 : 2;
+    int vTileNum = landscape ? 2 : 3;
+    doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin, true);
 }
 
 class HistoryWidget : public TileBaseWidget {
@@ -87,8 +90,10 @@ void HistoryWidget::layoutTiles()
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
     r.setHeight(parentWidget()->size().height() - s_viewMargin);
-    // FIXME: this is landscape oriented. check aspect ratio
-    setMinimumHeight(doLayoutTiles(r, 3, 2, s_historyTileMargin, s_historyTileMargin).height()); 
+    bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
+    int hTileNum = landscape ? 3 : 2;
+    int vTileNum = landscape ? 2 : 3;
+    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_historyTileMargin, s_historyTileMargin).height()); 
 }
 
 class BookmarkWidget : public TileBaseWidget {
