@@ -10,6 +10,7 @@ class PannableTileContainer;
 class TileItem;
 class QGraphicsSceneMouseEvent;
 class WebView;
+class TileBaseWidget;
 
 class HomeView : public TileSelectionViewBase {
     Q_OBJECT
@@ -60,6 +61,7 @@ private:
     TabWidget* m_tabWidget;
     PannableTileContainer* m_pannableHistoryContainer;
     PannableTileContainer* m_pannableBookmarkContainer;
+    PannableTileContainer* m_pannableWindowSelectContainer;
     QList<WebView*>* m_windowList;
 
     // FIXME these should go to a gesture recognizer

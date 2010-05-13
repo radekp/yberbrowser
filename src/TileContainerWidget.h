@@ -1,41 +1,12 @@
 #ifndef TileContainerWidget_h_
 #define TileContainerWidget_h_
 
-#include "PannableViewport.h"
-#include "CommonGestureRecognizer.h"
+#include <QGraphicsWidget>
 #include "TileItem.h"
-
-const int s_viewMargin = 40;
 
 class QGraphicsSceneMouseEvent;
 class QParallelAnimationGroup;
 class HomeView;
-
-class PannableTileContainer : public PannableViewport, private CommonGestureConsumer {
-    Q_OBJECT
-public:
-    PannableTileContainer(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
-    ~PannableTileContainer();
-    
-    void setHomeView(HomeView* view) { m_homeView = view; }
-protected:
-    bool sceneEventFilter(QGraphicsItem*, QEvent*);
-    void cancelLeftMouseButtonPress(const QPoint&);
-
-    void mousePressEventFromChild(QGraphicsSceneMouseEvent*);
-    void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent*);
-    void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent*);
-    void adjustClickPosition(QPointF&) {}
-
-private:
-    void forwardEvent(QGraphicsSceneMouseEvent*);
-
-private:
-    CommonGestureRecognizer m_recognizer;
-    QGraphicsSceneMouseEvent* m_selfSentEvent;
-    // FIXME: remove it once the event handling is fixed
-    HomeView* m_homeView;
-};
 
 class TileBaseWidget : public QGraphicsWidget {
     Q_OBJECT
@@ -70,6 +41,39 @@ private:
     QParallelAnimationGroup* m_slideAnimationGroup;
     QString m_title;
     bool m_editMode;
+};
+
+// subclasses
+// #########
+class TabWidget : public TileBaseWidget {
+    Q_OBJECT
+public:
+    TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+    void layoutTiles();
+
+    void removeTile(TileItem& removed);
+    void removeAll();
+};
+
+class HistoryWidget : public TileBaseWidget {
+    Q_OBJECT
+public:
+    HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+    void layoutTiles();
+};
+
+class BookmarkWidget : public TileBaseWidget {
+    Q_OBJECT
+public:
+    BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+    void layoutTiles();
+};
+
+class PopupWidget : public TileBaseWidget {
+    Q_OBJECT
+public:
+    PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+    void layoutTiles();
 };
 
 #endif
