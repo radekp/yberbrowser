@@ -446,7 +446,8 @@ void WebViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldS
         m_backingStoreUpdateEnableTimer.stop();
         viewportWidget()->disableContentUpdates();
     } else if (newState == YberHack_Qt::QAbstractKineticScroller::Inactive)
-        m_backingStoreUpdateEnableTimer.start(backingStoreUpdateEnableDelay);
+        viewportWidget()->enableContentUpdates();
+//        m_backingStoreUpdateEnableTimer.start(backingStoreUpdateEnableDelay);
 }
 
 void WebViewport::enableBackingStoreUpdates()
