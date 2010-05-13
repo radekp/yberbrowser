@@ -18,6 +18,7 @@ const int s_doubleClickWaitTimeout = 100;
 const int s_edgeMarginForLinkSelectionRetry = 50;
 const int s_minSearchRectSize = 8;
 const int s_maxSearchRectSize = 25;
+const int backingStoreUpdateEnableDelay = 300;
 }
 
 /*!
@@ -46,6 +47,8 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
 
     setWidget(viewportWidget);
     connect(viewportWidget, SIGNAL(contentsSizeChangeCausedResize()), this, SLOT(contentsSizeChangeCausedResize()));
+    m_backingStoreUpdateEnableTimer.setSingleShot(true);
+    connect(&m_backingStoreUpdateEnableTimer, SIGNAL(timeout()), this, SLOT(enableBackingStoreUpdates()));
 }
 
 WebViewport::~WebViewport()
@@ -439,9 +442,15 @@ void WebViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldS
 {
     PannableViewport::stateChanged(oldState, newState);
     // turn on and off tile creating while autoscrolling
-    if (newState == YberHack_Qt::QAbstractKineticScroller::Pushing)
+    if (newState == YberHack_Qt::QAbstractKineticScroller::Pushing) {
+        m_backingStoreUpdateEnableTimer.stop();
         viewportWidget()->disableContentUpdates();
-    else if (newState == YberHack_Qt::QAbstractKineticScroller::Inactive)
-        viewportWidget()->enableContentUpdates();
+    } else if (newState == YberHack_Qt::QAbstractKineticScroller::Inactive)
+        m_backingStoreUpdateEnableTimer.start(backingStoreUpdateEnableDelay);
+}
+
+void WebViewport::enableBackingStoreUpdates()
+{
+    viewportWidget()->enableContentUpdates();
 }
 

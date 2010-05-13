@@ -54,6 +54,7 @@ protected:
 protected Q_SLOTS:
     void contentsSizeChangeCausedResize();
     void startLinkSelection();
+    void enableBackingStoreUpdates();
 
 private:
     void resetZoomAnim();
@@ -65,7 +66,7 @@ private:
     CommonGestureRecognizer m_recognizer;
     QEvent* m_selfSentEvent;
 
-    QTimer m_doubleClickWaitTimer;
+    QTimer m_backingStoreUpdateEnableTimer;
     LinkSelectionItem* m_linkSelectionItem;
     QGraphicsSceneMouseEvent* m_delayedMouseReleaseEvent;
 #if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
