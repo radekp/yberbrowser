@@ -1,14 +1,10 @@
-#include <QGraphicsScene>
-#include <QGraphicsView>
 #include <QGraphicsWidget>
-#include <QGraphicsSimpleTextItem>
+#include <QPainter>
 #include <QtGlobal>
 #include <QTimer>
-#include <QDebug>
 #include <QGraphicsSceneMouseEvent>
 
 #include "TileItem.h"
-#include "UrlItem.h"
 
 const int s_hTextMargin = 10;
 

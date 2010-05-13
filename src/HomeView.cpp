@@ -1,110 +1,22 @@
-#include <QApplication>
-#include <QGraphicsScene>
-#include <QGraphicsView>
-#include <QGraphicsWidget>
-#include <QGraphicsRectItem>
-#include <QDebug>
-#include <QGraphicsSceneMouseEvent>
-#include <QParallelAnimationGroup>
-#include <QPropertyAnimation>
-#include <QGraphicsPixmapItem>
-#include <QTimer>
-
 #include "HomeView.h"
+#include <QGraphicsSceneMouseEvent>
+#include <QPropertyAnimation>
+
+#include "PannableTileContainer.h"
 #include "TileContainerWidget.h"
 #include "TileItem.h"
 #include "HistoryStore.h"
 #include "BookmarkStore.h"
-#include "ApplicationWindow.h"
 #include "WebView.h"
 #if USE_DUI
 #include <DuiScene>
 #endif
 
-// FIXME: HomeView should be either a top level view, or just a central widget of the browsingview, probably the first one
-// also, LAF is not finalized yet.
+#include <QDebug>
 
-const int s_containerMargin = 40;
-const int s_tileMargin = 20;
-const int s_historyTileMargin = 30;
-const int s_bookmarksTileHeight = 70;
-const int s_maxHistoryTileNum = 20;
 const int s_maxWindows = 6;
-
-class TabWidget : public TileBaseWidget {
-    Q_OBJECT
-public:
-    TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) : TileBaseWidget("Window selection", parent, wFlags) {}
-    void layoutTiles();
-
-    void removeTile(TileItem& removed);
-    void removeAll();
-};
-
-void TabWidget::removeTile(TileItem& removed)
-{
-    // FIXME: when tab is full fake items dont work
-    // insert a fake marker item in place
-    NewWindowMarkerTileItem* emptyItem = new NewWindowMarkerTileItem(this, *(new UrlItem(QUrl(), "", 0)));
-    for (int i = 0; i < m_tileList.size(); ++i) {
-        if (m_tileList.at(i)->fixed()) {
-            emptyItem->setRect(m_tileList.at(i-1)->rect());
-            m_tileList.insert(i, emptyItem);
-            break;
-        }            
-    }
-    // url list is created here (out of window list) unlike in other views, like history items.
-    delete removed.urlItem();
-    TileBaseWidget::removeTile(removed);
-}
-
-void TabWidget::removeAll()
-{
-    // url list is created here (out of window list) unlike in other views, like history items.
-    for (int i = m_tileList.size() - 1; i >= 0; --i)
-        delete m_tileList.at(i)->urlItem();
-    TileBaseWidget::removeAll();
-}
-
-void TabWidget::layoutTiles()
-{
-    // 6 tabs max atm
-    // FIXME: this is landscape oriented. check aspect ratio
-    QRectF r(rect());
-    r.setHeight(r.height() - s_viewMargin);
-    doLayoutTiles(r, 3, 2, s_tileMargin, s_tileMargin, true);
-}
-
-class HistoryWidget : public TileBaseWidget {
-    Q_OBJECT
-public:
-    HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) :TileBaseWidget("Visited pages", parent, wFlags) {}
-    void layoutTiles();
-};
-
-void HistoryWidget::layoutTiles()
-{
-    // the height of the view is unknow until we layout the tiles
-    QRectF r(rect());
-    r.setHeight(parentWidget()->size().height() - s_viewMargin);
-    // FIXME: this is landscape oriented. check aspect ratio
-    setMinimumHeight(doLayoutTiles(r, 3, 2, s_historyTileMargin, s_historyTileMargin).height()); 
-}
-
-class BookmarkWidget : public TileBaseWidget {
-    Q_OBJECT
-public:
-    BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) :TileBaseWidget("Bookmarks", parent, wFlags) {}
-    void layoutTiles();
-};
-
-void BookmarkWidget::layoutTiles()
-{
-    // the height of the view is unknow until we layout the tiles
-    QRectF r(rect());
-    r.setHeight(parentWidget()->size().height() - s_viewMargin);
-    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, 0).height());
-}
+const int s_containerMargin = 35;
+const int s_maxHistoryTileNum = 20;
 
 HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(TileSelectionViewBase::Home, parent, wFlags)
@@ -114,6 +26,7 @@ HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent, Qt::Wind
     , m_tabWidget(new TabWidget(this, wFlags))
     , m_pannableHistoryContainer(new PannableTileContainer(this, wFlags))
     , m_pannableBookmarkContainer(new PannableTileContainer(this, wFlags))
+    , m_pannableWindowSelectContainer(new PannableTileContainer(this, wFlags))
     , m_windowList(0) 
 {
     setFiltersChildEvents(true);
@@ -121,6 +34,8 @@ HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent, Qt::Wind
     m_pannableHistoryContainer->setWidget(m_historyWidget);
     m_pannableBookmarkContainer->setHomeView(this);
     m_pannableBookmarkContainer->setWidget(m_bookmarkWidget);
+    m_pannableWindowSelectContainer->setHomeView(this);
+    m_pannableWindowSelectContainer->setWidget(m_tabWidget);
     
     m_tabWidget->setEditMode(true);
 
@@ -132,8 +47,26 @@ HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent, Qt::Wind
 HomeView::~HomeView()
 {
     delete m_tabWidget;
+    delete m_pannableWindowSelectContainer;
     delete m_pannableHistoryContainer;
     delete m_pannableBookmarkContainer;
+}
+
+void HomeView::setActiveWidget(HomeWidgetType widget)
+{
+    if (widget == m_activeWidget)
+        return;
+
+    m_activeWidget = widget;
+    int containerWidth = rect().width() / 3 - s_containerMargin;
+
+    // repositon view
+    if (m_activeWidget == WindowSelect)
+        setPos(0, 0);
+    else if (m_activeWidget == VisitedPages)
+        setPos(QPointF(-(containerWidth - s_containerMargin), 0));
+    else if (m_activeWidget == Bookmarks)
+        setPos(QPointF(-(2*containerWidth - 2*s_containerMargin), 0));
 }
 
 bool HomeView::sceneEventFilter(QGraphicsItem* /*i*/, QEvent* e)
@@ -196,6 +129,7 @@ void HomeView::resizeEvent(QGraphicsSceneResizeEvent* event)
 
     // tab to the leftmost pos
     r.setWidth(containerWidth);
+    m_pannableWindowSelectContainer->setGeometry(r);
     m_tabWidget->setGeometry(r);
     if (m_activeWidget == WindowSelect)
         setPos(-r.topLeft());
@@ -252,9 +186,6 @@ void HomeView::tileItemEditingMode(TileItem* item)
 void HomeView::moveViews()
 {
     // check which container wins
-    m_slideAnimationGroup->stop();
-    m_slideAnimationGroup->clear();
-
     int viewWidth = size().width();
     int containerWidth = viewWidth / 3 - s_containerMargin;
     // at what pos it should jump to the next container
@@ -283,8 +214,7 @@ void HomeView::moveViews()
 
     slideAnim->setDuration(500);
     slideAnim->setEasingCurve(QEasingCurve::OutExpo);
-    m_slideAnimationGroup->addAnimation(slideAnim);
-    m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
+    slideAnim->start();
 }
 
 void HomeView::destroyViewItems()

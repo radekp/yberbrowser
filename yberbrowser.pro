@@ -143,6 +143,7 @@ HEADERS = \
   src/HistoryStore.h \
   src/HomeView.h \
   src/LinkSelectionItem.h \
+  src/PannableTileContainer.h \
   src/PannableViewport.h \
   src/PopupView.h \
   src/ProgressWidget.h \
@@ -192,6 +193,7 @@ HEADERS += \
 
 SOURCES += \
   src/ApplicationWindowHost.cpp \
+  src/PannableTileContainer.cpp \
   src/PannableViewport.cpp \
   src/WebViewport.cpp \
   3rdparty/qabstractkineticscroller.cpp \

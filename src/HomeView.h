@@ -10,6 +10,7 @@ class PannableTileContainer;
 class TileItem;
 class QGraphicsSceneMouseEvent;
 class WebView;
+class TileBaseWidget;
 
 class HomeView : public TileSelectionViewBase {
     Q_OBJECT
@@ -25,6 +26,7 @@ public:
     
     void setWindowList(QList<WebView*>& windowList) { m_windowList = &windowList; }
     HomeWidgetType activeWidget() const { return m_activeWidget; }
+    void setActiveWidget(HomeWidgetType widget);
     void resizeEvent(QGraphicsSceneResizeEvent* event);
     bool sceneEventFilter(QGraphicsItem*, QEvent*);
     bool recognizeFlick(QGraphicsSceneMouseEvent* e);
@@ -59,6 +61,7 @@ private:
     TabWidget* m_tabWidget;
     PannableTileContainer* m_pannableHistoryContainer;
     PannableTileContainer* m_pannableBookmarkContainer;
+    PannableTileContainer* m_pannableWindowSelectContainer;
     QList<WebView*>* m_windowList;
 
     // FIXME these should go to a gesture recognizer

@@ -1,21 +1,15 @@
-#include <QApplication>
-#include <QGraphicsScene>
-#include <QGraphicsView>
-#include <QGraphicsWidget>
+#include "PopupView.h"
 #include <QTimer>
-#include <QDebug>
 #include <qgraphicswebview.h>
 #include <qwebpage.h>
 #include <qwebframe.h>
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValueIterator>
 
-#include "PopupView.h"
 #include "UrlItem.h"
 #include "HistoryStore.h"
-
-const int s_searchItemTileHeight = 60;
-const int s_tileMargin = 20;
+#include "TileContainerWidget.h"
+#include "PannableTileContainer.h"
 
 class Suggest : public QObject {
     Q_OBJECT
@@ -88,25 +82,6 @@ void Suggest::loadFinished(bool success)
         }
     }
     emit suggestionsAvailable();
-}
-
-class PopupWidget : public TileBaseWidget {
-    Q_OBJECT
-public:
-    PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) : TileBaseWidget("Search result", parent, wFlags) {}
-    void layoutTiles();
-};
-
-void PopupWidget::layoutTiles()
-{
-    QRectF r(rect());
-    r.setHeight(parentWidget()->size().height() - s_viewMargin);
-    int popupHeight = doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height();
-    // position to the bottom of the container, when there are too few items
-    if (popupHeight < r.height()) 
-        setGeometry(QRectF(QPointF(0, parentWidget()->size().height() - popupHeight), QSizeF(rect().width(), popupHeight)));
-    else
-        setGeometry(QRect(0, 0, r.width(), popupHeight));
 }
 
 PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
