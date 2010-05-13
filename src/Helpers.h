@@ -8,7 +8,6 @@ class QString;
 class QGraphicsWidget;
 class QGraphicsWebView;
 
-void googleSuggest(const QString& suggest);
 void notification(const QString& text, QGraphicsWidget* parent);
 QUrl urlFromUserInput(const QString& string);
 void internalizeUrlList(UrlList& list, const QString& fileName);

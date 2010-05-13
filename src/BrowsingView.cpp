@@ -346,6 +346,7 @@ void BrowsingView::deleteActiveView()
 
 void BrowsingView::toggleTabSelectionView()
 {
+    deleteActiveView();
     m_initialHomeWidget = HomeView::WindowSelect;
     createActiveView(TileSelectionViewBase::Home);
 }

@@ -6,6 +6,8 @@
 class PannableTileContainer;
 class PopupWidget;
 class TileItem;
+class Suggest;
+class QTimer;
 
 class PopupView : public TileSelectionViewBase {
     Q_OBJECT
@@ -22,6 +24,8 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void tileItemActivated(TileItem*);
+    void startSuggest();
+    void populateSuggestion();
 
 private:
     bool setupInAndOutAnimation(bool);
@@ -29,6 +33,8 @@ private:
     void destroyViewItems();
 
 private:
+    Suggest* m_suggest;
+    QTimer* m_suggestTimer;
     PopupWidget* m_popupWidget;
     PannableTileContainer* m_pannableContainer;
     QString m_filterText;

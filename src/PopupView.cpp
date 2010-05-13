@@ -2,7 +2,13 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QGraphicsWidget>
+#include <QTimer>
 #include <QDebug>
+#include <qgraphicswebview.h>
+#include <qwebpage.h>
+#include <qwebframe.h>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValueIterator>
 
 #include "PopupView.h"
 #include "UrlItem.h"
@@ -10,6 +16,79 @@
 
 const int s_searchItemTileHeight = 60;
 const int s_tileMargin = 20;
+
+class Suggest : public QObject {
+    Q_OBJECT
+public:
+    Suggest();
+    void start(const QString& text);
+    void stop();
+    QList<QString>* suggestions() { return &m_suggestions; }
+
+Q_SIGNALS:
+    void suggestionsAvailable();
+
+private Q_SLOTS:
+    void loadFinished(bool success);
+    
+private:
+    bool m_loading;
+    QGraphicsWebView m_view;
+    QList<QString> m_suggestions;
+};
+
+Suggest::Suggest()
+    : m_loading(false)
+{
+    connect(&m_view, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));    
+}
+
+void Suggest::start(const QString& text)
+{
+    if (m_loading)
+        m_view.triggerPageAction(QWebPage::Stop);
+    m_loading = true;
+    m_view.load(QUrl("http://suggestqueries.google.com/complete/search?qu=" + text));
+}
+
+void Suggest::stop() 
+{
+    if (!m_loading)
+        return;
+
+    m_view.triggerPageAction(QWebPage::Stop);
+}
+
+void Suggest::loadFinished(bool success)
+{
+    m_loading = false;
+    m_suggestions.clear();
+
+    if (!success)
+        return;
+    QString json = m_view.page()->mainFrame()->toPlainText();
+    int start = json.indexOf("(");
+    if (start != -1) {
+        json = json.mid(start);
+
+        QScriptEngine engine;
+        QScriptValue sc = engine.evaluate(json);
+
+        if (sc.property(1).isArray()) {
+            QScriptValueIterator it(sc.property(1));
+            while (it.hasNext()) {
+                it.next();
+                if (it.value().isArray()) {
+                    // only the first value is needed
+                    QScriptValueIterator itt(it.value());
+                    itt.next();
+                    m_suggestions.append(itt.value().toString());
+                }
+            }
+        }
+    }
+    emit suggestionsAvailable();
+}
 
 class PopupWidget : public TileBaseWidget {
     Q_OBJECT
@@ -25,18 +104,22 @@ void PopupWidget::layoutTiles()
     int popupHeight = doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height();
     // position to the bottom of the container, when there are too few items
     if (popupHeight < r.height()) 
-        setGeometry(QRectF(QPointF(0, parentWidget()->size().height() - popupHeight - s_viewMargin), QSizeF(rect().width(), popupHeight)));
+        setGeometry(QRectF(QPointF(0, parentWidget()->size().height() - popupHeight), QSizeF(rect().width(), popupHeight)));
     else
         setGeometry(QRect(0, 0, r.width(), popupHeight));
 }
 
 PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(TileSelectionViewBase::UrlPopup, parent, wFlags)
+    , m_suggest(new Suggest())
+    , m_suggestTimer(new QTimer(this))
     , m_popupWidget(new PopupWidget(this, wFlags))
     , m_pannableContainer(new PannableTileContainer(this, wFlags))
 {
     m_pannableContainer->setWidget(m_popupWidget);
     connect(m_popupWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
+    connect(m_suggestTimer, SIGNAL(timeout()), this, SLOT(startSuggest()));
+    connect(m_suggest, SIGNAL(suggestionsAvailable()), this, SLOT(populateSuggestion()));
 }
 
 PopupView::~PopupView()
@@ -54,7 +137,22 @@ void PopupView::resizeEvent(QGraphicsSceneResizeEvent* event)
 
 void PopupView::setFilterText(const QString& text)
 {
+    m_suggestTimer->start(500);
+    m_suggest->stop();
+
     m_filterText = text;
+    destroyViewItems();
+    createViewItems();
+}
+
+void PopupView::startSuggest()
+{
+    m_suggestTimer->stop();
+    m_suggest->start(m_filterText);
+}
+
+void PopupView::populateSuggestion()
+{
     destroyViewItems();
     createViewItems();
 }
@@ -62,7 +160,12 @@ void PopupView::setFilterText(const QString& text)
 void PopupView::tileItemActivated(TileItem* item)
 {
     TileSelectionViewBase::tileItemActivated(item);
-    emit pageSelected(item->urlItem()->m_url);
+
+    QUrl url = item->urlItem()->m_url;
+    // FIXME this is ugly but ok as temp
+    if (item->urlItem()->m_url.toString() == "google suggest")
+        url = "http://www.google.com/search?q=" + item->urlItem()->m_title;      
+    emit pageSelected(url);
 }
 
 void PopupView::destroyViewItems()
@@ -74,11 +177,19 @@ void PopupView::createViewItems()
 {
     UrlList matchedItems;
     HistoryStore::instance()->match(m_filterText, matchedItems);
+    QList<QString>* suggestList = m_suggest->suggestions();
+
+    // FIXME let the urlitem leak for now
+    // add suggest items to the top
+    for (int i = 0; i < suggestList->size() && i < (matchedItems.isEmpty() ? 5 : 2) ; ++i) {
+        ListTileItem* suggestItem = new ListTileItem(m_popupWidget, *(new UrlItem(QUrl("google suggest"), suggestList->at(i), 0)));
+        m_popupWidget->addTile(*suggestItem);
+        connectItem(*suggestItem);
+    }
 
     if (matchedItems.isEmpty()) {
-        // FIXME let the urlitem leak for now
-        ListTileItem* startTyping = new ListTileItem(m_popupWidget, *(new UrlItem(QUrl(), "no match", 0)));
-        m_popupWidget->addTile(*startTyping);
+        if (suggestList->isEmpty())
+            m_popupWidget->addTile(*(new ListTileItem(m_popupWidget, *(new UrlItem(QUrl(), "no match", 0)))));
     } else {
         for (int i = 0; i < matchedItems.size(); ++i) {
             ListTileItem* newTileItem = new ListTileItem(m_popupWidget, *matchedItems.at(i));
