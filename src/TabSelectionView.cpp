@@ -14,20 +14,15 @@
 #include "WebView.h"
 
 #include <QPropertyAnimation>
-#if USE_DUI
-#include <DuiScene>
-#endif
-
-// FIXME: this is a complete fixme class
 
 namespace {
-const int s_tilePadding = 20;
+const int s_tilePadding = 10;
 }
 
 class TabWidget : public TileBaseWidget {
     Q_OBJECT
 public:
-    TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) : TileBaseWidget(parent, wFlags) {}
+    TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) : TileBaseWidget("Window selection", parent, wFlags) {}
 
     void setActiveTabItem(TileItem* tabItem) { m_activeTabItem = tabItem; }
     QRectF activeTabItemRect();  
@@ -70,54 +65,41 @@ void TabWidget::removeAll()
 void TabWidget::layoutTiles()
 {
     // and layout them
-    QRectF r(parentWidget()->rect());
+    QRectF r(rect());
 
-    // default 
-    int hTileNum = m_tileList.size();
-    int tileWidth = (r.width() / 3) - s_tilePadding;
-    int tileHeight = tileWidth / 1.20;
-
-    r.setWidth((tileWidth + s_tilePadding) * hTileNum);
-    // the width of the view is unknow until we figure out how many items there are
-    setGeometry(r);
-
-    // move tiles to the middle
-    r.setTop(r.center().y() - (tileHeight / 2));
-    r.setHeight(tileHeight);
-    doLayoutTiles(r, hTileNum, tileWidth, 1, tileHeight, s_tilePadding, 0);
+    // 6 tabs max atm
+    // FIXME: this is landscape oriented. need to be dynamic to
+    // support portrait mode
+    int vTileNum = 2;
+    int hTileNum = qMin(3, m_tileList.size());
+    int tileWidth = (r.width() / 3) - 2 * s_tilePadding;
+    int tileHeight = tileWidth / 1.20 - 2 * s_tilePadding;
+ 
+    // FIXME: doLayoutTiles does horizontal centering. no need
+    r.setWidth(hTileNum * tileWidth);
+    doLayoutTiles(r, hTileNum, tileWidth, vTileNum, tileHeight, s_tilePadding, s_tilePadding);
 }
 
 TabSelectionView::TabSelectionView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileSelectionViewBase(parent, wFlags)
-    , m_pannableTabContainer(new PannableTileContainer(this, wFlags))
+    : TileSelectionViewBase(TileSelectionViewBase::TabSelect, parent, wFlags)
     , m_tabWidget(new TabWidget(this, wFlags))
     , m_windowList(0) 
     , m_activeWindow(0)
 {
     m_tabWidget->setZValue(1);
     m_tabWidget->setEditMode(true);
-    m_pannableTabContainer->setWidget(m_tabWidget);
     connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
 }
 
 TabSelectionView::~TabSelectionView()
 {
     delete m_tabWidget;
-    delete m_pannableTabContainer;
 }
 
 void TabSelectionView::setGeometry(const QRectF& rect)
 {
-    QRectF currentRect(geometry());
-    if (rect == currentRect)
-        return;
-    
-    if (rect.width() != currentRect.width() || rect.height() != currentRect.height()) {
-        // readjust subcontainers' sizes in case of size chage
-        m_pannableTabContainer->setGeometry(rect);
-        m_tabWidget->setGeometry(rect);
-    }
     TileSelectionViewBase::setGeometry(rect);
+    m_tabWidget->setGeometry(rect);
 }
 
 void TabSelectionView::tileItemActivated(TileItem* item)
@@ -126,45 +108,16 @@ void TabSelectionView::tileItemActivated(TileItem* item)
     if (item->context())
         emit windowSelected((WebView*)item->context());
     else
-        emit windowCreated();
+        emit windowCreated(true);
 }
 
 void TabSelectionView::tileItemClosed(TileItem* item)
 {
     TileSelectionViewBase::tileItemClosed(item);
     if (item->context()) {
-        emit windowClosed((WebView*)item->context());
         m_tabWidget->removeTile(*item);
+        emit windowClosed((WebView*)item->context());
     }
-    // close on last window close
-    if (m_tabWidget->tileList()->size() == 1)
-        disappear();
-}
-
-void TabSelectionView::setupAnimation(bool in)
-{
-    // animate all the way down to the current window
-    QPropertyAnimation* tabAnim = new QPropertyAnimation(m_tabWidget, "geometry");
-    tabAnim->setDuration(800);
-    QRectF r(m_tabWidget->geometry());
-
-    if (in) {
-        // scroll all the way down to the active item
-        QRectF finishRect(m_tabWidget->activeTabItemRect());
-        r.moveLeft(finishRect.left() > 0 ? rect().center().x() - (finishRect.left() + finishRect.width()/2) : rect().left());
-    }
-    QRectF hiddenWidget(r); hiddenWidget.moveLeft(r.right());
-
-    tabAnim->setStartValue(in ?  hiddenWidget : r);
-    tabAnim->setEndValue(in ? r : hiddenWidget);
-
-    tabAnim->setEasingCurve(in ? QEasingCurve::OutBack : QEasingCurve::InCubic);
-
-    m_slideAnimationGroup->addAnimation(tabAnim);
-
-    // hide the container
-    if (in)
-        m_tabWidget->setGeometry(hiddenWidget);
 }
 
 void TabSelectionView::destroyViewItems()
@@ -192,7 +145,7 @@ void TabSelectionView::createViewItems()
                 thumbnail = new QImage(*item->thumbnail());
         }
         // create a tile item with the window context set
-        TileItem* newTileItem = new TileItem(m_tabWidget, *(new UrlItem(view->url(), pageAvailable ? view->title() : "no page loded yet", thumbnail)), TileItem::Vertical);
+        ThumbnailTileItem* newTileItem = new ThumbnailTileItem(m_tabWidget, *(new UrlItem(view->url(), pageAvailable ? view->title() : "no page loded yet", thumbnail)));
         newTileItem->setContext(view);
 
         m_tabWidget->addTile(*newTileItem);
@@ -201,7 +154,8 @@ void TabSelectionView::createViewItems()
         if (view == m_activeWindow)
             m_tabWidget->setActiveTabItem(newTileItem);
     }
-    TileItem* newTileItem = new TileItem(m_tabWidget, *(new UrlItem(QUrl(), "open new window", 0)), TileItem::Vertical, false);
+    
+    NewWindowTileItem* newTileItem = new NewWindowTileItem(m_tabWidget, *(new UrlItem(QUrl(), "", 0)));
     m_tabWidget->addTile(*newTileItem);
     connectItem(*newTileItem);
 

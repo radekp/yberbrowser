@@ -1,241 +1,227 @@
-#include <QApplication>
-#include <QGraphicsScene>
-#include <QGraphicsView>
-#include <QGraphicsWidget>
-#include <QGraphicsRectItem>
-#include <QDebug>
-#include <QGraphicsSceneMouseEvent>
-#include <QParallelAnimationGroup>
-
 #include "HomeView.h"
+#include <QGraphicsSceneMouseEvent>
+#include <QPropertyAnimation>
+
+#include "PannableTileContainer.h"
 #include "TileContainerWidget.h"
 #include "TileItem.h"
 #include "HistoryStore.h"
 #include "BookmarkStore.h"
-#include "ApplicationWindow.h"
-
-#include <QPropertyAnimation>
+#include "WebView.h"
 #if USE_DUI
 #include <DuiScene>
 #endif
 
-// FIXME: HomeView should be either a top level view, or just a central widget of the browsingview, probably the first one
-// also, LAF is not finalized yet.
+#include <QDebug>
 
-namespace {
-const int s_minTileWidth = 170;
-const int s_maxTileWidth = 200;
-const int s_defaultTileNumH = 3;
-const int s_defaultTileNumV = 6;
-const int s_tileHistoryPadding = 10;
-const int s_tileBookmarkPadding = 0;
-const int s_bookmarkStripeHeight = 70;
-const int s_bookmarksTileWidth = 135;
-const QColor s_TitleTextColor(0xFA, 0xFA, 0xFA);
+const int s_maxWindows = 6;
+const int s_containerMargin = 35;
+const int s_maxHistoryTileNum = 20;
 
-const int s_maxHistoryTileNum = s_defaultTileNumH * s_defaultTileNumV;
-}
-
-class HistoryWidget : public TileBaseWidget {
-    Q_OBJECT
-public:
-    HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0) :TileBaseWidget(parent, wFlags) {}
-
-    void layoutTiles();
-};
-
-void HistoryWidget::layoutTiles()
-{
-    int width = rect().width();
-
-    if (width < s_minTileWidth)
-        return;
-
-    // default 
-    int hTileNum = s_defaultTileNumH;
-    int tileWidth = width / hTileNum;
-
-    // calculate the optimal tile width
-    while (tileWidth < s_minTileWidth && hTileNum > 0)
-        tileWidth = width / --hTileNum;
-
-    tileWidth = qMin(tileWidth, s_maxTileWidth);
-
-    // keep height proposional
-    int vTileNum = s_defaultTileNumV;
-    int tileHeight = tileWidth * 0.9;
-
-    // the width of the view is unknow until we figure out how many items there are
-    QRectF r(rect()); r.setHeight(vTileNum * (tileHeight + s_tileHistoryPadding));
-    setGeometry(r);
-
-    doLayoutTiles(rect(), hTileNum, tileWidth, vTileNum, tileHeight, s_tileHistoryPadding, s_tileHistoryPadding);
-}
-
-class BookmarkWidget : public TileBaseWidget {
-    Q_OBJECT
-public:
-    BookmarkWidget(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
-
-    void layoutTiles();
-
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
-
-private:
-    QImage m_bookmarkIcon;
-    QLinearGradient m_bckgGradient;
-};
-
-BookmarkWidget::BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileBaseWidget(parent, wFlags)
-    , m_bookmarkIcon(":/data/icon/48x48/bookmarks_48.png")
-{
-    // setup bckg gradient
-    QGradientStops stops;
-    stops << QGradientStop(0.00, QColor(240, 240, 240)) << QGradientStop(0.30, QColor(114, 114, 114)) << QGradientStop(0.50, QColor(144, 144, 144)) << QGradientStop(0.70, QColor(134, 134, 134)) << QGradientStop(1.00, QColor(40, 40, 40));
-    for (int j=0; j<stops.size(); ++j)
-        m_bckgGradient.setColorAt(stops.at(j).first, stops.at(j).second);
-}
-
-void BookmarkWidget::layoutTiles()
-{
-    // add bookmark tiles
-    QRectF r(rect());
-    r.setLeft(r.left() + m_bookmarkIcon.width());
-
-    int hTileNum = qMin(m_tileList.size(), (int)(r.width() / s_bookmarksTileWidth));
-    int vTileNum = 1;
-
-    doLayoutTiles(r, hTileNum, s_bookmarksTileWidth, vTileNum, r.height(), s_tileBookmarkPadding, s_tileBookmarkPadding);
-
-    m_bckgGradient.setStart(rect().topLeft());
-    m_bckgGradient.setFinalStop(rect().bottomLeft());
-}
-
-void BookmarkWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
-{
-    // FIXME: optimize it
-    QRectF r(rect());
-    r.adjust(10, -15, -10, 0);
-    painter->setBrush(m_bckgGradient);
-    painter->setPen(QColor(20, 20, 20));
-    painter->drawRoundedRect(r, 12, 12);
-    painter->drawImage(QPoint(10, rect().height() / 2 - m_bookmarkIcon.height() / 2), m_bookmarkIcon);
-    TileBaseWidget::paint(painter, option, widget);
-}
-
-HomeView::HomeView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileSelectionViewBase(parent, wFlags)
+HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+    : TileSelectionViewBase(TileSelectionViewBase::Home, parent, wFlags)
+    , m_activeWidget(initialWidget)
     , m_bookmarkWidget(new BookmarkWidget(this, wFlags))
     , m_historyWidget(new HistoryWidget(this, wFlags))
+    , m_tabWidget(new TabWidget(this, wFlags))
     , m_pannableHistoryContainer(new PannableTileContainer(this, wFlags))
+    , m_pannableBookmarkContainer(new PannableTileContainer(this, wFlags))
+    , m_pannableWindowSelectContainer(new PannableTileContainer(this, wFlags))
+    , m_windowList(0) 
 {
-    m_bookmarkWidget->setZValue(1);
-    m_historyWidget->setZValue(1);
+    setFiltersChildEvents(true);
+    m_pannableHistoryContainer->setHomeView(this);
     m_pannableHistoryContainer->setWidget(m_historyWidget);
+    m_pannableBookmarkContainer->setHomeView(this);
+    m_pannableBookmarkContainer->setWidget(m_bookmarkWidget);
+    m_pannableWindowSelectContainer->setHomeView(this);
+    m_pannableWindowSelectContainer->setWidget(m_tabWidget);
+    
+    m_tabWidget->setEditMode(true);
+
+    connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
     connect(m_bookmarkWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
     connect(m_historyWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
 }
 
 HomeView::~HomeView()
 {
-    delete m_bookmarkWidget;
-    delete m_historyWidget;
+    delete m_tabWidget;
+    delete m_pannableWindowSelectContainer;
     delete m_pannableHistoryContainer;
+    delete m_pannableBookmarkContainer;
 }
 
-void HomeView::setGeometry(const QRectF& rect)
+void HomeView::setActiveWidget(HomeWidgetType widget)
 {
-    QRectF currentRect(geometry());
-    if (rect == currentRect)
+    if (widget == m_activeWidget)
         return;
-    
-    if (rect.width() != currentRect.width() || rect.height() != currentRect.height()) {
-        // readjust subcontainers' sizes in case of size chage
-        QRectF r(rect);
-        // upper stripe for bookmarks
-        r.setHeight(s_bookmarkStripeHeight);
-        m_bookmarkWidget->setGeometry(r);
 
-        // history comes next
-        r.moveTop(r.bottom());
-        r.setBottom(rect.bottom());
-        m_pannableHistoryContainer->setGeometry(r);
-        m_historyWidget->setGeometry(r);
+    m_activeWidget = widget;
+    int containerWidth = rect().width() / 3 - s_containerMargin;
+
+    // repositon view
+    if (m_activeWidget == WindowSelect)
+        setPos(0, 0);
+    else if (m_activeWidget == VisitedPages)
+        setPos(QPointF(-(containerWidth - s_containerMargin), 0));
+    else if (m_activeWidget == Bookmarks)
+        setPos(QPointF(-(2*containerWidth - 2*s_containerMargin), 0));
+}
+
+bool HomeView::sceneEventFilter(QGraphicsItem* /*i*/, QEvent* e)
+{
+    bool doFilter = false;
+
+    if (!isVisible())
+        return doFilter;
+
+    switch (e->type()) {
+    case QEvent::GraphicsSceneMousePress:
+    case QEvent::GraphicsSceneMouseMove:
+    case QEvent::GraphicsSceneMouseRelease:
+    case QEvent::GraphicsSceneMouseDoubleClick:
+        doFilter = recognizeFlick(static_cast<QGraphicsSceneMouseEvent *>(e));
+        break;
+    default:
+        break;
     }
-    TileSelectionViewBase::setGeometry(rect);
+    return doFilter;
+}
+
+bool HomeView::recognizeFlick(QGraphicsSceneMouseEvent* e)
+{
+    if (e->type() == QEvent::GraphicsSceneMousePress) {
+        m_mouseDown = true;
+        m_mousePos = e->scenePos();
+        m_hDelta = 0;
+    } else if (e->type() == QEvent::GraphicsSceneMouseRelease) {
+        m_mouseDown = false;
+        // swap, move back, or no move at all?
+        if (abs(m_hDelta) > 0) {
+            moveViews();
+            return true;
+        }
+    } if (e->type() == QEvent::GraphicsSceneMouseMove && m_mouseDown) {
+        // panning
+        QPointF delta(m_mousePos - e->scenePos());
+        if (abs(delta.x()) >= abs(delta.y())) {
+            QPointF p(pos());
+            p.setX(p.x() - delta.x());
+            if (p.x() > 0)
+                p.setX(0);
+            else if (abs(p.x()) > size().width()/3*2)
+                p.setX(-(size().width()/3*2));            
+
+            m_mousePos = e->scenePos();
+            m_hDelta+=delta.x();
+            setPos(p);
+            return true;
+        }
+    }
+    return false;
+}
+
+void HomeView::resizeEvent(QGraphicsSceneResizeEvent* event)
+{
+    QRectF r(rect()); 
+    int containerWidth = r.width() / 3 - s_containerMargin;
+
+    // tab to the leftmost pos
+    r.setWidth(containerWidth);
+    m_pannableWindowSelectContainer->setGeometry(r);
+    m_tabWidget->setGeometry(r);
+    if (m_activeWidget == WindowSelect)
+        setPos(-r.topLeft());
+
+    // move history to the middle
+    r.moveLeft(containerWidth); 
+    r.setWidth(containerWidth - s_containerMargin);
+    m_pannableHistoryContainer->setGeometry(r);
+    m_historyWidget->setGeometry(QRectF(QPointF(0, 0), r.size()));
+    if (m_activeWidget == VisitedPages)
+        setPos(QPointF(-(r.x() - s_containerMargin), 0));
+
+    // rigthmost
+    r.moveLeft(2*containerWidth - s_containerMargin); 
+    m_pannableBookmarkContainer->setGeometry(r);
+    m_bookmarkWidget->setGeometry(QRectF(QPointF(0, 0), r.size()));
+    if (m_activeWidget == Bookmarks)
+        setPos(QPointF(-(r.x() - s_containerMargin), 0));
+    TileSelectionViewBase::resizeEvent(event);
 }
 
 void HomeView::tileItemActivated(TileItem* item)
 {
     TileSelectionViewBase::tileItemActivated(item);
-
-    if (!item || !item->urlItem())
-        return;
-    emit pageSelected(item->urlItem()->m_url);
+    if (m_activeWidget == WindowSelect) {
+        if (item->context())
+            emit windowSelected((WebView*)item->context());
+        else {
+            emit windowCreated(true);
+        }
+    } else {
+        emit pageSelected(item->urlItem()->m_url);
+    }
 }
 
 void HomeView::tileItemClosed(TileItem* item)
 {
     TileSelectionViewBase::tileItemClosed(item);
-    // FIXME add bookmark content as well
-    m_historyWidget->removeTile(*item);
+    widgetByType(m_activeWidget)->removeTile(*item);
+
+    if (m_activeWidget == WindowSelect)
+        emit windowClosed((WebView*)item->context());
 }
 
 void HomeView::tileItemEditingMode(TileItem* item)
 {
     TileSelectionViewBase::tileItemEditingMode(item);
-    // FIXME bookmarks, not yet.
-    //m_bookmarkWidget->setEditMode(!m_bookmarkWidget->editMode());
-    m_historyWidget->setEditMode(!m_historyWidget->editMode());
+
+    TileBaseWidget* w = widgetByType(m_activeWidget); 
+    w->setEditMode(!w->editMode());
     update();
 }
 
-void HomeView::setupAnimation(bool in)
+void HomeView::moveViews()
 {
-    // add both history and bookmark anim
-    QPropertyAnimation* historyAnim = new QPropertyAnimation(m_historyWidget, "geometry");
-    historyAnim->setDuration(800);
-    QRectF r(m_historyWidget->geometry());
-
-    if (in)
-        r.moveTop(rect().top());
-    QRectF hiddenHistory(r); hiddenHistory.moveTop(r.bottom());
-
-    historyAnim->setStartValue(in ?  hiddenHistory : r);
-    historyAnim->setEndValue(in ? r : hiddenHistory);
-
-    historyAnim->setEasingCurve(in ? QEasingCurve::OutBack : QEasingCurve::InCubic);
-
-    m_slideAnimationGroup->addAnimation(historyAnim);
-
-    //
-    QPropertyAnimation* bookmarkAnim = new QPropertyAnimation(m_bookmarkWidget, "geometry");
-    bookmarkAnim->setDuration(800);
-    r = m_bookmarkWidget->geometry();
-
-    if (in)
-        r.moveTop(rect().top());
-    QRectF hiddenBookmark(r); hiddenBookmark.moveBottom(r.top());
-
-    bookmarkAnim->setStartValue(in ?  hiddenBookmark : r);
-    bookmarkAnim->setEndValue(in ? r : hiddenBookmark);
-
-    bookmarkAnim->setEasingCurve(in ? QEasingCurve::OutBack : QEasingCurve::InCubic);
-
-    m_slideAnimationGroup->addAnimation(bookmarkAnim);
-
-    // hide the container
-    if (in) {
-        m_historyWidget->setGeometry(hiddenHistory);
-        m_bookmarkWidget->setGeometry(hiddenBookmark);
+    // check which container wins
+    int viewWidth = size().width();
+    int containerWidth = viewWidth / 3 - s_containerMargin;
+    // at what pos it should jump to the next container
+    int goOverWidth = containerWidth / 2;
+    // since go over is happening at the half of the container ->
+    // newContainer = 0 first, left container, 1,2 ->middle 3->last, right
+    int newContainer = abs(pos().x() / goOverWidth);
+    int newPos = 0;
+    // rightmost >> middle >> leftmost
+    if (newContainer >= 3) {
+        newPos = 2 * containerWidth - 2*s_containerMargin;
+        m_activeWidget = Bookmarks;
+    } else if (newContainer > 0) {
+        newPos = containerWidth - s_containerMargin;
+        m_activeWidget = VisitedPages;
+    } else {
+        m_activeWidget = WindowSelect;
     }
+
+    QRectF to(geometry());
+    to.moveLeft(-newPos);
+
+    QPropertyAnimation* slideAnim = new QPropertyAnimation(this, "geometry");
+    slideAnim->setStartValue(geometry());
+    slideAnim->setEndValue(to);
+
+    slideAnim->setDuration(500);
+    slideAnim->setEasingCurve(QEasingCurve::OutExpo);
+    slideAnim->start();
 }
 
 void HomeView::destroyViewItems()
 {
-    m_bookmarkWidget->removeAll();
+    m_tabWidget->removeAll();
     m_historyWidget->removeAll();
+    m_bookmarkWidget->removeAll();
 }
 
 void HomeView::createViewItems()
@@ -243,20 +229,16 @@ void HomeView::createViewItems()
     // recreate?
     destroyViewItems();
     //
-    createBookmarkContent();
+    createTabSelectContent();
     createHistoryContent();
+    createBookmarkContent();
 }
 
 void HomeView::createBookmarkContent()
 {
     UrlList* list = BookmarkStore::instance()->list();
-    // FIXME: this 'All bookmarks' urlItem is being leaked
-    TileItem* newTileItem = new TileItem(m_bookmarkWidget, *(new UrlItem(QUrl(), "All bookmarks", 0)), TileItem::Horizontal, false);
-    m_bookmarkWidget->addTile(*newTileItem);
-    connectItem(*newTileItem);
-    //
     for (int i = 0; i < list->size(); ++i) {
-        newTileItem = new TileItem(m_bookmarkWidget, *list->at(i), TileItem::Horizontal);
+        ListTileItem* newTileItem = new ListTileItem(m_bookmarkWidget, *list->at(i));
         m_bookmarkWidget->addTile(*newTileItem);
         connectItem(*newTileItem);
     }
@@ -265,19 +247,67 @@ void HomeView::createBookmarkContent()
 
 void HomeView::createHistoryContent()
 {
-    TileItem* newTileItem = 0;
+    ThumbnailTileItem* newTileItem = 0;
     UrlList* list = HistoryStore::instance()->list();
     for (int i = 0; i < (s_maxHistoryTileNum - 1) && i < list->size(); ++i) {
-        newTileItem = new TileItem(m_historyWidget, *list->at(i), TileItem::Vertical);
+        newTileItem = new ThumbnailTileItem(m_historyWidget, *list->at(i));
         m_historyWidget->addTile(*newTileItem);
         connectItem(*newTileItem);
     }
     // FIXME: this 'All history'  is being leaked
-    newTileItem = new TileItem(m_historyWidget, *(new UrlItem(QUrl(), "All history", 0)), TileItem::Vertical, false);
+    newTileItem = new ThumbnailTileItem(m_historyWidget, *(new UrlItem(QUrl(), "All history", 0)), false);
     m_historyWidget->addTile(*newTileItem);
     connectItem(*newTileItem);
 
     m_historyWidget->layoutTiles();
 }
 
-#include "HomeView.moc"
+void HomeView::createTabSelectContent()
+{
+    if (!m_windowList)
+        return;
+
+    // create tile list out of window list
+    int i = 0;
+    for (; i < m_windowList->size(); ++i) {
+        WebView* view = m_windowList->at(i);
+        bool pageAvailable = !view->url().isEmpty();
+        QImage* thumbnail = 0;
+    
+        if (pageAvailable) {
+            // get the thumbnail from history store, it'd better be there
+            if (UrlItem* item = HistoryStore::instance()->get(view->url().toString()))
+                thumbnail = new QImage(*item->thumbnail());
+        }
+        // create a tile item with the window context set
+        ThumbnailTileItem* newTileItem = new ThumbnailTileItem(m_tabWidget, *(new UrlItem(view->url(), pageAvailable ? view->title() : "no page loded yet", thumbnail)));
+        newTileItem->setContext(view);
+
+        m_tabWidget->addTile(*newTileItem);
+        connectItem(*newTileItem);
+    }
+    
+    NewWindowTileItem* newTileItem = new NewWindowTileItem(m_tabWidget, *(new UrlItem(QUrl(), "", 0)));
+    m_tabWidget->addTile(*newTileItem);
+    i++;
+    connectItem(*newTileItem);
+    
+    for (; i < s_maxWindows; i++) {
+        NewWindowMarkerTileItem* emptyItem = new NewWindowMarkerTileItem(m_tabWidget, *(new UrlItem(QUrl(), "", 0)));
+        m_tabWidget->addTile(*emptyItem);
+    }
+
+    m_tabWidget->layoutTiles();
+}
+
+TileBaseWidget* HomeView::widgetByType(HomeWidgetType type)
+{
+    if (type == WindowSelect)
+        return m_tabWidget;
+    else if (type == VisitedPages)
+        return m_historyWidget;
+    else if (type == Bookmarks)
+        return m_bookmarkWidget;
+    return 0;    
+}
+

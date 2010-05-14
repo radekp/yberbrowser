@@ -72,6 +72,7 @@ const qreal s_zoomRectAdjustWidth = 5.;
  */
 WebViewportItem::WebViewportItem(QGraphicsWidget* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
+    , m_webView(0)
     , m_zoomCommitTimer(this)
     , m_resizeMode(WebViewportItem::ResizeWidgetHeightToContent)
 {
@@ -92,7 +93,6 @@ WebViewportItem::~WebViewportItem()
 
 void WebViewportItem::setWebView(QGraphicsWebView* webView) 
 { 
-    Q_ASSERT(m_webView);
     m_webView = webView; 
 
     m_webView->setResizesToContents(true);

@@ -2,6 +2,8 @@
 #define BrowsingView_h
 
 #include "yberconfig.h"
+#include "TileSelectionViewBase.h"
+#include "HomeView.h"
 
 #if USE_DUI
 #include <DuiApplicationPage>
@@ -25,13 +27,11 @@ class YberApplication;
 class WebViewportItem;
 class PannableViewport;
 class ApplicationWindow;
-class TabSelectionView;
-class HomeView;
-class BackingStoreVisualizerWidget;
 class ProgressWidget;
 class QAction;
 class AutoScrollTest;
 class QToolBar;
+class PopupView;
 
 class BrowsingView : public BrowsingViewBase
 {
@@ -51,13 +51,13 @@ public:
     void appear(ApplicationWindow* window);
     YberWidget* centralWidget()  { return m_centralWidget; }
     PannableViewport* pannableViewport() { return m_browsingViewport; }
-    void showHomeView();
-    void hideHomeView();
+
+    void createHomeView(HomeView::HomeWidgetType type);
 
 #endif
 public Q_SLOTS:
     void load(const QUrl&);
-    WebView* newWindow();
+    WebView* newWindow(bool homeViewOn = false);
     void destroyWindow(WebView* webView);
     void setActiveWindow(WebView* webView);
 #if !USE_DUI
@@ -78,19 +78,12 @@ protected Q_SLOTS:
 
     void updateHistoryStore(bool successLoad);
 
-    void setLoadInProgress(bool);
     void loadStarted();
     void loadFinished(bool success);
 
     void updateURL();
 
     void toggleFullScreen();
-
-    void createHomeView();
-    void deleteHomeView();
-
-    void createTabSelectionView();
-    void deleteTabSelectionView();
     void toggleTabSelectionView();
 
     void prepareForResize();
@@ -98,13 +91,14 @@ protected Q_SLOTS:
     void startAutoScrollTest();
     void finishedAutoScrollTest();
 
+    void deleteView(TileSelectionViewBase* view);
+
 private:
     Q_DISABLE_COPY(BrowsingView);
     YberWidget* createNavigationToolBar();
-    void connectSignals(WebView* currentView, WebView* oldView);
-    void updateViews();
-
-    void toggleStopBackIcon();
+    void connectWebViewSignals(WebView* currentView, WebView* oldView);
+    void createUrlEditFilterPopup();
+    void toggleStopBackIcon(bool loadInProgress);
 
 #if !USE_DUI
     QMenuBar* createMenu(QWidget* parent);
@@ -119,16 +113,16 @@ private:
     WebView* m_activeWebView;
     PannableViewport* m_browsingViewport;
     WebViewportItem* m_webInteractionProxy;
-    TabSelectionView* m_tabSelectionView;
-    HomeView* m_homeView;
     UrlEditWidget* m_urlEdit;
     ProgressWidget* m_progressBox;
     QSizeF m_sizeBeforeResize;
     QString m_lastEnteredText;
     QAction* m_stopbackAction;
-    bool m_loadIndProgress;
     AutoScrollTest* m_autoScrollTest;
     QList<WebView*> m_windowList;
+    HomeView* m_homeView;
+    PopupView* m_urlfilterPopup;
+    HomeView::HomeWidgetType m_initialHomeWidget;
 };
 
 

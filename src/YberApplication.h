@@ -37,7 +37,7 @@ private:
 
     bool m_isFullscreen;
     bool m_isTileCacheEnabled;
-    QScopedPointer<ApplicationWindow> appwin;
+    ApplicationWindow *appwin;
     mutable CookieJar* m_cookieJar;
 };
 

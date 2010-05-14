@@ -34,7 +34,7 @@ PannableViewport::PannableViewport(QGraphicsItem* parent, Qt::WindowFlags wFlags
     setFiltersChildEvents(true);
 
     setScrollsPerSecond(s_scrollsPerSecond);
-    setOvershootPolicy(YberHack_Qt::QAbstractKineticScroller::OvershootAlwaysOn);
+    setOvershootPolicy(YberHack_Qt::QAbstractKineticScroller::OvershootWhenScrollable);
     setAxisLockThreshold(s_axisLockThreshold);
 }
 

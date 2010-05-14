@@ -143,11 +143,12 @@ HEADERS = \
   src/HistoryStore.h \
   src/HomeView.h \
   src/LinkSelectionItem.h \
+  src/PannableTileContainer.h \
   src/PannableViewport.h \
+  src/PopupView.h \
   src/ProgressWidget.h \
   src/ScrollbarItem.h \
   src/Settings.h \
-  src/TabSelectionView.h \
   src/TileContainerWidget.h \
   src/TileItem.h \
   src/TileSelectionViewBase.h \
@@ -171,9 +172,9 @@ SOURCES = \
   src/HistoryStore.cpp \
   src/HomeView.cpp \
   src/LinkSelectionItem.cpp \
+  src/PopupView.cpp \
   src/ProgressWidget.cpp \
   src/ScrollbarItem.cpp \
-  src/TabSelectionView.cpp \
   src/TileContainerWidget.cpp \
   src/TileItem.cpp \
   src/TileSelectionViewBase.cpp \
@@ -192,6 +193,7 @@ HEADERS += \
 
 SOURCES += \
   src/ApplicationWindowHost.cpp \
+  src/PannableTileContainer.cpp \
   src/PannableViewport.cpp \
   src/WebViewport.cpp \
   3rdparty/qabstractkineticscroller.cpp \

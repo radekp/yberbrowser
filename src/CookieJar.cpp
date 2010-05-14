@@ -70,7 +70,10 @@ void CookieJar::load()
     QList<QNetworkCookie> cookies;
     qint32 count;
     stream >> count;
+
+#if QT_VERSION >= QT_VERSION_CHECK(4, 7, 0)
     cookies.reserve(count);
+#endif
     for (int i = 0; i < count && !stream.atEnd(); ++i) {
         QByteArray rawCookie;
         stream >> rawCookie;
@@ -102,7 +105,9 @@ void CookieJar::expireCookies()
 {
     const QList<QNetworkCookie>& currentCookies = allCookies();
     QList<QNetworkCookie> newCookies;
+#if QT_VERSION >= QT_VERSION_CHECK(4, 7, 0)
     newCookies.reserve(currentCookies.count());
+#endif    
     QDateTime now = QDateTime::currentDateTime();
     foreach (const QNetworkCookie& cookie, currentCookies) {
         if (!cookie.isSessionCookie() && cookie.expirationDate() < now) {

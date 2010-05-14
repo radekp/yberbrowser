@@ -15,6 +15,7 @@ public:
     bool contains(const QString& url);
     UrlItem* get(const QString& url);
     QString match(const QString& url);
+    void match(const QString& url, UrlList& matchedItems);
     UrlList* list() { return &m_list; }
 
 private:
