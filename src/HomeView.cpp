@@ -15,7 +15,7 @@
 #include <QDebug>
 
 const int s_maxWindows = 6;
-const int s_containerMargin = 35;
+const int s_containerMargin = 50;
 const int s_maxHistoryTileNum = 20;
 
 HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent, Qt::WindowFlags wFlags)

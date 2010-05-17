@@ -6,8 +6,7 @@
 #include <QPainter>
 
 const int s_viewMargin = 40;
-const int s_tileMargin = 20;
-const int s_historyTileMargin = 30;
+const int s_tileMargin = 40;
 const int s_bookmarksTileHeight = 70;
 const int s_searchItemTileHeight = 60;
 
@@ -107,11 +106,12 @@ void TileBaseWidget::setEditMode(bool on)
 void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
     QGraphicsWidget::paint(painter, option, widget);
-    painter->setFont(QFont("Times", 14));
+    painter->setFont(QFont("Times", 22));
     painter->setPen(Qt::white);
     QRectF r(rect());
+    r.adjust(s_tileMargin, 10, 0, 0);
     r.setHeight(s_viewMargin);
-    painter->drawText(r, Qt::AlignCenter, m_title);
+    painter->drawText(r, Qt::AlignLeft | Qt::AlignVCenter, m_title);
 }
 
 void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
@@ -137,7 +137,7 @@ void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QPointF& 
 
 // window select
 TabWidget::TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
-    : TileBaseWidget("Window selection", parent, wFlags) 
+    : TileBaseWidget("Tab selection", parent, wFlags) 
 {
 }
 
@@ -180,7 +180,7 @@ void TabWidget::removeAll()
 
 // history
 HistoryWidget::HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
-    : TileBaseWidget("Visited pages", parent, wFlags) 
+    : TileBaseWidget("Top sites", parent, wFlags) 
 {
 }
 
@@ -192,7 +192,7 @@ void HistoryWidget::layoutTiles()
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
-    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_historyTileMargin, s_historyTileMargin).height()); 
+    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin).height()); 
 }
 
 // bookmarks
@@ -205,7 +205,7 @@ void BookmarkWidget::layoutTiles()
 {
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
-    r.setHeight(parentWidget()->size().height() - s_viewMargin);
+    r.setTop(s_viewMargin);
     setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, 0).height());
 }
 
