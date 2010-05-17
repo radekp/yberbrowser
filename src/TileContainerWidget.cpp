@@ -1,85 +1,14 @@
 #include "TileContainerWidget.h"
-#include <QApplication>
-#include <QEvent>
-#include <QGraphicsScene>
 #include <QGraphicsItem>
 #include <QGraphicsSceneMouseEvent>
 #include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
 #include <QPainter>
-#include "HomeView.h"
 
-PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : PannableViewport(parent, wFlags)
-    , m_recognizer(this)
-    , m_selfSentEvent(0)
-    , m_homeView(0)
-{
-    m_recognizer.reset();
-}
-
-PannableTileContainer::~PannableTileContainer()
-{
-}
-
-bool PannableTileContainer::sceneEventFilter(QGraphicsItem *i, QEvent *e)
-{
-    if (e == m_selfSentEvent)
-        return false;
-    /* Apply super class event filter. This will capture mouse
-    move for panning.  it will return true when applies panning
-    but false until pan events are recognized
-    */
-    bool doFilter = PannableViewport::sceneEventFilter(i, e);
-
-    if (!isVisible())
-        return doFilter;
-
-    switch (e->type()) {
-    case QEvent::GraphicsSceneMousePress:
-    case QEvent::GraphicsSceneMouseMove:
-    case QEvent::GraphicsSceneMouseRelease:
-    case QEvent::GraphicsSceneMouseDoubleClick:
-        if (m_homeView)
-            doFilter = m_homeView->recognizeFlick(static_cast<QGraphicsSceneMouseEvent *>(e));
-        if (!doFilter)
-            m_recognizer.filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
-        doFilter = true;
-        break;
-    default:
-        break;
-    }
-    return doFilter;
-}
-
-void PannableTileContainer::cancelLeftMouseButtonPress(const QPoint&)
-{
-    // don't send the mouse press event after this callback.
-    // QAbstractCKineticScroller started panning
-    m_recognizer.clearDelayedPress();
-}
-
-void PannableTileContainer::mousePressEventFromChild(QGraphicsSceneMouseEvent* event)
-{
-    forwardEvent(event);
-}
-
-void PannableTileContainer::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent* event)
-{
-   forwardEvent(event);
-}
-
-void  PannableTileContainer::mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent* event)
-{
-    forwardEvent(event);
-}
-
-void PannableTileContainer::forwardEvent(QGraphicsSceneMouseEvent* event)
-{
-    m_selfSentEvent = event;
-    QApplication::sendEvent(scene(), event);
-    m_selfSentEvent = 0;
-}
+const int s_viewMargin = 40;
+const int s_tileMargin = 40;
+const int s_bookmarksTileHeight = 70;
+const int s_searchItemTileHeight = 60;
 
 TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
@@ -177,11 +106,12 @@ void TileBaseWidget::setEditMode(bool on)
 void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
     QGraphicsWidget::paint(painter, option, widget);
-    painter->setFont(QFont("Times", 14));
+    painter->setFont(QFont("Times", 22));
     painter->setPen(Qt::white);
     QRectF r(rect());
+    r.adjust(s_tileMargin, 10, 0, 0);
     r.setHeight(s_viewMargin);
-    painter->drawText(r, Qt::AlignCenter, m_title);
+    painter->drawText(r, Qt::AlignLeft | Qt::AlignVCenter, m_title);
 }
 
 void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
@@ -200,6 +130,101 @@ void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QPointF& 
 
     moveAnim->setEasingCurve(QEasingCurve::OutBack);
     m_slideAnimationGroup->addAnimation(moveAnim);
+}
+
+// subclasses
+// ##########
+
+// window select
+TabWidget::TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
+    : TileBaseWidget("Tabs", parent, wFlags) 
+{
+}
+
+void TabWidget::layoutTiles()
+{
+    // 6 tabs max atm
+    // FIXME: this is landscape oriented. check aspect ratio
+    QRectF r(rect());
+    r.setHeight(r.height() - s_viewMargin);
+    bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
+    int hTileNum = landscape ? 3 : 2;
+    int vTileNum = landscape ? 2 : 3;
+    doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin, true);
+}
+
+void TabWidget::removeTile(TileItem& removed)
+{
+    // FIXME: when tab is full, fake items dont work
+    // insert a fake marker item in place
+    NewWindowMarkerTileItem* emptyItem = new NewWindowMarkerTileItem(this, *(new UrlItem(QUrl(), "", 0)));
+    for (int i = 0; i < m_tileList.size(); ++i) {
+        if (m_tileList.at(i)->fixed()) {
+            emptyItem->setRect(m_tileList.at(i-1)->rect());
+            m_tileList.insert(i, emptyItem);
+            break;
+        }            
+    }
+    // url list is created here (out of window list) unlike in other views, like history items.
+    delete removed.urlItem();
+    TileBaseWidget::removeTile(removed);
+}
+
+void TabWidget::removeAll()
+{
+    // url list is created here (out of window list) unlike in other views, like history items.
+    for (int i = m_tileList.size() - 1; i >= 0; --i)
+        delete m_tileList.at(i)->urlItem();
+    TileBaseWidget::removeAll();
+}
+
+// history
+HistoryWidget::HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
+    : TileBaseWidget("Top sites", parent, wFlags) 
+{
+}
+
+void HistoryWidget::layoutTiles()
+{
+    // the height of the view is unknow until we layout the tiles
+    QRectF r(rect());
+    r.setHeight(parentWidget()->size().height() - s_viewMargin);
+    bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
+    int hTileNum = landscape ? 3 : 2;
+    int vTileNum = landscape ? 2 : 3;
+    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin).height()); 
+}
+
+// bookmarks
+BookmarkWidget::BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
+    : TileBaseWidget("Bookmarks", parent, wFlags) 
+{
+}
+
+void BookmarkWidget::layoutTiles()
+{
+    // the height of the view is unknow until we layout the tiles
+    QRectF r(rect());
+    r.setTop(s_viewMargin);
+    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, 0).height());
+}
+
+// url filter popup
+PopupWidget::PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
+    : TileBaseWidget("Search result", parent, wFlags) 
+{
+}
+
+void PopupWidget::layoutTiles()
+{
+    QRectF r(rect());
+    r.setHeight(parentWidget()->size().height() - s_viewMargin);
+    int popupHeight = doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height();
+    // position to the bottom of the container, when there are too few items
+    if (popupHeight < r.height()) 
+        setGeometry(QRectF(QPointF(0, parentWidget()->size().height() - popupHeight), QSizeF(rect().width(), popupHeight)));
+    else
+        setGeometry(QRect(0, 0, r.width(), popupHeight));
 }
 
 

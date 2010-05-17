@@ -4,7 +4,6 @@
 #include <QObject>
 #include <QRectF>
 #include <QGraphicsRectItem>
-#include <QLinearGradient>
 #include "UrlItem.h"
 
 class QGraphicsWidget;
