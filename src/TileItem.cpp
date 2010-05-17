@@ -201,7 +201,7 @@ void NewWindowTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
 
     painter->setFont(QFont("Times", 12));
     painter->setPen(Qt::white);
-    painter->drawText(rect(), Qt::AlignCenter, "Open new window");
+    painter->drawText(rect(), Qt::AlignCenter, "Open new tab");
 }
 
 NewWindowMarkerTileItem::NewWindowMarkerTileItem(QGraphicsWidget* parent, UrlItem& item)

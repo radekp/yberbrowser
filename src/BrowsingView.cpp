@@ -16,7 +16,9 @@
 #include <QAction>
 #include <QGraphicsLinearLayout>
 #include <QGraphicsProxyWidget>
-
+#if defined(Q_WS_MAEMO_5) && !defined(QT_NO_OPENGL)
+#include <QGLWidget>
+#endif
 
 #if USE_DUI
 #include <DuiTextEdit>
@@ -307,7 +309,11 @@ void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
             m_homeView->setActiveWidget(type);
         return;
     }
-        
+
+#if defined(Q_WS_MAEMO_5) && !defined(QT_NO_OPENGL)
+    // FIXME: find out if it should be doing differently
+    m_appWin->setViewport(new QGLWidget());
+#endif
     // create and display new home view
     m_homeView = new HomeView(type, this);
     m_homeView->setWindowList(m_windowList);
@@ -337,6 +343,9 @@ void BrowsingView::deleteView(TileSelectionViewBase* view)
         return;
 
     if (view == m_homeView) {
+#if defined(Q_WS_MAEMO_5) && !defined(QT_NO_OPENGL)
+        m_appWin->setViewport(new QWidget());
+#endif
         // save homeview state, so that it is positioned back to the same view when reopened
         m_initialHomeWidget = m_homeView->activeWidget();
         // no window select for initial view please
