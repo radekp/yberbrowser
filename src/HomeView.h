@@ -21,7 +21,7 @@ public:
         Bookmarks
     };
    
-    HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~HomeView();
     
     void setWindowList(QList<WebView*>& windowList) { m_windowList = &windowList; }

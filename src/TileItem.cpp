@@ -164,8 +164,6 @@ void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
 {
     layoutTile();
 
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
-
     QRectF r(rect()); 
 
     // QGraphicsDropShadowEffect doesnt perform well on n900.
@@ -193,8 +191,6 @@ void NewWindowTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
 {
     layoutTile();
 
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
-
     painter->setPen(Qt::white);
     painter->setBrush(Qt::black);
     painter->drawRoundedRect(rect(), 5, 5);
@@ -214,8 +210,6 @@ NewWindowMarkerTileItem::NewWindowMarkerTileItem(QGraphicsWidget* parent, UrlIte
 void NewWindowMarkerTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     layoutTile();
-
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
 
     QPen p(Qt::DashLine);
     p.setColor(QColor(100, 100, 100));
@@ -253,8 +247,6 @@ void ListTileItem::doLayoutTile()
 void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     layoutTile();
-
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
 
     QRectF r(rect()); 
 

@@ -18,8 +18,8 @@ const int s_maxWindows = 6;
 const int s_containerMargin = 50;
 const int s_maxHistoryTileNum = 20;
 
-HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileSelectionViewBase(TileSelectionViewBase::Home, parent, wFlags)
+HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+    : TileSelectionViewBase(TileSelectionViewBase::Home, bckg, parent, wFlags)
     , m_activeWidget(initialWidget)
     , m_bookmarkWidget(new BookmarkWidget(this, wFlags))
     , m_historyWidget(new HistoryWidget(this, wFlags))
