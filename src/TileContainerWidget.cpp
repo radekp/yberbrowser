@@ -106,10 +106,10 @@ void TileBaseWidget::setEditMode(bool on)
 void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
     QGraphicsWidget::paint(painter, option, widget);
-    painter->setFont(QFont("Times", 22));
+    painter->setFont(QFont("Times", 30));
     painter->setPen(Qt::white);
     QRectF r(rect());
-    r.adjust(s_tileMargin, 10, 0, 0);
+    r.setLeft(s_tileMargin);
     r.setHeight(s_viewMargin);
     painter->drawText(r, Qt::AlignLeft | Qt::AlignVCenter, m_title);
 }
@@ -180,7 +180,7 @@ void TabWidget::removeAll()
 
 // history
 HistoryWidget::HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
-    : TileBaseWidget("Top sites", parent, wFlags) 
+    : TileBaseWidget("Top Sites", parent, wFlags) 
 {
 }
 

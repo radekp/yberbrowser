@@ -280,7 +280,7 @@ void HomeView::createTabSelectContent()
                 thumbnail = new QImage(*item->thumbnail());
         }
         // create a tile item with the window context set
-        ThumbnailTileItem* newTileItem = new ThumbnailTileItem(m_tabWidget, *(new UrlItem(view->url(), pageAvailable ? view->title() : "no page loded yet", thumbnail)));
+        ThumbnailTileItem* newTileItem = new ThumbnailTileItem(m_tabWidget, *(new UrlItem(view->url(), pageAvailable ? view->title() : "Page not loded yet", thumbnail)));
         newTileItem->setContext(view);
 
         m_tabWidget->addTile(*newTileItem);
