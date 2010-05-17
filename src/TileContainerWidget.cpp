@@ -137,7 +137,7 @@ void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QPointF& 
 
 // window select
 TabWidget::TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
-    : TileBaseWidget("Tab selection", parent, wFlags) 
+    : TileBaseWidget("Tabs", parent, wFlags) 
 {
 }
 
