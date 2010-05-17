@@ -117,11 +117,12 @@ int main(int argc, char** argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::ZoomTextOnly, false);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, true);
     QWebSettings::enablePersistentStorage(settings->privatePath());
-    
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::FrameFlatteningEnabled, true);
+
     QStringList args = app.arguments();
 
     settings->enableTileCache(true);
-    
+
 #if ENABLE(ENGINE_THREAD)
     settings->enableEngineThread(true);
 #else
@@ -174,7 +175,7 @@ int main(int argc, char** argv)
     if (settings->engineThreadEnabled())
         QWebSettings::enableEngineThread();
 #endif
-    
+
     QWebSettings::globalSettings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, settings->tileCacheEnabled());
 
     app.start();
@@ -191,7 +192,7 @@ int main(int argc, char** argv)
 }
 
 
-void usage(const char* name) 
+void usage(const char* name)
 {
     QTextStream s(stderr);
     s << "usage: " << name << " [options] url" << endl;
