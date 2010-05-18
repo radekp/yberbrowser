@@ -1,21 +1,18 @@
 #include "TileSelectionViewBase.h"
-#include <QGraphicsRectItem>
+#include <QGraphicsPixmapItem>
+#include <QGraphicsBlurEffect>
 #include <QTimer>
 
 #include "ApplicationWindow.h"
 #include "TileItem.h"
 
-TileSelectionViewBase::TileSelectionViewBase(ViewType type, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+TileSelectionViewBase::TileSelectionViewBase(ViewType type, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_bckg(new QGraphicsRectItem(this))
+    , m_bckg(new QGraphicsPixmapItem(*bckg, this))
     , m_type(type)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
-
-    m_bckg->setBrush(QColor(20, 20, 20));
-    m_bckg->setZValue(0);
-//    m_bckg->setOpacity(0.8);
 }
 
 TileSelectionViewBase::~TileSelectionViewBase()
@@ -23,9 +20,15 @@ TileSelectionViewBase::~TileSelectionViewBase()
     delete m_bckg;
 }
 
+void TileSelectionViewBase::setGeometry( const QRectF &r)
+{
+    QGraphicsWidget::setGeometry(r);
+    m_bckg->setPos(-geometry().topLeft());
+}
+
 void TileSelectionViewBase::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
-    m_bckg->setRect(rect());
+    m_bckg->setPos(-pos());
     createViewItems();
     QGraphicsWidget::resizeEvent(event);
 }
@@ -38,8 +41,9 @@ void TileSelectionViewBase::appear(ApplicationWindow* window)
         setZValue(100);
     }
     scene()->setActiveWindow(this);
-
     createViewItems();
+    // bckg pos is misbehaving on device (n900), need to do an extra setPos here
+    m_bckg->setPos(-pos());
     emit appeared();
 }
 

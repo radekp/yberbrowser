@@ -32,6 +32,7 @@ class QAction;
 class AutoScrollTest;
 class QToolBar;
 class PopupView;
+class QPixmap;
 
 class BrowsingView : public BrowsingViewBase
 {
@@ -99,6 +100,7 @@ private:
     void connectWebViewSignals(WebView* currentView, WebView* oldView);
     void createUrlEditFilterPopup();
     void toggleStopBackIcon(bool loadInProgress);
+    QPixmap* webviewSnapshot();
 
 #if !USE_DUI
     QMenuBar* createMenu(QWidget* parent);

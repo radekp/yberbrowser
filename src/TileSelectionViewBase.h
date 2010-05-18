@@ -3,7 +3,7 @@
 
 #include <QGraphicsWidget>
 
-class QGraphicsRectItem;
+class QGraphicsPixmapItem;
 class ApplicationWindow;
 class TileItem;
 
@@ -16,6 +16,7 @@ public:
     };
 
     virtual ~TileSelectionViewBase();
+    void setGeometry( const QRectF & );
     void resizeEvent(QGraphicsSceneResizeEvent* event);
     ViewType viewtype() const { return m_type; }
 
@@ -31,17 +32,17 @@ public Q_SLOTS:
     virtual void tileItemEditingMode(TileItem*) {}
 
 protected:
-    TileSelectionViewBase(ViewType type, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    TileSelectionViewBase(ViewType type, QPixmap* bckg, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
 
     virtual void createViewItems() = 0;
     virtual void destroyViewItems() = 0;
     virtual void connectItem(TileItem&);
+    QGraphicsPixmapItem* m_bckg;
 
 private Q_SLOTS:
     void deleteView();
 
 private:
-    QGraphicsRectItem* m_bckg;
     ViewType m_type;
 };
 #endif

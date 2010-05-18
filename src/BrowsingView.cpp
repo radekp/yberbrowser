@@ -16,6 +16,7 @@
 #include <QAction>
 #include <QGraphicsLinearLayout>
 #include <QGraphicsProxyWidget>
+#include <QStyleOptionGraphicsItem>
 #if defined(Q_WS_MAEMO_5) && !defined(QT_NO_OPENGL)
 #include <QGLWidget>
 #endif
@@ -315,7 +316,7 @@ void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
     m_appWin->setViewport(new QGLWidget());
 #endif
     // create and display new home view
-    m_homeView = new HomeView(type, this);
+    m_homeView = new HomeView(type, webviewSnapshot(), this);
     m_homeView->setWindowList(m_windowList);
     connect(m_homeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
     connect(m_homeView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
@@ -330,7 +331,7 @@ void BrowsingView::createUrlEditFilterPopup()
 {
     if (m_urlfilterPopup)
         return;
-    m_urlfilterPopup = new PopupView(this);
+    m_urlfilterPopup = new PopupView(this, webviewSnapshot());
     connect(m_urlfilterPopup, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
     connect(m_urlfilterPopup, SIGNAL(disappeared(TileSelectionViewBase*)), this, SLOT(deleteView(TileSelectionViewBase*)));
     m_urlfilterPopup->resize(m_browsingViewport->size());
@@ -526,5 +527,22 @@ void BrowsingView::toggleStopBackIcon(bool loadInProgress)
     
     disconnect(m_stopbackAction, SIGNAL(triggered()), this, loadInProgress ? SLOT(pageBack()) : SLOT(stopLoad()));
     connect(m_stopbackAction, SIGNAL(triggered()), this, loadInProgress ? SLOT(stopLoad()) : SLOT(pageBack()));
+}
+
+QPixmap* BrowsingView::webviewSnapshot()
+{
+    QSizeF thumbnailSize(m_browsingViewport->size());
+    QImage thumbnail(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
+
+    if (m_activeWebView) {
+        QPainter p(&thumbnail);
+        qreal scale = m_activeWebView->scale();
+        QStyleOptionGraphicsItem sItem;
+        sItem.exposedRect = QRectF(QPointF(0, 0), thumbnailSize/scale);
+        p.scale(scale, scale);
+        m_activeWebView->paint(&p, &sItem);
+        p.fillRect(sItem.exposedRect, QColor(0, 0, 0, 198));
+    }
+    return new QPixmap(QPixmap::fromImage(thumbnail));
 }
 

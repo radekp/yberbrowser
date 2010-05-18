@@ -2,6 +2,7 @@
 #define HomeView_h_
 
 #include "TileSelectionViewBase.h"
+#include <QTime>
 
 class HistoryWidget;
 class BookmarkWidget;
@@ -21,14 +22,13 @@ public:
         Bookmarks
     };
    
-    HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~HomeView();
     
     void setWindowList(QList<WebView*>& windowList) { m_windowList = &windowList; }
     HomeWidgetType activeWidget() const { return m_activeWidget; }
     void setActiveWidget(HomeWidgetType widget);
     void resizeEvent(QGraphicsSceneResizeEvent* event);
-    bool sceneEventFilter(QGraphicsItem*, QEvent*);
     bool recognizeFlick(QGraphicsSceneMouseEvent* e);
 
 Q_SIGNALS:
@@ -65,6 +65,8 @@ private:
     QList<WebView*>* m_windowList;
 
     // FIXME these should go to a gesture recognizer
+    QTime m_flickTime;
+    bool m_horizontalFlickLocked;
     bool m_mouseDown;
     QPointF m_mousePos;
     int m_hDelta;

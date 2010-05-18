@@ -1,10 +1,9 @@
+#include "TileItem.h"
 #include <QGraphicsWidget>
 #include <QPainter>
 #include <QtGlobal>
 #include <QTimer>
 #include <QGraphicsSceneMouseEvent>
-
-#include "TileItem.h"
 
 const int s_hTextMargin = 10;
 
@@ -99,7 +98,8 @@ void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
     } else {    
         m_selected = true;
         update();
-        emit itemActivated(this);
+        // async item selection, give chance to render the item selected.
+        QTimer::singleShot(200, this, SLOT(activateItem()));
     }
 }
 
@@ -115,6 +115,11 @@ void TileItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* /*event*/)
 void TileItem::invalidateClick()
 {
     m_dclick = false;
+}
+
+void TileItem::activateItem()
+{
+    emit itemActivated(this);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -164,8 +169,6 @@ void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
 {
     layoutTile();
 
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
-
     QRectF r(rect()); 
 
     // QGraphicsDropShadowEffect doesnt perform well on n900.
@@ -193,8 +196,6 @@ void NewWindowTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
 {
     layoutTile();
 
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
-
     painter->setPen(Qt::white);
     painter->setBrush(Qt::black);
     painter->drawRoundedRect(rect(), 5, 5);
@@ -214,8 +215,6 @@ NewWindowMarkerTileItem::NewWindowMarkerTileItem(QGraphicsWidget* parent, UrlIte
 void NewWindowMarkerTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     layoutTile();
-
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
 
     QPen p(Qt::DashLine);
     p.setColor(QColor(100, 100, 100));
@@ -253,8 +252,6 @@ void ListTileItem::doLayoutTile()
 void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     layoutTile();
-
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
 
     QRectF r(rect()); 
 

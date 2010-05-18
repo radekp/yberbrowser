@@ -84,8 +84,8 @@ void Suggest::loadFinished(bool success)
     emit suggestionsAvailable();
 }
 
-PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileSelectionViewBase(TileSelectionViewBase::UrlPopup, parent, wFlags)
+PopupView::PopupView(QGraphicsItem* parent, QPixmap* bckg, Qt::WindowFlags wFlags)
+    : TileSelectionViewBase(TileSelectionViewBase::UrlPopup, bckg, parent, wFlags)
     , m_suggest(new Suggest())
     , m_suggestTimer(new QTimer(this))
     , m_popupWidget(new PopupWidget(this, wFlags))

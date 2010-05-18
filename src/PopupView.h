@@ -8,11 +8,12 @@ class PopupWidget;
 class TileItem;
 class Suggest;
 class QTimer;
+class QPixmap;
 
 class PopupView : public TileSelectionViewBase {
     Q_OBJECT
 public:
-    PopupView(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    PopupView(QGraphicsItem* parent = 0, QPixmap* bckg = 0, Qt::WindowFlags wFlags = 0);
     ~PopupView();
 
     void resizeEvent(QGraphicsSceneResizeEvent* event);

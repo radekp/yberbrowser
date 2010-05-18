@@ -17,9 +17,11 @@
 const int s_maxWindows = 6;
 const int s_containerMargin = 50;
 const int s_maxHistoryTileNum = 20;
+const int s_horizontalFlickLockThreshold = 20;
+const int s_flickTimeoutThreshold = 700;
 
-HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileSelectionViewBase(TileSelectionViewBase::Home, parent, wFlags)
+HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+    : TileSelectionViewBase(TileSelectionViewBase::Home, bckg, parent, wFlags)
     , m_activeWidget(initialWidget)
     , m_bookmarkWidget(new BookmarkWidget(this, wFlags))
     , m_historyWidget(new HistoryWidget(this, wFlags))
@@ -29,7 +31,6 @@ HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent, Qt::Wind
     , m_pannableWindowSelectContainer(new PannableTileContainer(this, wFlags))
     , m_windowList(0) 
 {
-    setFiltersChildEvents(true);
     m_pannableHistoryContainer->setHomeView(this);
     m_pannableHistoryContainer->setWidget(m_historyWidget);
     m_pannableBookmarkContainer->setHomeView(this);
@@ -69,54 +70,37 @@ void HomeView::setActiveWidget(HomeWidgetType widget)
         setPos(QPointF(-(2*containerWidth - 2*s_containerMargin), 0));
 }
 
-bool HomeView::sceneEventFilter(QGraphicsItem* /*i*/, QEvent* e)
-{
-    bool doFilter = false;
-
-    if (!isVisible())
-        return doFilter;
-
-    switch (e->type()) {
-    case QEvent::GraphicsSceneMousePress:
-    case QEvent::GraphicsSceneMouseMove:
-    case QEvent::GraphicsSceneMouseRelease:
-    case QEvent::GraphicsSceneMouseDoubleClick:
-        doFilter = recognizeFlick(static_cast<QGraphicsSceneMouseEvent *>(e));
-        break;
-    default:
-        break;
-    }
-    return doFilter;
-}
-
 bool HomeView::recognizeFlick(QGraphicsSceneMouseEvent* e)
 {
     if (e->type() == QEvent::GraphicsSceneMousePress) {
+        m_flickTime.start();        
         m_mouseDown = true;
-        m_mousePos = e->scenePos();
+        m_horizontalFlickLocked = false;
         m_hDelta = 0;
+        m_mousePos = e->scenePos();
     } else if (e->type() == QEvent::GraphicsSceneMouseRelease) {
         m_mouseDown = false;
-        // swap, move back, or no move at all?
-        if (abs(m_hDelta) > 0) {
-            moveViews();
-            return true;
-        }
-    } if (e->type() == QEvent::GraphicsSceneMouseMove && m_mouseDown) {
+        if (!m_horizontalFlickLocked)
+            return false;
+        moveViews();
+        return true;
+    } else if (e->type() == QEvent::GraphicsSceneMouseMove && m_mouseDown) {
         // panning
         QPointF delta(m_mousePos - e->scenePos());
-        if (abs(delta.x()) >= abs(delta.y())) {
+        m_mousePos = e->scenePos();
+        
+        if (m_horizontalFlickLocked) {
             QPointF p(pos());
             p.setX(p.x() - delta.x());
             if (p.x() > 0)
                 p.setX(0);
             else if (abs(p.x()) > size().width()/3*2)
                 p.setX(-(size().width()/3*2));            
-
-            m_mousePos = e->scenePos();
-            m_hDelta+=delta.x();
             setPos(p);
             return true;
+        } else if (abs(delta.x()) >= abs(delta.y())) {
+            m_hDelta+=delta.x();
+            m_horizontalFlickLocked = abs(m_hDelta) > s_horizontalFlickLockThreshold;
         }
     }
     return false;
@@ -185,25 +169,43 @@ void HomeView::tileItemEditingMode(TileItem* item)
 
 void HomeView::moveViews()
 {
+    // swap(flick), move back, or no move at all?
+
+    // a definite flick
+    bool flick = m_flickTime.elapsed() < s_flickTimeoutThreshold;
+
     // check which container wins
-    int viewWidth = size().width();
-    int containerWidth = viewWidth / 3 - s_containerMargin;
-    // at what pos it should jump to the next container
-    int goOverWidth = containerWidth / 2;
-    // since go over is happening at the half of the container ->
-    // newContainer = 0 first, left container, 1,2 ->middle 3->last, right
-    int newContainer = abs(pos().x() / goOverWidth);
+    int containerWidth = size().width() / 3 - s_containerMargin;
+    
+    if (flick) {
+        if ((m_activeWidget == WindowSelect && m_hDelta > 0) || (m_activeWidget == Bookmarks && m_hDelta < 0))
+            m_activeWidget = VisitedPages;
+        else if (m_activeWidget == VisitedPages)
+            m_activeWidget = m_hDelta > 0 ? Bookmarks : WindowSelect;
+    } else {    
+        // at what pos it should jump to the next container
+        int goOverWidth = containerWidth / 2;
+        switch (abs(pos().x() / goOverWidth)) {
+            default:
+            case 0:
+                m_activeWidget = WindowSelect;
+                break;
+            case 1:
+            case 2:
+                m_activeWidget = VisitedPages;
+                break;
+            case 3:
+                m_activeWidget = Bookmarks;
+                break;
+        }
+    }
+
     int newPos = 0;
     // rightmost >> middle >> leftmost
-    if (newContainer >= 3) {
+    if (m_activeWidget == Bookmarks)
         newPos = 2 * containerWidth - 2*s_containerMargin;
-        m_activeWidget = Bookmarks;
-    } else if (newContainer > 0) {
+    else if (m_activeWidget == VisitedPages)
         newPos = containerWidth - s_containerMargin;
-        m_activeWidget = VisitedPages;
-    } else {
-        m_activeWidget = WindowSelect;
-    }
 
     QRectF to(geometry());
     to.moveLeft(-newPos);
@@ -213,7 +215,7 @@ void HomeView::moveViews()
     slideAnim->setEndValue(to);
 
     slideAnim->setDuration(500);
-    slideAnim->setEasingCurve(QEasingCurve::OutExpo);
+    slideAnim->setEasingCurve(flick ? QEasingCurve::OutQuad : QEasingCurve::OutExpo);
     slideAnim->start();
 }
 

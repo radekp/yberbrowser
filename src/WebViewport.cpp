@@ -365,12 +365,12 @@ bool WebViewport::mouseEventFromChild(QGraphicsSceneMouseEvent *event)
 
 void WebViewport::setPannedWidgetGeometry(const QRectF& r)
 {
-    QRectF current = viewportWidget()->geometry();
     PannableViewport::setPannedWidgetGeometry(r);
-    if (!m_linkSelectionItem)
-        return;
-    QPointF delta = viewportWidget()->geometry().topLeft() - current.topLeft();
-    m_linkSelectionItem->moveBy(delta.x(), delta.y());
+    if (m_linkSelectionItem) {
+        QRectF current = viewportWidget()->geometry();
+        QPointF delta = viewportWidget()->geometry().topLeft() - current.topLeft();
+        m_linkSelectionItem->moveBy(delta.x(), delta.y());
+    }
 }
 
 bool WebViewport::processMaemo5ZoomKeys(QKeyEvent* event)
