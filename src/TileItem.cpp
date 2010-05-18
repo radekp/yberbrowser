@@ -1,10 +1,9 @@
+#include "TileItem.h"
 #include <QGraphicsWidget>
 #include <QPainter>
 #include <QtGlobal>
 #include <QTimer>
 #include <QGraphicsSceneMouseEvent>
-
-#include "TileItem.h"
 
 const int s_hTextMargin = 10;
 
@@ -99,7 +98,8 @@ void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
     } else {    
         m_selected = true;
         update();
-        emit itemActivated(this);
+        // async item selection, give chance to render the item selected.
+        QTimer::singleShot(200, this, SLOT(activateItem()));
     }
 }
 
@@ -115,6 +115,11 @@ void TileItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* /*event*/)
 void TileItem::invalidateClick()
 {
     m_dclick = false;
+}
+
+void TileItem::activateItem()
+{
+    emit itemActivated(this);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

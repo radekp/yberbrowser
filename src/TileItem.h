@@ -28,6 +28,7 @@ public:
 
 public Q_SLOTS:
     void invalidateClick();
+    void activateItem();
 
 Q_SIGNALS:
     void itemActivated(TileItem*);

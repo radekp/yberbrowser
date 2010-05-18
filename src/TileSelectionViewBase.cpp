@@ -28,7 +28,7 @@ void TileSelectionViewBase::setGeometry( const QRectF &r)
 
 void TileSelectionViewBase::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
-    m_bckg->setPos(-geometry().topLeft());
+    m_bckg->setPos(-pos());
     createViewItems();
     QGraphicsWidget::resizeEvent(event);
 }
@@ -41,8 +41,9 @@ void TileSelectionViewBase::appear(ApplicationWindow* window)
         setZValue(100);
     }
     scene()->setActiveWindow(this);
-
     createViewItems();
+    // bckg pos is misbehaving on device (n900), need to do an extra setPos here
+    m_bckg->setPos(-pos());
     emit appeared();
 }
 
