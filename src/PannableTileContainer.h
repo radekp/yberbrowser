@@ -14,9 +14,10 @@ public:
     ~PannableTileContainer();
     
     void setHomeView(HomeView* view) { m_homeView = view; }
+    void cancelLeftMouseButtonPress(const QPoint&);
+
 protected:
     bool sceneEventFilter(QGraphicsItem*, QEvent*);
-    void cancelLeftMouseButtonPress(const QPoint&);
 
     void mousePressEventFromChild(QGraphicsSceneMouseEvent*);
     void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent*);

@@ -111,4 +111,6 @@ void ScrollbarItem::contentPositionUpdated(qreal contentPos, qreal contentLength
     // show scrollbar only when scrolling is possible
     if (thumbLength < thumbRange)
         updateVisibilityAndFading(shouldFadeOut);
+    else if (isVisible())
+        hide();
 }

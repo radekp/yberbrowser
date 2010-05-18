@@ -6,7 +6,7 @@
 
 class QGraphicsSceneMouseEvent;
 class QParallelAnimationGroup;
-class HomeView;
+class QGraphicsSimpleTextItem;
 
 class TileBaseWidget : public QGraphicsWidget {
     Q_OBJECT
@@ -30,7 +30,6 @@ protected:
     QSize doLayoutTiles(const QRectF& rect, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed = false);
 
 private:
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
     virtual void mousePressEvent(QGraphicsSceneMouseEvent*);
     void addMoveAnimation(TileItem& item, int delay, const QPointF& oldPos, const QPointF& newPos);
 
@@ -38,6 +37,7 @@ protected:
     TileList m_tileList;
 
 private:
+    QGraphicsSimpleTextItem* m_titleItem;
     QParallelAnimationGroup* m_slideAnimationGroup;
     QString m_title;
     bool m_editMode;

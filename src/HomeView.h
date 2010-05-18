@@ -53,6 +53,7 @@ private:
     void createTabSelectContent();
 
     TileBaseWidget* widgetByType(HomeWidgetType type);
+    PannableTileContainer* activePannableContainer();
 
 private:
     HomeWidgetType m_activeWidget;
