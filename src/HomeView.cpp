@@ -15,7 +15,7 @@
 #include <QDebug>
 
 const int s_maxWindows = 6;
-const int s_containerMargin = 50;
+const int s_containerMargin = 60;
 const int s_maxHistoryTileNum = 20;
 const int s_horizontalFlickLockThreshold = 20;
 const int s_flickTimeoutThreshold = 700;
@@ -70,6 +70,7 @@ void HomeView::setActiveWidget(HomeWidgetType widget)
         setPos(QPointF(-(2*containerWidth - 2*s_containerMargin), 0));
 }
 
+// FIXME this should all be somewhere else. and then cancelLeftMouseButtonPress could go back to normal.
 bool HomeView::recognizeFlick(QGraphicsSceneMouseEvent* e)
 {
     if (e->type() == QEvent::GraphicsSceneMousePress) {
@@ -101,6 +102,9 @@ bool HomeView::recognizeFlick(QGraphicsSceneMouseEvent* e)
         } else if (abs(delta.x()) >= abs(delta.y())) {
             m_hDelta+=delta.x();
             m_horizontalFlickLocked = abs(m_hDelta) > s_horizontalFlickLockThreshold;
+            // let the gesture recognizer know that we are hijacking the gesture
+            if (m_horizontalFlickLocked && activePannableContainer())
+                activePannableContainer()->cancelLeftMouseButtonPress(QPoint());
         }
     }
     return false;
@@ -313,3 +317,13 @@ TileBaseWidget* HomeView::widgetByType(HomeWidgetType type)
     return 0;    
 }
 
+PannableTileContainer* HomeView::activePannableContainer()
+{
+    if (m_activeWidget == WindowSelect)
+        return m_pannableWindowSelectContainer;
+    else if (m_activeWidget == VisitedPages)
+        return m_pannableHistoryContainer;
+    else if (m_activeWidget == Bookmarks)
+        return m_pannableBookmarkContainer;
+    return 0;    
+}

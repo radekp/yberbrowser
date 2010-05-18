@@ -3,19 +3,26 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
-#include <QPainter>
+#include <QGraphicsSimpleTextItem>
+#include <QPen>
 
 const int s_viewMargin = 40;
 const int s_tileMargin = 40;
+const int s_titleVMargin = 10;
 const int s_bookmarksTileHeight = 70;
 const int s_searchItemTileHeight = 60;
 
 TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
+    , m_titleItem(new QGraphicsSimpleTextItem(title, this))
     , m_slideAnimationGroup(0)
     , m_title(title)
     , m_editMode(false)
 {
+    m_titleItem->setFont(QFont("Times", 30));
+    m_titleItem->setPen(QPen(Qt::white));
+    m_titleItem->setBrush(QBrush(Qt::white));
+    m_titleItem->setPos(s_viewMargin, s_titleVMargin);
 }
 
 TileBaseWidget::~TileBaseWidget()
@@ -101,17 +108,6 @@ void TileBaseWidget::setEditMode(bool on)
     m_editMode = on;
     for (int i = 0; i < m_tileList.size(); ++i)
         m_tileList.at(i)->setEditMode(on);
-}
-
-void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
-{
-    QGraphicsWidget::paint(painter, option, widget);
-    painter->setFont(QFont("Times", 30));
-    painter->setPen(Qt::white);
-    QRectF r(rect());
-    r.setLeft(s_tileMargin);
-    r.setHeight(s_viewMargin);
-    painter->drawText(r, Qt::AlignLeft | Qt::AlignVCenter, m_title);
 }
 
 void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
