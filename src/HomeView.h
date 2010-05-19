@@ -29,13 +29,14 @@ public:
     HomeWidgetType activeWidget() const { return m_activeWidget; }
     void setActiveWidget(HomeWidgetType widget);
     void resizeEvent(QGraphicsSceneResizeEvent* event);
-    bool recognizeFlick(QGraphicsSceneMouseEvent* e);
+    // FIXME temp hack until event handling is fixed
+    bool filterMouseEvent(QGraphicsSceneMouseEvent*);
 
 Q_SIGNALS:
     void pageSelected(const QUrl&);
     void windowSelected(WebView* webView);
     void windowClosed(WebView* webView);
-    void windowCreated(bool);
+    void windowCreated();
 
 private Q_SLOTS:
     void tileItemActivated(TileItem*);
@@ -51,6 +52,8 @@ private:
     void createBookmarkContent();
     void createHistoryContent();
     void createTabSelectContent();
+
+    void animateSetPos(QPointF& pos);
 
     TileBaseWidget* widgetByType(HomeWidgetType type);
     PannableTileContainer* activePannableContainer();

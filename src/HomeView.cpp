@@ -31,18 +31,15 @@ HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* p
     , m_pannableWindowSelectContainer(new PannableTileContainer(this, wFlags))
     , m_windowList(0) 
 {
-    m_pannableHistoryContainer->setHomeView(this);
     m_pannableHistoryContainer->setWidget(m_historyWidget);
-    m_pannableBookmarkContainer->setHomeView(this);
     m_pannableBookmarkContainer->setWidget(m_bookmarkWidget);
-    m_pannableWindowSelectContainer->setHomeView(this);
     m_pannableWindowSelectContainer->setWidget(m_tabWidget);
     
     m_tabWidget->setEditMode(true);
 
-    connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
-    connect(m_bookmarkWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
-    connect(m_historyWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
+    connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
+    connect(m_bookmarkWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
+    connect(m_historyWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
 }
 
 HomeView::~HomeView()
@@ -71,7 +68,7 @@ void HomeView::setActiveWidget(HomeWidgetType widget)
 }
 
 // FIXME this should all be somewhere else. and then cancelLeftMouseButtonPress could go back to normal.
-bool HomeView::recognizeFlick(QGraphicsSceneMouseEvent* e)
+bool HomeView::filterMouseEvent(QGraphicsSceneMouseEvent* e)
 {
     if (e->type() == QEvent::GraphicsSceneMousePress) {
         m_flickTime.start();        
@@ -146,7 +143,7 @@ void HomeView::tileItemActivated(TileItem* item)
         if (item->context())
             emit windowSelected((WebView*)item->context());
         else {
-            emit windowCreated(true);
+            emit windowCreated();
         }
     } else {
         emit pageSelected(item->urlItem()->m_url);
@@ -327,3 +324,4 @@ PannableTileContainer* HomeView::activePannableContainer()
         return m_pannableBookmarkContainer;
     return 0;    
 }
+

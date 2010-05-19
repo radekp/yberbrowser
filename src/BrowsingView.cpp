@@ -166,7 +166,6 @@ YberWidget* BrowsingView::createNavigationToolBar()
     m_urlEdit->setSizePolicy(QSizePolicy::Expanding, m_urlEdit->sizePolicy().verticalPolicy());
     m_urlEdit->setFocusPolicy(Qt::ClickFocus);
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(urlTextEdited(const QString&)));
-    connect(m_urlEdit, SIGNAL(editCancelled()), SLOT(updateURL()));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(changeLocation()));
     connect(m_urlEdit, SIGNAL(focusChanged(bool)), SLOT(urlEditfocusChanged(bool)));
     m_toolbar->addAction(QIcon(":/data/icon/48x48/history_48.png"), "Tab selection", this, SLOT(toggleTabSelectionView()));
@@ -218,6 +217,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
 
 void BrowsingView::load(const QUrl& url)
 {
+    deleteView(activeView());
     if (url.isValid())
         m_activeWebView->load(url.toString());
 }
@@ -258,6 +258,31 @@ QMenuBar* BrowsingView::createMenu(QWidget* parent)
 }
 #endif
 
+void BrowsingView::windowSelected(WebView* webView)
+{
+    setActiveWindow(webView);
+    deleteView(m_homeView);
+}
+
+void BrowsingView::windowClosed(WebView* webView)
+{
+    // create a new window on last window destory. better idea?
+    if (m_windowList.size() == 1) {
+        // on last window close, let's just close the home view, if it is up. revisit it later.
+        if (m_homeView)
+            deleteView(m_homeView);
+        newWindow();
+    }
+    destroyWindow(webView);
+}
+
+void BrowsingView::windowCreated()
+{
+    newWindow();
+    // move view to top pages container
+    createHomeView(HomeView::VisitedPages);
+}
+
 void BrowsingView::setActiveWindow(WebView* webView)
 {
     if (webView == m_activeWebView)
@@ -272,13 +297,13 @@ void BrowsingView::setActiveWindow(WebView* webView)
     m_activeWebView = webView;
     m_webInteractionProxy->setWebView(webView);
     m_webInteractionProxy->setPos(QPointF(0,0));
+    // view bckg needs to be updated
+    if (activeView())
+        activeView()->updateBackground(webviewSnapshot());
 }
 
 void BrowsingView::destroyWindow(WebView* webView)
 {
-    // create a new window on last window destory. better idea?
-    if (m_windowList.size() == 1)
-        newWindow(true);
     for (int i = 0; i < m_windowList.size(); ++i) {
         if (m_windowList.at(i) == webView) {
             // current? activate the next one, unless this is the last window
@@ -290,7 +315,7 @@ void BrowsingView::destroyWindow(WebView* webView)
     }
 }
 
-WebView* BrowsingView::newWindow(bool homeViewOn)
+WebView* BrowsingView::newWindow()
 {
     if (m_windowList.size() >= s_maxWindows)
         return 0;
@@ -298,31 +323,32 @@ WebView* BrowsingView::newWindow(bool homeViewOn)
     m_windowList.append(webView);
     webView->setPage(new WebPage(webView, this));
     setActiveWindow(webView);
-    if (homeViewOn)
-        createHomeView(HomeView::VisitedPages);
     return webView;
 }
 
 void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
 {
     if (m_homeView) {
+        m_homeView->updateContent();
         if (m_homeView->activeWidget() != type)
             m_homeView->setActiveWidget(type);
         return;
     }
 
+#if defined(GL_CONTEXT_SWITCH)
 #if defined(Q_WS_MAEMO_5) && !defined(QT_NO_OPENGL)
     // FIXME: find out if it should be doing differently
     m_appWin->setViewport(new QGLWidget());
+#endif
 #endif
     // create and display new home view
     m_homeView = new HomeView(type, webviewSnapshot(), this);
     m_homeView->setWindowList(m_windowList);
     connect(m_homeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
-    connect(m_homeView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
-    connect(m_homeView, SIGNAL(windowClosed(WebView*)), this, SLOT(destroyWindow(WebView*)));
-    connect(m_homeView, SIGNAL(windowCreated(bool)), this, SLOT(newWindow(bool)));
-    connect(m_homeView, SIGNAL(disappeared(TileSelectionViewBase*)), this, SLOT(deleteView(TileSelectionViewBase*)));
+    connect(m_homeView, SIGNAL(windowSelected(WebView*)), this, SLOT(windowSelected(WebView*)));
+    connect(m_homeView, SIGNAL(windowClosed(WebView*)), this, SLOT(windowClosed(WebView*)));
+    connect(m_homeView, SIGNAL(windowCreated()), this, SLOT(windowCreated()));
+    connect(m_homeView, SIGNAL(viewDismissed()), this, SLOT(dismissActiveView()));
     m_homeView->resize(QSize(3*m_browsingViewport->size().width(), m_browsingViewport->size().height()));
     m_homeView->appear(applicationWindow());
 }
@@ -333,7 +359,7 @@ void BrowsingView::createUrlEditFilterPopup()
         return;
     m_urlfilterPopup = new PopupView(this, webviewSnapshot());
     connect(m_urlfilterPopup, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
-    connect(m_urlfilterPopup, SIGNAL(disappeared(TileSelectionViewBase*)), this, SLOT(deleteView(TileSelectionViewBase*)));
+    connect(m_urlfilterPopup, SIGNAL(viewDismissed()), this, SLOT(dismissActiveView()));
     m_urlfilterPopup->resize(m_browsingViewport->size());
     m_urlfilterPopup->appear(applicationWindow());
 }
@@ -343,9 +369,13 @@ void BrowsingView::deleteView(TileSelectionViewBase* view)
     if (!view)
         return;
 
+    view->disappear();
+
     if (view == m_homeView) {
+#if defined(GL_CONTEXT_SWITCH)
 #if defined(Q_WS_MAEMO_5) && !defined(QT_NO_OPENGL)
         m_appWin->setViewport(new QWidget());
+#endif
 #endif
         // save homeview state, so that it is positioned back to the same view when reopened
         m_initialHomeWidget = m_homeView->activeWidget();
@@ -358,6 +388,11 @@ void BrowsingView::deleteView(TileSelectionViewBase* view)
         delete m_urlfilterPopup;
         m_urlfilterPopup = 0;
     }
+}
+
+void BrowsingView::dismissActiveView()
+{
+    deleteView(activeView());
 }
 
 void BrowsingView::toggleTabSelectionView()
@@ -374,10 +409,7 @@ void BrowsingView::changeLocation()
 {
     // nullify on hitting enter. end  of editing.
     m_lastEnteredText.resize(0);
-    if (m_homeView)
-        deleteView(m_homeView);
-    if (m_urlfilterPopup)
-        deleteView(m_urlfilterPopup);
+    dismissActiveView();
     if (!m_urlEdit)
         return;
     load(urlFromUserInput(m_urlEdit->text()));
@@ -416,14 +448,20 @@ void BrowsingView::urlTextEdited(const QString& newText)
 
 void BrowsingView::urlEditfocusChanged(bool focused)
 {
+    // dont let the homeview come back when 
+    // focusing in and out while the url filter popup is up
+    if (m_urlfilterPopup)
+        return;
+
     if (focused) {
-        createHomeView(m_initialHomeWidget);
+            createHomeView(m_initialHomeWidget);
     } else {
         // FIXME: this is a hack to not to get urleditor focused back
         // when the toolbar is focused, only when the actual edior is focused
         // currently, even if a button gets pressed, the urleditor gets 
         // focused back, if it was focused the last time
         m_toolbar->widgetForAction(m_stopbackAction)->setFocus(Qt::MouseFocusReason);
+        updateURL();
     }
 }
 
@@ -544,5 +582,14 @@ QPixmap* BrowsingView::webviewSnapshot()
         p.fillRect(sItem.exposedRect, QColor(0, 0, 0, 198));
     }
     return new QPixmap(QPixmap::fromImage(thumbnail));
+}
+
+TileSelectionViewBase* BrowsingView::activeView()
+{
+    if (m_homeView)
+        return m_homeView;
+    else if (m_urlfilterPopup)
+        return m_urlfilterPopup;
+    return 0;    
 }
 

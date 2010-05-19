@@ -13,7 +13,6 @@ public:
     PannableTileContainer(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
     ~PannableTileContainer();
     
-    void setHomeView(HomeView* view) { m_homeView = view; }
     void cancelLeftMouseButtonPress(const QPoint&);
 
 protected:
@@ -30,8 +29,6 @@ private:
 private:
     CommonGestureRecognizer m_recognizer;
     QGraphicsSceneMouseEvent* m_selfSentEvent;
-    // FIXME: remove it once the event handling is fixed
-    HomeView* m_homeView;
 };
 
 #endif

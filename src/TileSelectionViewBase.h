@@ -6,6 +6,7 @@
 class QGraphicsPixmapItem;
 class ApplicationWindow;
 class TileItem;
+class QGraphicsSceneMouseEvent;
 
 class TileSelectionViewBase : public QGraphicsWidget {
     Q_OBJECT
@@ -16,18 +17,25 @@ public:
     };
 
     virtual ~TileSelectionViewBase();
+
+    void appear(ApplicationWindow*);
+    void disappear();
+
     void setGeometry( const QRectF & );
     void resizeEvent(QGraphicsSceneResizeEvent* event);
     ViewType viewtype() const { return m_type; }
 
+    void updateBackground(QPixmap* bckg);
+    void updateContent();
+
+    // FIXME temp hack until event handling is fixed
+    virtual bool filterMouseEvent(QGraphicsSceneMouseEvent*) { return false; }
+
 Q_SIGNALS:
-    void appeared();
-    void disappeared(TileSelectionViewBase*);
+    void viewDismissed();
 
 public Q_SLOTS:
-    void appear(ApplicationWindow*);
-    void disappear();
-    virtual void tileItemActivated(TileItem*);
+    virtual void tileItemActivated(TileItem*) {}
     virtual void tileItemClosed(TileItem*) {}
     virtual void tileItemEditingMode(TileItem*) {}
 
@@ -37,12 +45,13 @@ protected:
     virtual void createViewItems() = 0;
     virtual void destroyViewItems() = 0;
     virtual void connectItem(TileItem&);
-    QGraphicsPixmapItem* m_bckg;
 
-private Q_SLOTS:
-    void deleteView();
+protected Q_SLOTS:
+    void closeView();
+    void closeViewSoon();
 
 private:
+    QGraphicsPixmapItem* m_bckg;
     ViewType m_type;
 };
 #endif

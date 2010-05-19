@@ -13,7 +13,6 @@ public:
     AutoSelectLineEdit(QWidget* parent);
 
 Q_SIGNALS:
-    void editCancelled();
     void focusChanged(bool);
 
 protected:

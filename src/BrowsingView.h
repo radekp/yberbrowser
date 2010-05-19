@@ -58,7 +58,7 @@ public:
 #endif
 public Q_SLOTS:
     void load(const QUrl&);
-    WebView* newWindow(bool homeViewOn = false);
+    WebView* newWindow();
     void destroyWindow(WebView* webView);
     void setActiveWindow(WebView* webView);
 #if !USE_DUI
@@ -92,7 +92,10 @@ protected Q_SLOTS:
     void startAutoScrollTest();
     void finishedAutoScrollTest();
 
-    void deleteView(TileSelectionViewBase* view);
+    void windowSelected(WebView* webView);
+    void windowClosed(WebView* webView);
+    void windowCreated();
+    void dismissActiveView();
 
 private:
     Q_DISABLE_COPY(BrowsingView);
@@ -101,6 +104,8 @@ private:
     void createUrlEditFilterPopup();
     void toggleStopBackIcon(bool loadInProgress);
     QPixmap* webviewSnapshot();
+    TileSelectionViewBase* activeView();
+    void deleteView(TileSelectionViewBase* view);
 
 #if !USE_DUI
     QMenuBar* createMenu(QWidget* parent);
