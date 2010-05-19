@@ -1,9 +1,3 @@
-#ifndef YberApplication_h
-#define YberApplication_h
-
-#include "yberconfig.h"
-
-#include "ApplicationWindow.h"
 /*
  * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
  *
@@ -23,6 +17,13 @@
  * Boston, MA 02110-1301, USA.
  *
  */
+
+#ifndef YberApplication_h
+#define YberApplication_h
+
+#include "yberconfig.h"
+
+#include "ApplicationWindow.h"
 
 #include "CookieJar.h"
 
