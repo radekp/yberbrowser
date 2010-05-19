@@ -1,9 +1,3 @@
-#ifndef YberApplication_h
-#define YberApplication_h
-
-#include "yberconfig.h"
-
-#include "ApplicationWindow.h"
 /*
  * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
  *
@@ -24,6 +18,12 @@
  *
  */
 
+#ifndef YberApplication_h
+#define YberApplication_h
+
+#include "yberconfig.h"
+
+#include "ApplicationWindow.h"
 #include "CookieJar.h"
 
 #if USE_DUI
