@@ -31,11 +31,8 @@ HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* p
     , m_pannableWindowSelectContainer(new PannableTileContainer(this, wFlags))
     , m_windowList(0) 
 {
-    m_pannableHistoryContainer->setHomeView(this);
     m_pannableHistoryContainer->setWidget(m_historyWidget);
-    m_pannableBookmarkContainer->setHomeView(this);
     m_pannableBookmarkContainer->setWidget(m_bookmarkWidget);
-    m_pannableWindowSelectContainer->setHomeView(this);
     m_pannableWindowSelectContainer->setWidget(m_tabWidget);
     
     m_tabWidget->setEditMode(true);
@@ -71,7 +68,7 @@ void HomeView::setActiveWidget(HomeWidgetType widget)
 }
 
 // FIXME this should all be somewhere else. and then cancelLeftMouseButtonPress could go back to normal.
-bool HomeView::recognizeFlick(QGraphicsSceneMouseEvent* e)
+bool HomeView::filterMouseEvent(QGraphicsSceneMouseEvent* e)
 {
     if (e->type() == QEvent::GraphicsSceneMousePress) {
         m_flickTime.start();        

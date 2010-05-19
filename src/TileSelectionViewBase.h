@@ -6,6 +6,7 @@
 class QGraphicsPixmapItem;
 class ApplicationWindow;
 class TileItem;
+class QGraphicsSceneMouseEvent;
 
 class TileSelectionViewBase : public QGraphicsWidget {
     Q_OBJECT
@@ -26,6 +27,9 @@ public:
 
     void updateBackground(QPixmap* bckg);
     void updateContent();
+
+    // FIXME temp hack until event handling is fixed
+    virtual bool filterMouseEvent(QGraphicsSceneMouseEvent*) { return false; }
 
 Q_SIGNALS:
     void viewDismissed();

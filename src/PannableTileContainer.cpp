@@ -4,13 +4,12 @@
 #include <QGraphicsScene>
 #include <QCoreApplication>
 //temp
-#include "HomeView.h"
+#include "TileSelectionViewBase.h"
 
 PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : PannableViewport(parent, wFlags)
     , m_recognizer(this)
     , m_selfSentEvent(0)
-    , m_homeView(0)
 {
     m_recognizer.reset();
 }
@@ -37,8 +36,7 @@ bool PannableTileContainer::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneMouseMove:
     case QEvent::GraphicsSceneMouseRelease:
     case QEvent::GraphicsSceneMouseDoubleClick:
-        if (m_homeView)
-            doFilter = m_homeView->recognizeFlick(static_cast<QGraphicsSceneMouseEvent *>(e));
+        doFilter = (static_cast<TileSelectionViewBase *>(parentWidget()))->filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
         if (!doFilter)
             m_recognizer.filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
         doFilter = true;
