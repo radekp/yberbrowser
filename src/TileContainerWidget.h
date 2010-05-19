@@ -79,6 +79,8 @@ class HistoryWidget : public TileBaseWidget {
     Q_OBJECT
 public:
     HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+    
+    void removeTile(TileItem& removed);
     void layoutTiles();
 };
 
@@ -86,6 +88,8 @@ class BookmarkWidget : public TileBaseWidget {
     Q_OBJECT
 public:
     BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+
+    void removeTile(TileItem& removed);
     void layoutTiles();
 };
 
@@ -93,6 +97,8 @@ class PopupWidget : public TileBaseWidget {
     Q_OBJECT
 public:
     PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+
+    void removeTile(TileItem& removed);
     void layoutTiles();
 };
 

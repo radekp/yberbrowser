@@ -45,6 +45,8 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void tileItemActivated(TileItem*);
+    void tileItemClosed(TileItem*);
+    void tileItemEditingMode(TileItem*);
     void startSuggest();
     void populateSuggestion();
 

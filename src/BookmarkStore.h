@@ -35,12 +35,15 @@ public:
     static BookmarkStore* instance();    
 
     void add(const QUrl& url, const QString& title, QIcon favicon);
-    void remove(const QString& url);
+    void remove(const QUrl& url);
+    void remove(UrlItem& item);
     UrlList* list() { return &m_list; }
 
 private:
     BookmarkStore();
     ~BookmarkStore();
+
+    void externalizeSoon();
 
 private Q_SLOTS:
     void externalize();
