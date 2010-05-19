@@ -4,6 +4,10 @@
 #include <QtGlobal>
 #include <QTimer>
 #include <QGraphicsSceneMouseEvent>
+#include <QPropertyAnimation>
+#include <QGraphicsScene>
+
+#include <QDebug>
 
 const int s_hTextMargin = 10;
 
@@ -92,13 +96,14 @@ void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
 
     // expand it to fit thumbs
     QRectF r(m_closeIconRect);
-    r.adjust(-20, -20, 20, 20);
+    r.adjust(-40, -40, 40, 40);
+
+    // async item selection, give chance to render the item selected/closed.
     if (m_closeIcon && r.contains(event->pos())) {
-        emit itemClosed(this);
+        QTimer::singleShot(200, this, SLOT(closeItem()));
     } else {    
         m_selected = true;
         update();
-        // async item selection, give chance to render the item selected.
         QTimer::singleShot(200, this, SLOT(activateItem()));
     }
 }
@@ -120,6 +125,11 @@ void TileItem::invalidateClick()
 void TileItem::activateItem()
 {
     emit itemActivated(this);
+}
+
+void TileItem::closeItem()
+{
+    emit itemClosed(this);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -192,12 +202,34 @@ NewWindowTileItem::NewWindowTileItem(QGraphicsWidget* parent, UrlItem& item)
 {
 }
 
+void NewWindowTileItem::activateItem()
+{
+    // start growing anim
+    setZValue(100);
+    QPropertyAnimation* moveAnim = new QPropertyAnimation(this, "rect");
+    moveAnim->setDuration(500);
+    moveAnim->setStartValue(rect());
+    // FIXME find out how to make it full view, for now just hack it
+    QRectF r(parentWidget()->geometry());
+    r.adjust(scene()->sceneRect().right() - r.right(), 0, 0, 0);
+    moveAnim->setEndValue(r);
+
+    moveAnim->setEasingCurve(QEasingCurve::OutQuad);
+    moveAnim->start();
+    connect(moveAnim, SIGNAL(finished()), this, SLOT(newWindowAnimFinished()));
+}
+
+void NewWindowTileItem::newWindowAnimFinished()
+{
+    emit itemActivated(this);
+}
+
 void NewWindowTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     layoutTile();
 
     painter->setPen(Qt::white);
-    painter->setBrush(Qt::black);
+    painter->setBrush(m_selected ? Qt::white : Qt::black);
     painter->drawRoundedRect(rect(), 5, 5);
 
     painter->setFont(QFont("Times", 12));

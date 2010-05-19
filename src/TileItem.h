@@ -12,6 +12,7 @@ class QGraphicsSceneResizeEvent;
 class TileItem : public QObject, public QGraphicsRectItem {
     Q_OBJECT
     Q_PROPERTY(QPointF tilePos READ tilePos WRITE setTilePos)
+    Q_PROPERTY(QRectF rect READ rect WRITE setRect)
 public:
     virtual ~TileItem();
     
@@ -26,10 +27,6 @@ public:
     void setContext(void* context) { m_context = context; }
     void* context() const { return m_context; }
 
-public Q_SLOTS:
-    void invalidateClick();
-    void activateItem();
-
 Q_SIGNALS:
     void itemActivated(TileItem*);
     void itemClosed(TileItem*);
@@ -42,6 +39,11 @@ protected:
     void layoutTile();
 
     virtual void doLayoutTile() = 0;
+
+protected Q_SLOTS:
+    void invalidateClick();
+    virtual void activateItem();
+    virtual void closeItem();
 
 protected:
     UrlItem* m_urlItem;
@@ -88,7 +90,11 @@ class NewWindowTileItem : public ThumbnailTileItem {
 public:
     NewWindowTileItem(QGraphicsWidget* parent, UrlItem& urlItem);
 
+public Q_SLOTS:
+    void newWindowAnimFinished();
+
 private:
+    void activateItem();
     void doLayoutTile() {}
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 };

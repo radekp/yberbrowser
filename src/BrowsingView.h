@@ -92,7 +92,7 @@ protected Q_SLOTS:
     void startAutoScrollTest();
     void finishedAutoScrollTest();
 
-    void deleteView(TileSelectionViewBase* view);
+    void dismissActiveView();
 
 private:
     Q_DISABLE_COPY(BrowsingView);
@@ -101,6 +101,8 @@ private:
     void createUrlEditFilterPopup();
     void toggleStopBackIcon(bool loadInProgress);
     QPixmap* webviewSnapshot();
+    TileSelectionViewBase* activeView();
+    void deleteView(TileSelectionViewBase* view);
 
 #if !USE_DUI
     QMenuBar* createMenu(QWidget* parent);

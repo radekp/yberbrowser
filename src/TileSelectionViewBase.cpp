@@ -33,6 +33,17 @@ void TileSelectionViewBase::resizeEvent(QGraphicsSceneResizeEvent* event)
     QGraphicsWidget::resizeEvent(event);
 }
 
+void TileSelectionViewBase::updateBackground(QPixmap* bckg)
+{
+    m_bckg->setPixmap(*bckg);
+}
+
+void TileSelectionViewBase::updateContent()
+{
+    destroyViewItems();
+    createViewItems();
+}
+
 void TileSelectionViewBase::appear(ApplicationWindow* window)
 {
     // FIXME: how to test if view is already in correct view?
@@ -44,24 +55,22 @@ void TileSelectionViewBase::appear(ApplicationWindow* window)
     createViewItems();
     // bckg pos is misbehaving on device (n900), need to do an extra setPos here
     m_bckg->setPos(-pos());
-    emit appeared();
 }
 
 void TileSelectionViewBase::disappear()
 {
     destroyViewItems();
-    // FIXME: what's wrong with sync emit disappeared
-    QTimer::singleShot(0, this, SLOT(deleteView()));
 }
 
-void TileSelectionViewBase::tileItemActivated(TileItem* /*item*/)
+void TileSelectionViewBase::closeView()
 {
-    disappear();
+    emit viewDismissed();
 }
 
-void TileSelectionViewBase::deleteView()
+void TileSelectionViewBase::closeViewSoon()
 {
-    emit disappeared(this);
+    // FIXME find out why sync view close crashes
+    QTimer::singleShot(0, this, SLOT(closeView()));
 }
 
 void TileSelectionViewBase::connectItem(TileItem& item)

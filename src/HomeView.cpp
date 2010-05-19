@@ -40,9 +40,9 @@ HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* p
     
     m_tabWidget->setEditMode(true);
 
-    connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
-    connect(m_bookmarkWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
-    connect(m_historyWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
+    connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
+    connect(m_bookmarkWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
+    connect(m_historyWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
 }
 
 HomeView::~HomeView()
@@ -327,3 +327,4 @@ PannableTileContainer* HomeView::activePannableContainer()
         return m_pannableBookmarkContainer;
     return 0;    
 }
+

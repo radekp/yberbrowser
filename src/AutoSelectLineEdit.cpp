@@ -28,7 +28,6 @@ void AutoSelectLineEdit::focusOutEvent(QFocusEvent*e)
 {
     QLineEdit::focusOutEvent(e);
     m_selectURLTimer.stop();
-    emit editCancelled();
     emit focusChanged(false);
     deselect();
 }

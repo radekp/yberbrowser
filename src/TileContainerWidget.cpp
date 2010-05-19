@@ -95,6 +95,7 @@ void TileBaseWidget::removeTile(TileItem& removed)
     if (hiddenIndex > -1)    
         m_tileList.at(hiddenIndex - 1)->show();
     m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
+    // FIXME check if container needs to be resized
 }
 
 void TileBaseWidget::removeAll()
@@ -214,13 +215,8 @@ PopupWidget::PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 void PopupWidget::layoutTiles()
 {
     QRectF r(rect());
-    r.setHeight(parentWidget()->size().height() - s_viewMargin);
-    int popupHeight = doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height();
-    // position to the bottom of the container, when there are too few items
-    if (popupHeight < r.height()) 
-        setGeometry(QRectF(QPointF(0, parentWidget()->size().height() - popupHeight), QSizeF(rect().width(), popupHeight)));
-    else
-        setGeometry(QRect(0, 0, r.width(), popupHeight));
+    r.setTop(s_viewMargin);
+    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height());
 }
 
 
