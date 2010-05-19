@@ -58,7 +58,7 @@ public:
 #endif
 public Q_SLOTS:
     void load(const QUrl&);
-    WebView* newWindow(bool homeViewOn = false);
+    WebView* newWindow();
     void destroyWindow(WebView* webView);
     void setActiveWindow(WebView* webView);
 #if !USE_DUI
@@ -92,6 +92,9 @@ protected Q_SLOTS:
     void startAutoScrollTest();
     void finishedAutoScrollTest();
 
+    void windowSelected(WebView* webView);
+    void windowClosed(WebView* webView);
+    void windowCreated();
     void dismissActiveView();
 
 private:

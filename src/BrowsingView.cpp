@@ -258,6 +258,31 @@ QMenuBar* BrowsingView::createMenu(QWidget* parent)
 }
 #endif
 
+void BrowsingView::windowSelected(WebView* webView)
+{
+    setActiveWindow(webView);
+    deleteView(m_homeView);
+}
+
+void BrowsingView::windowClosed(WebView* webView)
+{
+    // create a new window on last window destory. better idea?
+    if (m_windowList.size() == 1) {
+        // on last window close, let's just close the home view, if it is up. revisit it later.
+        if (m_homeView)
+            deleteView(m_homeView);
+        newWindow();
+    }
+    destroyWindow(webView);
+}
+
+void BrowsingView::windowCreated()
+{
+    newWindow();
+    // move view to top pages container
+    createHomeView(HomeView::VisitedPages);
+}
+
 void BrowsingView::setActiveWindow(WebView* webView)
 {
     if (webView == m_activeWebView)
@@ -279,12 +304,6 @@ void BrowsingView::setActiveWindow(WebView* webView)
 
 void BrowsingView::destroyWindow(WebView* webView)
 {
-    // create a new window on last window destory. better idea?
-    if (m_windowList.size() == 1) {
-        // on last window close, let's just close the home view, if it is up. revisit it.
-        deleteView(m_homeView);
-        newWindow(false);
-    }
     for (int i = 0; i < m_windowList.size(); ++i) {
         if (m_windowList.at(i) == webView) {
             // current? activate the next one, unless this is the last window
@@ -296,7 +315,7 @@ void BrowsingView::destroyWindow(WebView* webView)
     }
 }
 
-WebView* BrowsingView::newWindow(bool homeViewOn)
+WebView* BrowsingView::newWindow()
 {
     if (m_windowList.size() >= s_maxWindows)
         return 0;
@@ -304,8 +323,6 @@ WebView* BrowsingView::newWindow(bool homeViewOn)
     m_windowList.append(webView);
     webView->setPage(new WebPage(webView, this));
     setActiveWindow(webView);
-    if (homeViewOn)
-        createHomeView(HomeView::VisitedPages);
     return webView;
 }
 
@@ -318,7 +335,7 @@ void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
         return;
     }
 
-#if defined(GL_CONTEXT)
+#if defined(GL_CONTEXT_SWITCH)
 #if defined(Q_WS_MAEMO_5) && !defined(QT_NO_OPENGL)
     // FIXME: find out if it should be doing differently
     m_appWin->setViewport(new QGLWidget());
@@ -328,9 +345,9 @@ void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
     m_homeView = new HomeView(type, webviewSnapshot(), this);
     m_homeView->setWindowList(m_windowList);
     connect(m_homeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
-    connect(m_homeView, SIGNAL(windowSelected(WebView*)), this, SLOT(setActiveWindow(WebView*)));
-    connect(m_homeView, SIGNAL(windowClosed(WebView*)), this, SLOT(destroyWindow(WebView*)));
-    connect(m_homeView, SIGNAL(windowCreated(bool)), this, SLOT(newWindow(bool)));
+    connect(m_homeView, SIGNAL(windowSelected(WebView*)), this, SLOT(windowSelected(WebView*)));
+    connect(m_homeView, SIGNAL(windowClosed(WebView*)), this, SLOT(windowClosed(WebView*)));
+    connect(m_homeView, SIGNAL(windowCreated()), this, SLOT(windowCreated()));
     connect(m_homeView, SIGNAL(viewDismissed()), this, SLOT(dismissActiveView()));
     m_homeView->resize(QSize(3*m_browsingViewport->size().width(), m_browsingViewport->size().height()));
     m_homeView->appear(applicationWindow());

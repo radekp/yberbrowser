@@ -96,7 +96,7 @@ void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
 
     // expand it to fit thumbs
     QRectF r(m_closeIconRect);
-    r.adjust(-40, -40, 40, 40);
+    r.adjust(-40, -30, 40, 40);
 
     // async item selection, give chance to render the item selected/closed.
     if (m_closeIcon && r.contains(event->pos())) {

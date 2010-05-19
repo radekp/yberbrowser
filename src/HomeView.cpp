@@ -146,7 +146,7 @@ void HomeView::tileItemActivated(TileItem* item)
         if (item->context())
             emit windowSelected((WebView*)item->context());
         else {
-            emit windowCreated(true);
+            emit windowCreated();
         }
     } else {
         emit pageSelected(item->urlItem()->m_url);

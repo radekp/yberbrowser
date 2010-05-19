@@ -35,7 +35,7 @@ Q_SIGNALS:
     void pageSelected(const QUrl&);
     void windowSelected(WebView* webView);
     void windowClosed(WebView* webView);
-    void windowCreated(bool);
+    void windowCreated();
 
 private Q_SLOTS:
     void tileItemActivated(TileItem*);
