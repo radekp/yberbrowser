@@ -262,6 +262,7 @@ void HomeView::createBookmarkContent()
     const UrlList& list = BookmarkStore::instance()->list();
     for (int i = 0; i < list.size(); ++i) {
         ListTileItem* newTileItem = new ListTileItem(m_bookmarkWidget, list.at(i));
+        newTileItem->setEditMode(m_bookmarkWidget->editMode());
         m_bookmarkWidget->addTile(*newTileItem);
         connectItem(*newTileItem);
     }
@@ -274,6 +275,7 @@ void HomeView::createHistoryContent()
     const UrlList& list = HistoryStore::instance()->list();
     for (int i = 0; i < (s_maxHistoryTileNum - 1) && i < list.size(); ++i) {
         newTileItem = new ThumbnailTileItem(m_historyWidget, list.at(i));
+        newTileItem->setEditMode(m_historyWidget->editMode());
         m_historyWidget->addTile(*newTileItem);
         connectItem(*newTileItem);
     }
@@ -304,6 +306,7 @@ void HomeView::createTabSelectContent()
         }
         // create a tile item with the window context set
         ThumbnailTileItem* newTileItem = new ThumbnailTileItem(m_tabWidget, UrlItem(view->url(), pageAvailable ? view->title() : "Page not loded yet", thumbnail));
+        newTileItem->setEditMode(m_tabWidget->editMode());
         newTileItem->setContext(view);
 
         m_tabWidget->addTile(*newTileItem);
@@ -312,13 +315,11 @@ void HomeView::createTabSelectContent()
     
     NewWindowTileItem* newTileItem = new NewWindowTileItem(m_tabWidget, UrlItem(QUrl(), "", 0));
     m_tabWidget->addTile(*newTileItem);
-    i++;
     connectItem(*newTileItem);
+    i++;
     
-    for (; i < s_maxWindows; i++) {
-        NewWindowMarkerTileItem* emptyItem = new NewWindowMarkerTileItem(m_tabWidget, UrlItem(QUrl(), "", 0));
-        m_tabWidget->addTile(*emptyItem);
-    }
+    for (; i < s_maxWindows; i++)
+        m_tabWidget->addTile(*(new NewWindowMarkerTileItem(m_tabWidget, UrlItem(QUrl(), "", 0))));
 
     m_tabWidget->layoutTiles();
 }

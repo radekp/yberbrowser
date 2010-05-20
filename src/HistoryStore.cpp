@@ -25,6 +25,8 @@
 #include <QRegExp>
 #include "Helpers.h"
 
+#include <QDebug>
+
 //#define ENABLE_HISTORYSTORE_DEBUG 1
 
 #if defined(ENABLE_HISTORYSTORE_DEBUG)

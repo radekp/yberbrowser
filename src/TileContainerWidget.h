@@ -34,7 +34,7 @@ public:
     virtual ~TileBaseWidget();
 
     virtual void addTile(TileItem& newItem);
-    virtual void removeTile(TileItem& removed);
+    virtual void removeTile(const TileItem& removed);
     virtual void removeAll();
     virtual void layoutTiles() = 0;
 
@@ -71,7 +71,7 @@ public:
     TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
     void layoutTiles();
 
-    void removeTile(TileItem& removed);
+    void removeTile(const TileItem& removed);
 };
 
 class HistoryWidget : public TileBaseWidget {
@@ -79,7 +79,7 @@ class HistoryWidget : public TileBaseWidget {
 public:
     HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
     
-    void removeTile(TileItem& removed);
+    void removeTile(const TileItem& removed);
     void layoutTiles();
 };
 
@@ -88,7 +88,7 @@ class BookmarkWidget : public TileBaseWidget {
 public:
     BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
 
-    void removeTile(TileItem& removed);
+    void removeTile(const TileItem& removed);
     void layoutTiles();
 };
 
@@ -97,7 +97,7 @@ class PopupWidget : public TileBaseWidget {
 public:
     PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
 
-    void removeTile(TileItem& removed);
+    void removeTile(const TileItem& removed);
     void layoutTiles();
 };
 
