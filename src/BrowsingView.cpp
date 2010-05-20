@@ -207,7 +207,7 @@ void BrowsingView::addBookmark()
         return;
     }
     // webkit returns empty favicon
-    BookmarkStore::instance()->add(m_activeWebView->url(), m_activeWebView->title(), QIcon());
+    BookmarkStore::instance()->add(m_activeWebView->url(), m_activeWebView->title());
     notification("Bookmark saved.", m_browsingViewport);
 }
 
@@ -489,9 +489,9 @@ void BrowsingView::updateHistoryStore(bool successLoad)
 {
     // render thumbnail
     QImage* thumbnail = 0;
-    UrlItem* item = HistoryStore::instance()->get(m_activeWebView->page()->mainFrame()->url().toString());
-    // update thumbnail even if load failed (cancelled?) when there is no thumbnail yet.
-    bool update = successLoad || !item || (item && !item->thumbnailAvailable());
+    bool exist = HistoryStore::instance()->contains(m_activeWebView->page()->mainFrame()->url().toString());
+    // update thumbnail even if load failed (cancelled?) when this is the first access.
+    bool update = successLoad || !exist;
 
     if (update) {
         QSizeF thumbnailSize(m_browsingViewport->size());
@@ -499,7 +499,7 @@ void BrowsingView::updateHistoryStore(bool successLoad)
         QPainter p(thumbnail);
         m_activeWebView->page()->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
     }
-    HistoryStore::instance()->accessed(m_activeWebView->page()->mainFrame()->url(), m_activeWebView->page()->mainFrame()->title(), thumbnail);
+    HistoryStore::instance()->accessed(m_activeWebView->url(), m_activeWebView->page()->mainFrame()->title(), thumbnail);
 }
 
 void BrowsingView::loadStarted()

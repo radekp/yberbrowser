@@ -156,10 +156,10 @@ void PopupView::tileItemActivated(TileItem* item)
 {
     TileSelectionViewBase::tileItemActivated(item);
 
-    QUrl url = item->urlItem()->m_url;
+    QUrl url = item->urlItem()->url();
     // FIXME this is ugly but ok as temp
-    if (item->urlItem()->m_url.toString() == "google suggest")
-        url = "http://www.google.com/search?q=" + item->urlItem()->m_title;      
+    if (url.toString() == "google suggest")
+        url = "http://www.google.com/search?q=" + item->urlItem()->title();      
     emit pageSelected(url);
 }
 
@@ -201,7 +201,7 @@ void PopupView::createViewItems()
             m_popupWidget->addTile(*(new ListTileItem(m_popupWidget, *(new UrlItem(QUrl(), "no match", 0)))));
     } else {
         for (int i = 0; i < matchedItems.size(); ++i) {
-            ListTileItem* newTileItem = new ListTileItem(m_popupWidget, *matchedItems.at(i));
+            ListTileItem* newTileItem = new ListTileItem(m_popupWidget, matchedItems.at(i));
             m_popupWidget->addTile(*newTileItem);
             connectItem(*newTileItem);
         }

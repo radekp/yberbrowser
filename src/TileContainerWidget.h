@@ -72,7 +72,6 @@ public:
     void layoutTiles();
 
     void removeTile(TileItem& removed);
-    void removeAll();
 };
 
 class HistoryWidget : public TileBaseWidget {

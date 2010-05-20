@@ -30,7 +30,7 @@ class QGraphicsWebView;
 
 void notification(const QString& text, QGraphicsWidget* parent);
 QUrl urlFromUserInput(const QString& string);
-void internalizeUrlList(UrlList& list, const QString& fileName);
-void externalizeUrlList(const UrlList& list, const QString& fileName);
+void internalizeUrlList(UrlList& list, const QString& fileName, uint version);
+void externalizeUrlList(UrlList& list, const QString& fileName, uint version);
 
 #endif

@@ -27,6 +27,8 @@
 
 #include <QDebug>
 
+static uint s_currentVersion = 3;
+
 BookmarkStore* BookmarkStore::instance()
 {
     static BookmarkStore* bookmarkStore = 0;
@@ -38,15 +40,15 @@ BookmarkStore* BookmarkStore::instance()
 BookmarkStore::BookmarkStore()
     : m_needsPersisting(false)
 {
-    internalizeUrlList(m_list, "bookmarkstore.txt");
+    internalizeUrlList(m_list, "bookmarkstore.txt", s_currentVersion);
     if (!m_list.size()) {
         // FIXME move icons out of the res file. 
-        add(QUrl("http://www.yahoo.com/"), "Yahoo!", QIcon(":/data/_yberbrowser/yahoo.ico") );
-        add(QUrl("http://www.msn.com/"), "MSN.com", QIcon(":/data/_yberbrowser/msn.ico") );
-        add(QUrl("http://www.wikipedia.org/"), "Wikipedia", QIcon(":/data/_yberbrowser/wikipedia.ico") );
-        add(QUrl("http://www.facebook.com/"), "Facebook", QIcon(":/data/_yberbrowser/facebook.ico") );
-        add(QUrl("http://twitter.com/"), "Twitter", QIcon(":/data/_yberbrowser/twitter.ico") );
-        add(QUrl("http://www.google.com/"), "Google", QIcon(":/data/_yberbrowser/google.ico") );
+        add(QUrl("http://www.facebook.com/"), "Welcome to facebook");
+        add(QUrl("http://www.google.com/"), "Google");
+        add(QUrl("http://www.msn.com/"), "MSN.com");
+        add(QUrl("http://twitter.com/"), "Twitter");
+        add(QUrl("http://www.wikipedia.org/"), "Wikipedia");
+        add(QUrl("http://www.yahoo.com/"), "Yahoo!");
     }
 }
 
@@ -54,46 +56,29 @@ BookmarkStore::BookmarkStore()
 BookmarkStore::~BookmarkStore()
 {
     externalize();
-    for (int i = 0; i < m_list.size(); ++i)
-        delete m_list.takeAt(i);
 }
 
-void BookmarkStore::add(const QUrl& url, const QString& title, QIcon favicon)
+void BookmarkStore::add(const QUrl& url, const QString& title)
 {
-    for (int i = 0; i < m_list.size(); ++i) {
-        if (m_list[i]->m_url == url) {
-            // move it to the beginning of the queue
-            m_list.move(i, 0);
-            return;
-        }
-    }
+#if 0
     // FIXME webkit provides empty icons
     QImage* image = new QImage(favicon.pixmap(QSize(16,16)).toImage());;
     if (image->size() == QSize(0, 0)) {
         delete image;
         image = 0;
     }
+#endif
+    UrlItem newItem(url, title, 0);
+    m_list.insert(qUpperBound(m_list.begin(), m_list.end(), newItem), newItem);
 
-    m_list.insert(0, new UrlItem(url, title, image));
     externalizeSoon();
 }
 
 void BookmarkStore::remove(const QUrl& url)
 {
     for (int i = 0; i < m_list.size(); ++i) {
-        if (m_list[i]->m_url == url) {
-            delete m_list.takeAt(i);
-            externalizeSoon();
-            break;
-        }
-    }
-}
-
-void BookmarkStore::remove(UrlItem& item)
-{
-    for (int i = 0; i < m_list.size(); ++i) {
-        if (m_list[i] == &item) {
-            delete m_list.takeAt(i);
+        if (m_list[i].url() == url) {
+            m_list.removeAt(i);
             externalizeSoon();
             break;
         }
@@ -110,7 +95,7 @@ void BookmarkStore::externalize()
 {
     if (!m_needsPersisting)
         return;
-    externalizeUrlList(m_list, "bookmarkstore.txt");
+    externalizeUrlList(m_list, "bookmarkstore.txt", s_currentVersion);
     m_needsPersisting = false;
 }
 

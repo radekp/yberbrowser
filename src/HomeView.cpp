@@ -166,7 +166,7 @@ void HomeView::tileItemActivated(TileItem* item)
             emit windowCreated();
         }
     } else {
-        emit pageSelected(item->urlItem()->m_url);
+        emit pageSelected(item->urlItem()->url());
     }
 }
 
@@ -259,9 +259,9 @@ void HomeView::createViewItems()
 
 void HomeView::createBookmarkContent()
 {
-    UrlList* list = BookmarkStore::instance()->list();
-    for (int i = 0; i < list->size(); ++i) {
-        ListTileItem* newTileItem = new ListTileItem(m_bookmarkWidget, *list->at(i));
+    const UrlList& list = BookmarkStore::instance()->list();
+    for (int i = 0; i < list.size(); ++i) {
+        ListTileItem* newTileItem = new ListTileItem(m_bookmarkWidget, list.at(i));
         m_bookmarkWidget->addTile(*newTileItem);
         connectItem(*newTileItem);
     }
@@ -271,9 +271,9 @@ void HomeView::createBookmarkContent()
 void HomeView::createHistoryContent()
 {
     ThumbnailTileItem* newTileItem = 0;
-    UrlList* list = HistoryStore::instance()->list();
-    for (int i = 0; i < (s_maxHistoryTileNum - 1) && i < list->size(); ++i) {
-        newTileItem = new ThumbnailTileItem(m_historyWidget, *list->at(i));
+    const UrlList& list = HistoryStore::instance()->list();
+    for (int i = 0; i < (s_maxHistoryTileNum - 1) && i < list.size(); ++i) {
+        newTileItem = new ThumbnailTileItem(m_historyWidget, list.at(i));
         m_historyWidget->addTile(*newTileItem);
         connectItem(*newTileItem);
     }
@@ -294,24 +294,29 @@ void HomeView::createTabSelectContent()
     
         if (pageAvailable) {
             // get the thumbnail from history store, it'd better be there
-            if (UrlItem* item = HistoryStore::instance()->get(view->url().toString()))
-                thumbnail = new QImage(*item->thumbnail());
+            const UrlList& l = HistoryStore::instance()->list();
+            for (int i = 0; i < l.size(); ++i) {
+                if (l.at(i).url() == view->url()) {
+                    thumbnail = new QImage(*(l.at(i).thumbnail()));
+                    break;
+                }
+            }
         }
         // create a tile item with the window context set
-        ThumbnailTileItem* newTileItem = new ThumbnailTileItem(m_tabWidget, *(new UrlItem(view->url(), pageAvailable ? view->title() : "Page not loded yet", thumbnail)));
+        ThumbnailTileItem* newTileItem = new ThumbnailTileItem(m_tabWidget, UrlItem(view->url(), pageAvailable ? view->title() : "Page not loded yet", thumbnail));
         newTileItem->setContext(view);
 
         m_tabWidget->addTile(*newTileItem);
         connectItem(*newTileItem);
     }
     
-    NewWindowTileItem* newTileItem = new NewWindowTileItem(m_tabWidget, *(new UrlItem(QUrl(), "", 0)));
+    NewWindowTileItem* newTileItem = new NewWindowTileItem(m_tabWidget, UrlItem(QUrl(), "", 0));
     m_tabWidget->addTile(*newTileItem);
     i++;
     connectItem(*newTileItem);
     
     for (; i < s_maxWindows; i++) {
-        NewWindowMarkerTileItem* emptyItem = new NewWindowMarkerTileItem(m_tabWidget, *(new UrlItem(QUrl(), "", 0)));
+        NewWindowMarkerTileItem* emptyItem = new NewWindowMarkerTileItem(m_tabWidget, UrlItem(QUrl(), "", 0));
         m_tabWidget->addTile(*emptyItem);
     }
 

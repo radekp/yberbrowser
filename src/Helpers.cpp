@@ -36,10 +36,7 @@
 
 #include <QDebug>
 
-namespace {
-static uint s_currentVersion = 2;
 static int s_maxUrlItems = 50;
-}
 
 class NotificationWidget : public QGraphicsWidget {
     Q_OBJECT
@@ -136,7 +133,7 @@ QUrl urlFromUserInput(const QString& string)
     return QUrl::fromUserInput(input);
 }
 
-void internalizeUrlList(UrlList& list, const QString& fileName)
+void internalizeUrlList(UrlList& list, const QString& fileName, uint version)
 {
     // read url store
     // version
@@ -146,18 +143,14 @@ void internalizeUrlList(UrlList& list, const QString& fileName)
 
     if (store.open(QFile::ReadWrite)) {
         QDataStream in(&store);
-        uint version;
-        in>>version;
-        if (version == s_currentVersion) {
+        uint fileVersion;
+        in>>fileVersion;
+        if (fileVersion == version) {
             int count;
             in>>count;
             for (int i = 0; i < count; ++i) {
-                UrlItem* item = new UrlItem();
-                QString url;
-                QString path;
-                in>>url; item->m_url = url;
-                in>>item->m_title>>item->m_refcount>>item->m_lastAccess>>path;
-                item->setThumbnailPath(path);
+                UrlItem item;
+                item.internalize(in);
                 list.append(item);
             }
         }
@@ -165,30 +158,16 @@ void internalizeUrlList(UrlList& list, const QString& fileName)
     } 
 }
 
-void externalizeUrlList(const UrlList& list, const QString& fileName)
+void externalizeUrlList(UrlList& list, const QString& fileName, uint version)
 {
+    // FIXME clean up old thumbnail items that dont fit s_maxUrlItems now.
     int count = qMin(list.size(), s_maxUrlItems);
-    // save thumbnails first
-    for (int i = 0; i < count; ++i) {
-        UrlItem* item = list[i];
-        // save if new thumbnail is available
-        if (item->thumbnailAvailable() && item->m_thumbnailChanged) {
-            item->m_thumbnailChanged = false;
-            item->thumbnail()->save(Settings::instance()->privatePath() + item->thumbnailPath());
-        }
-    }
-    // save url store
-    // version
-    // number of items
-    // url, refcount, lastaccess
     QFile store(Settings::instance()->privatePath() + fileName);
     if (store.open(QFile::WriteOnly | QIODevice::Truncate)) {
         QDataStream out(&store);
-        out<<s_currentVersion<<count;
-        for (int i = 0; i < count; ++i) {
-            UrlItem* item = list.at(i);
-            out<<item->m_url.toString()<<item->m_title<<item->m_refcount<<item->m_lastAccess<<item->thumbnailPath();
-        }
+        out<<version<<count;
+        for (int i = 0; i < count; ++i)
+            list[i].externalize(out);
         store.close();
     } 
 }

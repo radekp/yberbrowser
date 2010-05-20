@@ -37,7 +37,7 @@ public:
     virtual ~TileItem();
     
     void resizeEvent(QGraphicsSceneResizeEvent* event);
-    UrlItem* urlItem() const { return m_urlItem; }
+    UrlItem* urlItem() { return &m_urlItem; }
 
     void setTilePos(const QPointF& pos) { m_dirty = true; setRect(QRectF(pos, rect().size())); }
     QPointF tilePos() const { return rect().topLeft(); }
@@ -53,7 +53,7 @@ Q_SIGNALS:
     void itemEditingMode(TileItem*);
 
 protected:
-    TileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable = true);
+    TileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable = true);
     void paintExtra(QPainter* painter);
     void addDropShadow(QPainter& painter, const QRectF rect);
     void layoutTile();
@@ -66,7 +66,7 @@ protected Q_SLOTS:
     virtual void closeItem();
 
 protected:
-    UrlItem* m_urlItem;
+    UrlItem m_urlItem;
     bool m_selected;
     QImage* m_closeIcon;
     QRectF m_closeIconRect;
@@ -88,12 +88,9 @@ private:
 class ThumbnailTileItem : public TileItem {
     Q_OBJECT
 public:
-    ThumbnailTileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable = true);
+    ThumbnailTileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable = true);
     ~ThumbnailTileItem();
     
-public Q_SLOTS:
-    void thumbnailChanged();
-
 private:
     void doLayoutTile();
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
@@ -108,7 +105,7 @@ private:
 class NewWindowTileItem : public ThumbnailTileItem {
     Q_OBJECT
 public:
-    NewWindowTileItem(QGraphicsWidget* parent, UrlItem& urlItem);
+    NewWindowTileItem(QGraphicsWidget* parent, const UrlItem& urlItem);
 
 public Q_SLOTS:
     void newWindowAnimFinished();
@@ -122,7 +119,7 @@ private:
 class NewWindowMarkerTileItem : public ThumbnailTileItem {
     Q_OBJECT
 public:
-    NewWindowMarkerTileItem(QGraphicsWidget* parent, UrlItem& urlItem);
+    NewWindowMarkerTileItem(QGraphicsWidget* parent, const UrlItem& urlItem);
 
 private:
     void doLayoutTile() {}
@@ -131,7 +128,7 @@ private:
 
 class ListTileItem : public TileItem {
 public:
-    ListTileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable = true);
+    ListTileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable = true);
     
 private:
     void doLayoutTile();

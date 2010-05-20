@@ -186,16 +186,7 @@ void TabWidget::removeTile(TileItem& removed)
         }            
     }
     // url list is created here (out of window list) unlike in other views, like history items.
-    delete removed.urlItem();
     TileBaseWidget::removeTile(removed);
-}
-
-void TabWidget::removeAll()
-{
-    // url list is created here (out of window list) unlike in other views, like history items.
-    for (int i = m_tileList.size() - 1; i >= 0; --i)
-        delete m_tileList.at(i)->urlItem();
-    TileBaseWidget::removeAll();
 }
 
 // history
@@ -206,7 +197,7 @@ HistoryWidget::HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 
 void HistoryWidget::removeTile(TileItem& removed)
 {
-    HistoryStore::instance()->remove(*removed.urlItem());
+    HistoryStore::instance()->remove(removed.urlItem()->url());
     TileBaseWidget::removeTile(removed);
 }
 
@@ -229,7 +220,7 @@ BookmarkWidget::BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 
 void BookmarkWidget::removeTile(TileItem& removed)
 {
-    BookmarkStore::instance()->remove(*removed.urlItem());
+    BookmarkStore::instance()->remove(removed.urlItem()->url());
     TileBaseWidget::removeTile(removed);
 }
 
@@ -251,8 +242,8 @@ void PopupWidget::removeTile(TileItem& removed)
 {
     // FIXME should be able to know where the urlitem belongs to
     // instead of blindly trying to delete it from both stores
-    BookmarkStore::instance()->remove(*removed.urlItem());
-    HistoryStore::instance()->remove(*removed.urlItem());
+    BookmarkStore::instance()->remove(removed.urlItem()->url());
+    HistoryStore::instance()->remove(removed.urlItem()->url());
     TileBaseWidget::removeTile(removed);
 }
 
