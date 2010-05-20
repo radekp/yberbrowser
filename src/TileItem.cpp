@@ -42,6 +42,7 @@ TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable)
     , m_dirty(true)
     , m_fixed(false)
 {
+    setCacheMode(QGraphicsItem::DeviceCoordinateCache);
 }
 
 TileItem::~TileItem()
