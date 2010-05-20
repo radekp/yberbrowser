@@ -163,6 +163,20 @@ void PopupView::tileItemActivated(TileItem* item)
     emit pageSelected(url);
 }
 
+void PopupView::tileItemClosed(TileItem* item)
+{
+    TileSelectionViewBase::tileItemClosed(item);
+    m_popupWidget->removeTile(*item);
+}
+
+void PopupView::tileItemEditingMode(TileItem* item)
+{
+    TileSelectionViewBase::tileItemEditingMode(item);
+
+    m_popupWidget->setEditMode(!m_popupWidget->editMode());
+    update();
+}
+
 void PopupView::destroyViewItems()
 {
     m_popupWidget->removeAll();

@@ -36,6 +36,8 @@ public:
     UrlItem* get(const QString& url);
     QString match(const QString& url);
     void match(const QString& url, UrlList& matchedItems);
+    void remove(const QString& url);
+    void remove(UrlItem& item);
     UrlList* list() { return &m_list; }
 
 private:
@@ -44,6 +46,7 @@ private:
 
     void internalize();
     bool matchUrls(const QString& url1, const QString& url2);
+    void externalizeSoon();
 
 private Q_SLOTS:
     void externalize();

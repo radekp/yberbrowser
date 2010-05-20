@@ -112,8 +112,7 @@ void HistoryStore::accessed(const QUrl& url, const QString& title, QImage* thumb
     for (int i = 0; i < m_list.size(); ++i)
         qDebug()<<m_list.at(i)->m_url.toString()<<" "<<m_list.at(i)->m_refcount;
 #endif
-    m_needsPersisting = true;
-    QTimer::singleShot(2000, this, SLOT(externalize()));
+    externalizeSoon();
 }
 
 UrlItem* HistoryStore::get(const QString& url)
@@ -162,6 +161,28 @@ void HistoryStore::match(const QString& url, UrlList& matchedItems)
     }
 }
 
+void HistoryStore::remove(const QString& url)
+{
+    for (int i = 0; i < m_list.size(); ++i) {
+        if (m_list.at(i)->m_url.toString() == url) {
+            delete m_list.takeAt(i);
+            externalizeSoon();
+            break;
+        }
+    }
+}
+
+void HistoryStore::remove(UrlItem& item)
+{
+    for (int i = 0; i < m_list.size(); ++i) {
+        if (m_list.at(i) == &item) {
+            delete m_list.takeAt(i);
+            externalizeSoon();
+            break;
+        }
+    }
+}
+
 bool HistoryStore::matchUrls(const QString& url1, const QString& url2) 
 {
     // www.cnn.com == www.cnn.com
@@ -172,5 +193,11 @@ bool HistoryStore::matchUrls(const QString& url1, const QString& url2)
         (url2.startsWith("www.") && url2.mid(4) == url1))
         return true;
     return false;
+}
+
+void HistoryStore::externalizeSoon() 
+{
+    m_needsPersisting = true;
+    QTimer::singleShot(2000, this, SLOT(externalize()));
 }
 

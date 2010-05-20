@@ -39,7 +39,6 @@
 namespace {
 static uint s_currentVersion = 2;
 static int s_maxUrlItems = 50;
-static int s_notificationHeight = 50;
 }
 
 class NotificationWidget : public QGraphicsWidget {
@@ -60,7 +59,6 @@ private Q_SLOTS:
 
 private:
     QString m_text;
-    bool m_scrollingIn;
 };
 
 static NotificationWidget* s_notification = 0;
@@ -77,56 +75,50 @@ void NotificationWidget::show(const QString& text, QGraphicsWidget* parent)
 NotificationWidget::NotificationWidget(const QString& text, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
     , m_text(text)
-    , m_scrollingIn(true)
 {
-    setOpacity(0.8);
 }
 
 void NotificationWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     painter->setPen(Qt::black);
-    painter->setBrush(Qt::black);
-    painter->drawRect(rect());
+    painter->setBrush(QColor(80, 80, 80));
 
-    QFont f("Times", 14);
+    painter->drawRect(rect());
+ 
+    QFont f("Times", 18);
     painter->setFont(f);
-    painter->setPen(Qt::green);
+    painter->setPen(Qt::white);
     painter->drawText(rect(), Qt::AlignHCenter|Qt::AlignVCenter, m_text);
 }
 
 void NotificationWidget::doShow()
 {
-    QTimer::singleShot(0, this, SLOT(startAnimation()));
+    QRectF r(parentWidget()->rect());
+    QFont f("Times", 18);
+    int height = QFontMetrics(f).height() + 2;
+    
+    r.setTop(r.center().y()/2 - height/2);
+    r.setHeight(height);
+    setGeometry(r);
+    QTimer::singleShot(800, this, SLOT(startAnimation()));
 }
 
 void NotificationWidget::startAnimation()
 {
-    QRectF r(parentWidget()->rect()); r.setTop(r.bottom() - s_notificationHeight); 
-    QRectF hidden(r); hidden.setTop(r.bottom());
+    QPropertyAnimation* anim = new QPropertyAnimation(this, "opacity");
+    anim->setDuration(400);
+    anim->setStartValue(1);
+    anim->setEndValue(0);
 
-    QPropertyAnimation* anim = new QPropertyAnimation(this, "geometry");
-    anim->setDuration(800);
-    anim->setStartValue(m_scrollingIn ? hidden : r);
-    anim->setEndValue(m_scrollingIn ? r : hidden);
-
-    anim->setEasingCurve(m_scrollingIn ? QEasingCurve::OutBack : QEasingCurve::InBack);
+    anim->setEasingCurve(QEasingCurve::Linear);
     anim->start();
-
-    if (m_scrollingIn)
-        setGeometry(hidden);
     connect(anim, SIGNAL(finished()), this, SLOT(animFinished()));
 }
 
 void NotificationWidget::animFinished()
 {
-    if (m_scrollingIn) {
-        m_scrollingIn = false;
-        QTimer::singleShot(800, this, SLOT(startAnimation()));
-    } else {
-        delete s_notification;
-        s_notification = 0;
-        // "this" is invalid at this point
-    }
+    delete s_notification;
+    s_notification = 0;
 }
 
 void notification(const QString& text, QGraphicsWidget* parent)

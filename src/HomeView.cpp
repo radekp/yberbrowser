@@ -277,11 +277,6 @@ void HomeView::createHistoryContent()
         m_historyWidget->addTile(*newTileItem);
         connectItem(*newTileItem);
     }
-    // FIXME: this 'All history'  is being leaked
-    newTileItem = new ThumbnailTileItem(m_historyWidget, *(new UrlItem(QUrl(), "All history", 0)), false);
-    m_historyWidget->addTile(*newTileItem);
-    connectItem(*newTileItem);
-
     m_historyWidget->layoutTiles();
 }
 

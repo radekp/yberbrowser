@@ -24,7 +24,6 @@
 #include "yberconfig.h"
 
 #include "ApplicationWindow.h"
-
 #include "CookieJar.h"
 
 #if USE_DUI

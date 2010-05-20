@@ -67,7 +67,7 @@ void BookmarkStore::add(const QUrl& url, const QString& title, QIcon favicon)
             return;
         }
     }
-    // fixme webkit proives empty icons
+    // FIXME webkit provides empty icons
     QImage* image = new QImage(favicon.pixmap(QSize(16,16)).toImage());;
     if (image->size() == QSize(0, 0)) {
         delete image;
@@ -75,12 +75,35 @@ void BookmarkStore::add(const QUrl& url, const QString& title, QIcon favicon)
     }
 
     m_list.insert(0, new UrlItem(url, title, image));
-    m_needsPersisting = true;
-    QTimer::singleShot(5000, this, SLOT(externalize()));
+    externalizeSoon();
 }
 
-void BookmarkStore::remove(const QString& /*url*/)
+void BookmarkStore::remove(const QUrl& url)
 {
+    for (int i = 0; i < m_list.size(); ++i) {
+        if (m_list[i]->m_url == url) {
+            delete m_list.takeAt(i);
+            externalizeSoon();
+            break;
+        }
+    }
+}
+
+void BookmarkStore::remove(UrlItem& item)
+{
+    for (int i = 0; i < m_list.size(); ++i) {
+        if (m_list[i] == &item) {
+            delete m_list.takeAt(i);
+            externalizeSoon();
+            break;
+        }
+    }
+}
+
+void BookmarkStore::externalizeSoon()
+{
+    m_needsPersisting = true;
+    QTimer::singleShot(5000, this, SLOT(externalize()));
 }
 
 void BookmarkStore::externalize()
