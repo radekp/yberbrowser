@@ -46,6 +46,7 @@ TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::
     m_titleItem->setPen(QPen(Qt::white));
     m_titleItem->setBrush(QBrush(Qt::white));
     m_titleItem->setPos(s_viewMargin, s_titleVMargin);
+    m_titleItem->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
 }
 
 TileBaseWidget::~TileBaseWidget()

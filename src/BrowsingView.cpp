@@ -196,6 +196,7 @@ YberWidget* BrowsingView::createNavigationToolBar()
     m_toolbar->addAction(m_stopbackAction);
     m_toolbar->addAction(QIcon(":/data/icon/48x48/screen_toggle_48.png"), "Fullscreen", this, SLOT(toggleFullScreen()));
     naviToolbar->setWidget(m_toolbar);
+    naviToolbar->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
 #endif
     return naviToolbar;
 }

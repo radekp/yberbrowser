@@ -44,6 +44,7 @@ ScrollbarItem::ScrollbarItem(Qt::Orientation orientation, QGraphicsItem* parent)
     , m_fadeAnim(this, "opacity")
     , m_fadeOutTimeout(this)
 {
+    setCacheMode(QGraphicsItem::DeviceCoordinateCache);
     m_fadeAnim.setDuration(s_scrollbarFadeDuration);
     m_fadeAnim.setStartValue(s_scrollbarOpacityStart);
     m_fadeAnim.setEndValue(s_scrollbarOpacity);
