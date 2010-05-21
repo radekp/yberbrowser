@@ -193,7 +193,8 @@ void HomeView::moveViews()
 
     // check which container wins
     int containerWidth = size().width() / 3 - s_containerMargin;
-    
+    HomeWidgetType oldActiveWidget = m_activeWidget;
+
     if (flick) {
         if ((m_activeWidget == WindowSelect && m_hDelta > 0) || (m_activeWidget == Bookmarks && m_hDelta < 0))
             m_activeWidget = VisitedPages;
@@ -217,6 +218,10 @@ void HomeView::moveViews()
                 break;
         }
     }
+    
+    // cancel edit mode on view switch, unless it is the window select view
+    if (oldActiveWidget != m_activeWidget && oldActiveWidget != WindowSelect && widgetByType(oldActiveWidget)->editMode()) 
+        widgetByType(oldActiveWidget)->setEditMode(false);
 
     int newPos = 0;
     // rightmost >> middle >> leftmost
