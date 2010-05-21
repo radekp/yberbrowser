@@ -372,6 +372,7 @@ void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
     connect(m_homeView, SIGNAL(viewDismissed()), this, SLOT(dismissActiveView()));
     m_homeView->resize(QSize(3*m_browsingViewport->size().width(), m_browsingViewport->size().height()));
     m_homeView->appear(applicationWindow());
+    m_webInteractionProxy->hide();
 }
 
 void BrowsingView::createUrlEditFilterPopup()
@@ -398,13 +399,14 @@ void BrowsingView::deleteView(TileSelectionViewBase* view)
         m_appWin->setViewport(new QWidget());
 #endif
 #endif
+        m_webInteractionProxy->show();
         // save homeview state, so that it is positioned back to the same view when reopened
         m_initialHomeWidget = m_homeView->activeWidget();
         // no window select for initial view please
         if (m_initialHomeWidget == HomeView::WindowSelect)
              m_initialHomeWidget = HomeView::VisitedPages;
         delete m_homeView;
-        m_homeView = 0; 
+        m_homeView = 0;
     } else if (view == m_urlfilterPopup)  {
         delete m_urlfilterPopup;
         m_urlfilterPopup = 0;
