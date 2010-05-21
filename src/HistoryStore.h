@@ -33,12 +33,10 @@ public:
 
     void accessed(const QUrl& url, const QString& title, QImage* thumbnail);
     bool contains(const QString& url);
-    UrlItem* get(const QString& url);
     QString match(const QString& url);
     void match(const QString& url, UrlList& matchedItems);
-    void remove(const QString& url);
-    void remove(UrlItem& item);
-    UrlList* list() { return &m_list; }
+    void remove(const QUrl& url);
+    const UrlList& list() { return m_list; }
 
 private:
     HistoryStore();

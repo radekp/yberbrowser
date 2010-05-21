@@ -27,17 +27,14 @@
 #include <QIcon>
 #include "UrlItem.h"
 
-typedef QList<UrlItem*> BookmarkList;
-
 class BookmarkStore : public QObject {
     Q_OBJECT
 public:
     static BookmarkStore* instance();    
 
-    void add(const QUrl& url, const QString& title, QIcon favicon);
+    void add(const QUrl& url, const QString& title);
     void remove(const QUrl& url);
-    void remove(UrlItem& item);
-    UrlList* list() { return &m_list; }
+    const UrlList& list() { return m_list; }
 
 private:
     BookmarkStore();

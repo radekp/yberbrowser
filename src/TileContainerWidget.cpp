@@ -93,10 +93,9 @@ QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTile
 void TileBaseWidget::addTile(TileItem& newItem)
 {
     m_tileList.append(&newItem);
-    newItem.setEditMode(m_editMode);
 }
 
-void TileBaseWidget::removeTile(TileItem& removed)
+void TileBaseWidget::removeTile(const TileItem& removed)
 {
     if (!m_slideAnimationGroup)
         m_slideAnimationGroup = new QParallelAnimationGroup();
@@ -174,7 +173,7 @@ void TabWidget::layoutTiles()
     doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin, true);
 }
 
-void TabWidget::removeTile(TileItem& removed)
+void TabWidget::removeTile(const TileItem& removed)
 {
     // FIXME: when tab is full, fake items dont work
     // insert a fake marker item in place
@@ -187,16 +186,7 @@ void TabWidget::removeTile(TileItem& removed)
         }            
     }
     // url list is created here (out of window list) unlike in other views, like history items.
-    delete removed.urlItem();
     TileBaseWidget::removeTile(removed);
-}
-
-void TabWidget::removeAll()
-{
-    // url list is created here (out of window list) unlike in other views, like history items.
-    for (int i = m_tileList.size() - 1; i >= 0; --i)
-        delete m_tileList.at(i)->urlItem();
-    TileBaseWidget::removeAll();
 }
 
 // history
@@ -205,9 +195,9 @@ HistoryWidget::HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 {
 }
 
-void HistoryWidget::removeTile(TileItem& removed)
+void HistoryWidget::removeTile(const TileItem& removed)
 {
-    HistoryStore::instance()->remove(*removed.urlItem());
+    HistoryStore::instance()->remove(removed.urlItem()->url());
     TileBaseWidget::removeTile(removed);
 }
 
@@ -228,9 +218,9 @@ BookmarkWidget::BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 {
 }
 
-void BookmarkWidget::removeTile(TileItem& removed)
+void BookmarkWidget::removeTile(const TileItem& removed)
 {
-    BookmarkStore::instance()->remove(*removed.urlItem());
+    BookmarkStore::instance()->remove(removed.urlItem()->url());
     TileBaseWidget::removeTile(removed);
 }
 
@@ -248,12 +238,12 @@ PopupWidget::PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 {
 }
 
-void PopupWidget::removeTile(TileItem& removed)
+void PopupWidget::removeTile(const TileItem& removed)
 {
     // FIXME should be able to know where the urlitem belongs to
     // instead of blindly trying to delete it from both stores
-    BookmarkStore::instance()->remove(*removed.urlItem());
-    HistoryStore::instance()->remove(*removed.urlItem());
+    BookmarkStore::instance()->remove(removed.urlItem()->url());
+    HistoryStore::instance()->remove(removed.urlItem()->url());
     TileBaseWidget::removeTile(removed);
 }
 

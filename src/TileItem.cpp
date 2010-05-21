@@ -31,9 +31,9 @@
 
 const int s_hTextMargin = 10;
 
-TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable)
+TileItem::TileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
     : QGraphicsRectItem(parent)
-    , m_urlItem(&urlItem)
+    , m_urlItem(urlItem)
     , m_selected(false)
     , m_closeIcon(0)
     , m_dclick(false)
@@ -154,11 +154,10 @@ void TileItem::closeItem()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-ThumbnailTileItem::ThumbnailTileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable)
+ThumbnailTileItem::ThumbnailTileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
     : TileItem(parent, urlItem, editable)
     , m_defaultIcon(0)
 {
-    connect(m_urlItem, SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
     if (!urlItem.thumbnail())
         m_defaultIcon = new QImage(":/data/icon/48x48/defaulticon_48.png");
 }
@@ -166,16 +165,6 @@ ThumbnailTileItem::ThumbnailTileItem(QGraphicsWidget* parent, UrlItem& urlItem, 
 ThumbnailTileItem::~ThumbnailTileItem()
 {
     delete m_defaultIcon;
-}
-
-void ThumbnailTileItem::thumbnailChanged() 
-{ 
-    // new thumbnail? 
-    if (m_defaultIcon && m_urlItem->thumbnailAvailable()) {
-        delete m_defaultIcon;
-        m_defaultIcon = 0;
-    }
-    update(); 
 }
 
 void ThumbnailTileItem::doLayoutTile()
@@ -193,7 +182,7 @@ void ThumbnailTileItem::doLayoutTile()
         // stretch thumbnail
         m_thumbnailRect.adjust(2, 2, -2, -(QFontMetrics(f).height() + 3));
     }
-    m_title = QFontMetrics(f).elidedText(m_urlItem->m_title, Qt::ElideRight, m_textRect.width());
+    m_title = QFontMetrics(f).elidedText(m_urlItem.title(), Qt::ElideRight, m_textRect.width());
 }
 
 void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
@@ -209,7 +198,7 @@ void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     painter->setPen(Qt::black);
     painter->drawRoundedRect(r, 5, 5);
     QRectF thumbnailRect(r);
-    painter->drawImage(m_thumbnailRect, *(m_defaultIcon ? m_defaultIcon : m_urlItem->thumbnail()));
+    painter->drawImage(m_thumbnailRect, *(m_defaultIcon ? m_defaultIcon : m_urlItem.thumbnail()));
 
     painter->setFont(QFont("Times", 10));
     painter->setPen(Qt::black);
@@ -217,7 +206,7 @@ void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     paintExtra(painter);
 }
 
-NewWindowTileItem::NewWindowTileItem(QGraphicsWidget* parent, UrlItem& item)
+NewWindowTileItem::NewWindowTileItem(QGraphicsWidget* parent, const UrlItem& item)
     : ThumbnailTileItem(parent, item, false)
 
 {
@@ -258,7 +247,7 @@ void NewWindowTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     painter->drawText(rect(), Qt::AlignCenter, "Open new tab");
 }
 
-NewWindowMarkerTileItem::NewWindowMarkerTileItem(QGraphicsWidget* parent, UrlItem& item)
+NewWindowMarkerTileItem::NewWindowMarkerTileItem(QGraphicsWidget* parent, const UrlItem& item)
     : ThumbnailTileItem(parent, item, false)
 
 {
@@ -277,7 +266,7 @@ void NewWindowMarkerTileItem::paint(QPainter* painter, const QStyleOptionGraphic
 }
 
 //
-ListTileItem::ListTileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable)
+ListTileItem::ListTileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
     : TileItem(parent, urlItem, editable)
 {
 }
@@ -298,8 +287,8 @@ void ListTileItem::doLayoutTile()
     m_titleRect.setHeight(fmfbig.height() * fontHeightRatio);
     m_urlRect.setTop(m_titleRect.bottom() + 5); 
 
-    m_title = fmfbig.elidedText(m_urlItem->m_title, Qt::ElideRight, r.width());
-    m_url = fmfsmall.elidedText(m_urlItem->m_url.toString(), Qt::ElideRight, r.width());
+    m_title = fmfbig.elidedText(m_urlItem.title(), Qt::ElideRight, r.width());
+    m_url = fmfsmall.elidedText(m_urlItem.url().toString(), Qt::ElideRight, r.width());
 }
 
 void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)

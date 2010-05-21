@@ -27,8 +27,8 @@
 UrlItem::UrlItem()
     : m_refcount(0)
     , m_lastAccess(0)
-    , m_thumbnailChanged(false)
     , m_thumbnail(0)
+    , m_thumbnailChanged(false)
 {
 }
 
@@ -37,8 +37,19 @@ UrlItem::UrlItem(const QUrl& url, const QString& title, QImage* thumbnail)
     , m_title(title)
     , m_refcount(1)
     , m_lastAccess(QDateTime::currentDateTime().toTime_t())
-    , m_thumbnailChanged(thumbnail)
     , m_thumbnail(thumbnail)
+    , m_thumbnailChanged(true)
+{
+}
+
+UrlItem::UrlItem(const UrlItem& item)
+    : m_url(item.m_url)
+    , m_title(item.m_title)
+    , m_refcount(item.m_refcount)
+    , m_lastAccess(item.m_lastAccess)
+    , m_thumbnail(item.m_thumbnail ? new QImage(*item.m_thumbnail) : 0)
+    , m_thumbnailPath(item.m_thumbnailPath)
+    , m_thumbnailChanged(item.m_thumbnailChanged)
 {
 }
 
@@ -47,31 +58,54 @@ UrlItem::~UrlItem()
     delete m_thumbnail;
 }
 
+UrlItem& UrlItem::operator=(const UrlItem& other)
+{
+    m_url = other.m_url;
+    m_title = other.m_title;
+    m_refcount = other.m_refcount;
+    m_lastAccess = other.m_lastAccess;
+    m_thumbnailChanged = other.m_thumbnailChanged;
+    m_thumbnail = new QImage(*other.m_thumbnail);
+    m_thumbnailPath = other.m_thumbnailPath;
+    return *this;
+}
+
+bool UrlItem::operator==(const UrlItem& other) const
+{
+    return m_url == other.m_url;
+}
+
+bool UrlItem::operator<(const UrlItem& other) const
+{
+    return m_title.toLower() < other.m_title.toLower();
+}
+
 void UrlItem::setThumbnail(QImage* thumbnail) 
 { 
+    delete m_thumbnail;
+
     m_thumbnail = thumbnail; 
     m_thumbnailChanged = true;
-    emit thumbnailChanged();
 }
 
-QImage* UrlItem::thumbnail()
+void UrlItem::externalize(QDataStream& out)
 {
-    // load thumbnails on demand
-    if (m_thumbnail)
-        return m_thumbnail;
-    // available?
-    if (!m_thumbnailPath.size())
-        return 0;
-    m_thumbnail = new QImage(Settings::instance()->privatePath() + m_thumbnailPath);
-    return m_thumbnail;
+    if (m_thumbnail && m_thumbnailChanged) {
+        if (m_thumbnailPath.isEmpty())
+            m_thumbnailPath = QString::number(m_lastAccess + rand()) + ".png";
+        m_thumbnail->save(Settings::instance()->privatePath() + m_thumbnailPath);
+    }
+    m_thumbnailChanged = false;
+
+    out<<m_url.toString()<<m_title<<m_refcount<<m_lastAccess<<m_thumbnailPath;
 }
 
-QString UrlItem::thumbnailPath()
+void UrlItem::internalize(QDataStream& in)
 {
-    if (!m_thumbnail)
-        return QString();
-    if (!m_thumbnailPath.size())
-        m_thumbnailPath = QString::number(m_lastAccess + rand()) + ".png";
-    return m_thumbnailPath;
+    QString urlStr; 
+    in>>urlStr>>m_title>>m_refcount>>m_lastAccess>>m_thumbnailPath;
+    m_url = urlStr;
+    if (!m_thumbnailPath.isEmpty())
+        m_thumbnail = new QImage(Settings::instance()->privatePath() + m_thumbnailPath);
 }
 

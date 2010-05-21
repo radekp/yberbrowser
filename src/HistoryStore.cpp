@@ -25,11 +25,15 @@
 #include <QRegExp>
 #include "Helpers.h"
 
+#include <QDebug>
+
 //#define ENABLE_HISTORYSTORE_DEBUG 1
 
 #if defined(ENABLE_HISTORYSTORE_DEBUG)
 #include <QDebug>
 #endif
+
+static uint s_currentVersion = 3;
 
 HistoryStore* HistoryStore::instance()
 {
@@ -42,20 +46,20 @@ HistoryStore* HistoryStore::instance()
 HistoryStore::HistoryStore()
     : m_needsPersisting(false)
 {
-    internalizeUrlList(m_list, "historystore.txt");
+    internalizeUrlList(m_list, "historystore.txt", s_currentVersion);
     if (!m_list.size()) {
 #if defined(ENABLE_HISTORYSTORE_DEBUG)
         qDebug() << "HistoryStore: no url store, use default values";
 #endif
         // init historystore with some popular urls. prefer non-www for to save space
-        m_list.append(new UrlItem(QUrl("http://cnn.com/"), "CNN.com - Breaking News, U.S., World, Weather, Entertainment &amp; Video News"));
-        m_list.append(new UrlItem(QUrl("http://news.bbc.co.uk/"), "BBC NEWS | News Front Page"));
-        m_list.append(new UrlItem(QUrl("http://news.google.com/"), "Google News"));
-        m_list.append(new UrlItem(QUrl("http://nokia.com/"), "Nokia - Nokia on the Web"));
-        m_list.append(new UrlItem(QUrl("http://qt.nokia.com/"), "Qt - A cross-platform application and UI framework"));
-        m_list.append(new UrlItem(QUrl("http://ovi.com/"), "Ovi by Nokia"));
-        m_list.append(new UrlItem(QUrl("http://nytimes.com/"), "The New York Times - Breaking News, World News Multimedia"));
-        m_list.append(new UrlItem(QUrl("http://google.com/"), "Google"));
+        m_list.append(UrlItem(QUrl("http://cnn.com/"), "CNN.com - Breaking News, U.S., World, Weather, Entertainment &amp; Video News", 0));
+        m_list.append(UrlItem(QUrl("http://news.bbc.co.uk/"), "BBC NEWS | News Front Page", 0));
+        m_list.append(UrlItem(QUrl("http://news.google.com/"), "Google News", 0));
+        m_list.append(UrlItem(QUrl("http://nokia.com/"), "Nokia - Nokia on the Web", 0));
+        m_list.append(UrlItem(QUrl("http://qt.nokia.com/"), "Qt - A cross-platform application and UI framework", 0));
+        m_list.append(UrlItem(QUrl("http://ovi.com/"), "Ovi by Nokia", 0));
+        m_list.append(UrlItem(QUrl("http://nytimes.com/"), "The New York Times - Breaking News, World News Multimedia", 0));
+        m_list.append(UrlItem(QUrl("http://google.com/"), "Google", 0));
     }
 }
 
@@ -63,15 +67,13 @@ HistoryStore::HistoryStore()
 HistoryStore::~HistoryStore()
 {
     externalize();
-    for (int i = 0; i < m_list.size(); ++i)
-        delete m_list.takeAt(i);
 }
 
 void HistoryStore::externalize()
 {
     if (!m_needsPersisting)
         return;
-    externalizeUrlList(m_list, "historystore.txt");
+    externalizeUrlList(m_list, "historystore.txt", s_currentVersion);
     m_needsPersisting = false;
 }
 
@@ -83,14 +85,14 @@ void HistoryStore::accessed(const QUrl& url, const QString& title, QImage* thumb
     qDebug() << "HistoryStore:" << __FUNCTION__ << accessedHost;
 #endif
     for (int i = 0; i < m_list.size(); ++i) {
-        UrlItem* item = m_list[i];
-        if (matchUrls(item->m_url.host() + item->m_url.path(), accessedHostAndPath)) {
-            item->m_refcount++;
-            item->m_lastAccess = QDateTime::currentDateTime().toTime_t();
+        UrlItem& item = m_list[i];
+        if (matchUrls(item.url().host() + item.url().path(), accessedHostAndPath)) {
+            item.setRefcount(item.refcount() + 1);
+            item.setLastAccess(QDateTime::currentDateTime().toTime_t());
             // move it up if needed
             int j = i;
             // '<=' is for the last access sorting, recently used items move up
-            while (--j >= 0 && item->m_refcount >= m_list.at(j)->m_refcount) {}
+            while (--j >= 0 && item.refcount() >= m_list.at(j).refcount()) {}
             // position adjusting and check whether we really moved
             if (++j != i) 
                 m_list.move(i, j);
@@ -102,30 +104,25 @@ void HistoryStore::accessed(const QUrl& url, const QString& title, QImage* thumb
     if (found == -1) {
         // insert to the top of the 1 refcount items. recently used sort
         int i = m_list.size();
-        while (--i >= 0 && m_list.at(i)->m_refcount == 1) {}
-        m_list.insert(++i, new UrlItem(url, title, thumbnail));
+        while (--i >= 0 && m_list[i].refcount() == 1) {}
+        m_list.insert(++i, UrlItem(url, title, thumbnail));
     } else if (thumbnail) {
         // add thumbnail if not there yet
-        m_list[found]->setThumbnail(thumbnail);
+        m_list[found].setThumbnail(thumbnail);
     }
 #if defined(ENABLE_HISTORYSTORE_DEBUG)
     for (int i = 0; i < m_list.size(); ++i)
-        qDebug()<<m_list.at(i)->m_url.toString()<<" "<<m_list.at(i)->m_refcount;
+        qDebug()<<m_list[i].m_url.toString()<<" "<<m_list[i].m_refcount;
 #endif
     externalizeSoon();
 }
 
-UrlItem* HistoryStore::get(const QString& url)
-{
-    for (int i = 0; i < m_list.size(); ++i)
-        if (m_list.at(i)->m_url.toString() == url)
-            return m_list.at(i);
-    return 0;
-}
-
 bool HistoryStore::contains(const QString& url)
 {
-    return get(url) != 0;
+    for (int i = 0; i < m_list.size(); ++i)
+        if (m_list[i].url().toString() == url)
+            return true;
+    return false;
 }
 
 QString HistoryStore::match(const QString& url)
@@ -134,7 +131,7 @@ QString HistoryStore::match(const QString& url)
         return QString();
     for (int i = 0; i < m_list.size(); ++i) {
         // do a very simply startWith matching first.
-        QString host = m_list.at(i)->m_url.host();
+        QString host = m_list[i].url().host();
         if (host.startsWith(url))
             return host;
         else if (host.startsWith("www.")) {
@@ -155,28 +152,17 @@ void HistoryStore::match(const QString& url, UrlList& matchedItems)
     text.replace(" ", "|");
     QRegExp rx(text);
     for (int i = 0; i < m_list.size(); ++i) {
-        UrlItem* item = m_list.at(i);
-        if (item->m_url.toString().indexOf(rx) > -1 || item->m_title.indexOf(rx) > -1)
+        const UrlItem& item = m_list[i];
+        if (item.url().toString().indexOf(rx) > -1 || item.title().indexOf(rx) > -1)
            matchedItems.append(m_list.at(i));
     }
 }
 
-void HistoryStore::remove(const QString& url)
+void HistoryStore::remove(const QUrl& url)
 {
     for (int i = 0; i < m_list.size(); ++i) {
-        if (m_list.at(i)->m_url.toString() == url) {
-            delete m_list.takeAt(i);
-            externalizeSoon();
-            break;
-        }
-    }
-}
-
-void HistoryStore::remove(UrlItem& item)
-{
-    for (int i = 0; i < m_list.size(); ++i) {
-        if (m_list.at(i) == &item) {
-            delete m_list.takeAt(i);
+        if (m_list[i].url() == url) {
+            m_list.removeAt(i);
             externalizeSoon();
             break;
         }
