@@ -38,7 +38,7 @@ const int s_doubleClickWaitTimeout = 100;
 const int s_edgeMarginForLinkSelectionRetry = 50;
 const int s_minSearchRectSize = 8;
 const int s_maxSearchRectSize = 25;
-const int backingStoreUpdateEnableDelay = 300;
+const int backingStoreUpdateEnableDelay = 700;
 }
 
 /*!
