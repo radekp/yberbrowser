@@ -30,13 +30,13 @@
 #include <QDebug>
 
 const int s_hTextMargin = 10;
+const int s_longpressTimeoutThreshold = 400;
 
 TileItem::TileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
     : QGraphicsRectItem(parent)
     , m_urlItem(urlItem)
     , m_selected(false)
     , m_closeIcon(0)
-    , m_dclick(false)
     , m_editable(editable)
     , m_context(0)
     , m_dirty(true)
@@ -66,6 +66,7 @@ void TileItem::setEditMode(bool on)
         delete m_closeIcon;
         m_closeIcon = 0;
     }
+    update();
 }
 
 void TileItem::setEditIconRect()
@@ -106,21 +107,16 @@ void TileItem::layoutTile()
     m_dirty = false;
 }
 
-void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* /*event*/)
+void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
-}
-
-void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
-{
-    if (m_dclick)
-        return;
-
     // expand it to fit thumbs
     QRectF r(m_closeIconRect);
     r.adjust(-40, -30, 40, 40);
 
-    // async item selection, give chance to render the item selected/closed.
-    if (m_closeIcon && r.contains(event->pos())) {
+    if (m_longpressTime.elapsed() > s_longpressTimeoutThreshold) {
+        emit itemEditingMode(this);
+    } else if (m_closeIcon && r.contains(event->pos())) {
+        // async item selection, give chance to render the item selected/closed.
         QTimer::singleShot(200, this, SLOT(closeItem()));
     } else {    
         m_selected = true;
@@ -129,18 +125,9 @@ void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
     }
 }
 
-void TileItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* /*event*/)
+void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
 {
-    // half second timeout to distingush double click from click.
-    // FIXME: this should be managed very differently. need to look at the gesture consumer
-    m_dclick = true;
-    QTimer::singleShot(500, this, SLOT(invalidateClick()));
-    emit itemEditingMode(this);
-}
-
-void TileItem::invalidateClick()
-{
-    m_dclick = false;
+    m_longpressTime.start();        
 }
 
 void TileItem::activateItem()

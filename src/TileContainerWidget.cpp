@@ -26,6 +26,8 @@
 #include <QGraphicsSimpleTextItem>
 #include <QPen>
 
+#include <QDebug>
+
 #include "HistoryStore.h"
 #include "BookmarkStore.h"
 
@@ -134,9 +136,13 @@ void TileBaseWidget::setEditMode(bool on)
         m_tileList.at(i)->setEditMode(on);
 }
 
-void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
+void TileBaseWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent*)
 {
     emit closeWidget();
+}
+
+void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
+{
 }
 
 void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QPointF& oldPos, const QPointF& newPos)

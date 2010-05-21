@@ -87,7 +87,6 @@ void HomeView::setActiveWidget(HomeWidgetType widget)
         setPos(QPointF(-(2*containerWidth - 2*s_containerMargin), 0));
 }
 
-// FIXME this should all be somewhere else. and then cancelLeftMouseButtonPress could go back to normal.
 bool HomeView::filterMouseEvent(QGraphicsSceneMouseEvent* e)
 {
     if (e->type() == QEvent::GraphicsSceneMousePress) {
@@ -119,9 +118,6 @@ bool HomeView::filterMouseEvent(QGraphicsSceneMouseEvent* e)
         } else if (abs(delta.x()) >= abs(delta.y())) {
             m_hDelta+=delta.x();
             m_horizontalFlickLocked = abs(m_hDelta) > s_horizontalFlickLockThreshold;
-            // let the gesture recognizer know that we are hijacking the gesture
-            if (m_horizontalFlickLocked && activePannableContainer())
-                activePannableContainer()->cancelLeftMouseButtonPress(QPoint());
         }
     }
     return false;

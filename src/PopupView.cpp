@@ -29,7 +29,7 @@
 #include "UrlItem.h"
 #include "HistoryStore.h"
 #include "TileContainerWidget.h"
-#include "PannableTileContainer.h"
+#include "PannableViewport.h"
 
 class Suggest : public QObject {
     Q_OBJECT
@@ -109,7 +109,7 @@ PopupView::PopupView(QGraphicsItem* parent, QPixmap* bckg, Qt::WindowFlags wFlag
     , m_suggest(new Suggest())
     , m_suggestTimer(new QTimer(this))
     , m_popupWidget(new PopupWidget(this, wFlags))
-    , m_pannableContainer(new PannableTileContainer(this, wFlags))
+    , m_pannableContainer(new PannableViewport(this, wFlags))
 {
     m_pannableContainer->setWidget(m_popupWidget);
     connect(m_popupWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));

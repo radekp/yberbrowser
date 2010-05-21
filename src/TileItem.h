@@ -23,6 +23,7 @@
 
 #include <QObject>
 #include <QRectF>
+#include <QTime>
 #include <QGraphicsRectItem>
 #include "UrlItem.h"
 
@@ -61,7 +62,6 @@ protected:
     virtual void doLayoutTile() = 0;
 
 protected Q_SLOTS:
-    void invalidateClick();
     virtual void activateItem();
     virtual void closeItem();
 
@@ -74,15 +74,14 @@ protected:
 private:
     void mousePressEvent(QGraphicsSceneMouseEvent* event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
-    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event);
     void setEditIconRect();
 
 private:
-    bool m_dclick;
     bool m_editable;
     void* m_context; 
     bool m_dirty;
     bool m_fixed;
+    QTime m_longpressTime;
 };
 
 class ThumbnailTileItem : public TileItem {

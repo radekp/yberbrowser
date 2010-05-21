@@ -50,7 +50,8 @@ protected:
     QSize doLayoutTiles(const QRectF& rect, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed = false);
 
 private:
-    virtual void mousePressEvent(QGraphicsSceneMouseEvent*);
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
+    void mousePressEvent(QGraphicsSceneMouseEvent*);
     void addMoveAnimation(TileItem& item, int delay, const QPointF& oldPos, const QPointF& newPos);
 
 protected:

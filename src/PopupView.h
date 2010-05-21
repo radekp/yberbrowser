@@ -23,7 +23,7 @@
 
 #include "TileSelectionViewBase.h"
 
-class PannableTileContainer;
+class PannableViewport;
 class PopupWidget;
 class TileItem;
 class Suggest;
@@ -59,7 +59,7 @@ private:
     Suggest* m_suggest;
     QTimer* m_suggestTimer;
     PopupWidget* m_popupWidget;
-    PannableTileContainer* m_pannableContainer;
+    PannableViewport* m_pannableContainer;
     QString m_filterText;
 };
 
