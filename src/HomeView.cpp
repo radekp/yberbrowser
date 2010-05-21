@@ -202,7 +202,8 @@ void HomeView::moveViews()
     } else {    
         // at what pos it should jump to the next container
         int goOverWidth = containerWidth / 2;
-        switch (abs(pos().x() / goOverWidth)) {
+        int position = abs(pos().x() / goOverWidth);
+        switch (position) {
             default:
             case 0:
                 m_activeWidget = WindowSelect;
