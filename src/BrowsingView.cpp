@@ -244,7 +244,7 @@ void BrowsingView::setActiveWindow(WebView* webView)
     if (webView == m_activeWebView)
         return;
     // invalidate url bar
-    m_toolbarWidget->setText(webView->url().toString());
+    m_toolbarWidget->setText(webView->url().isEmpty() ? "no page loaded yet" : webView->url().toString());
     connectWebViewSignals(webView, m_activeWebView);
     if (m_activeWebView)
         m_activeWebView->hide();
@@ -437,14 +437,17 @@ QPixmap* BrowsingView::webviewSnapshot()
     QSizeF thumbnailSize(m_browsingViewport->size());
     QImage thumbnail(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
 
-    if (m_activeWebView) {
-        QPainter p(&thumbnail);
+    QPainter p(&thumbnail);
+
+    if (m_activeWebView && !m_activeWebView->url().isEmpty()) {
         qreal scale = m_activeWebView->scale();
         QStyleOptionGraphicsItem sItem;
         sItem.exposedRect = QRectF(QPointF(0, 0), thumbnailSize/scale);
         p.scale(scale, scale);
         m_activeWebView->paint(&p, &sItem);
         p.fillRect(sItem.exposedRect, QColor(0, 0, 0, 198));
+    } else {
+        p.fillRect(thumbnail.rect(), QColor(30, 30, 30));
     }
     return new QPixmap(QPixmap::fromImage(thumbnail));
 }

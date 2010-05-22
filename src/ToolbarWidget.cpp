@@ -93,11 +93,16 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     painter->drawRoundedRect(r, s_toolbarRound, s_toolbarRound);
     painter->drawImage(QPointF(rect().right() - (s_toolbarIconWidth + s_toolbarIconMargin), iconY), m_progress > 0 ? *m_cancelIcon : *m_backIcon);
     
+    QFont f("Times", 18);
     painter->setPen(QColor(Qt::white));
-    painter->setFont(QFont("Times", 18));
+    painter->setFont(f);
     int texMargin = s_toolbarIconWidth + 3*s_toolbarIconMargin;
     r = rect(); 
     r.adjust(texMargin, 0, -texMargin, 0);
+
+    // FIXME find out resize event and do the elideright there
+    if (m_text.isEmpty())
+        m_text = QFontMetrics(f).elidedText(m_urlEdit->text(), Qt::ElideRight, rect().width() - (2*s_toolbarIconWidth + 4*s_toolbarIconMargin));
     painter->drawText(r, Qt::AlignLeft|Qt::AlignVCenter, m_text); 
 }
 
@@ -105,6 +110,7 @@ void ToolbarWidget::setText(const QString& text)
 {
     m_text = QFontMetrics(QFont("Times", 18)).elidedText(text, Qt::ElideRight, rect().width() - (2*s_toolbarIconWidth + 4*s_toolbarIconMargin));
     m_urlEdit->setText(text);
+    update();
 }
 
 void ToolbarWidget::setEditMode(bool on)
