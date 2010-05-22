@@ -418,6 +418,8 @@ void BrowsingView::prepareForResize()
 
 void BrowsingView::startAutoScrollTest()
 {
+    if (Settings::instance()->isFullScreen() && !applicationWindow()->isFullScreen())
+        toggleFullScreen();
     delete m_autoScrollTest;
     m_autoScrollTest = new AutoScrollTest(this);
     connect(m_autoScrollTest, SIGNAL(finished()), this, SLOT(finishedAutoScrollTest()));
