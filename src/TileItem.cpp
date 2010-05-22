@@ -50,11 +50,6 @@ TileItem::~TileItem()
     delete m_closeIcon;
 }
 
-void TileItem::resizeEvent(QGraphicsSceneResizeEvent* /*event*/)
-{
-    m_dirty = true;
-}
-
 void TileItem::setEditMode(bool on) 
 { 
     if (!m_editable)
@@ -111,7 +106,7 @@ void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
     // expand it to fit thumbs
     QRectF r(m_closeIconRect);
-    r.adjust(-40, -30, 40, 40);
+    r.adjust(-20, -20, 20, 20);
 
     if (m_longpressTime.elapsed() > s_longpressTimeoutThreshold) {
         emit itemEditingMode(this);

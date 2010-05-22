@@ -20,13 +20,13 @@
 
 #include "AutoScrollTest.h"
 #include "BrowsingView.h"
-#include "ApplicationWindow.h"
 #include "PannableViewport.h"
 #include "WebViewport.h"
 #include "WebViewportItem.h"
 #include "WebView.h"
 
 #include <QGraphicsWidget>
+#include <QGraphicsScene>
 #include <QPainterPath>
 
 namespace {
@@ -49,7 +49,7 @@ public:
     FPSResultView(QList<int>&, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~FPSResultView();
 
-    void appear(ApplicationWindow*);
+    void appear();
 
 Q_SIGNALS:
     void finished();
@@ -87,14 +87,9 @@ FPSResultView::~FPSResultView()
 {
 }
 
-void FPSResultView::appear(ApplicationWindow *window)
+void FPSResultView::appear()
 {
-    if (!scene()) {
-        window->scene()->addItem(this);
-        setZValue(100);
-    }
     scene()->setActiveWindow(this);
-
     startAnimation(true);
 }
 
@@ -322,7 +317,7 @@ void AutoScrollTest::scrollTimeout()
         //
         m_fpsResultView = new FPSResultView(m_fpsValues);
         m_fpsResultView->setGeometry(m_browsingView->pannableViewport()->rect());
-        m_fpsResultView->appear(m_browsingView->applicationWindow());
+        m_fpsResultView->appear();
         connect(m_fpsResultView, SIGNAL(finished()), this, SLOT(fpsViewClicked()));
     }
 

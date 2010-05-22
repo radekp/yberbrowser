@@ -38,7 +38,7 @@ public:
 
     virtual ~TileSelectionViewBase();
 
-    void appear(ApplicationWindow*);
+    void appear();
     void disappear();
 
     void setGeometry( const QRectF & );

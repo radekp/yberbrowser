@@ -104,10 +104,11 @@ void Suggest::loadFinished(bool success)
     emit suggestionsAvailable();
 }
 
-PopupView::PopupView(QGraphicsItem* parent, QPixmap* bckg, Qt::WindowFlags wFlags)
-    : TileSelectionViewBase(TileSelectionViewBase::UrlPopup, bckg, parent, wFlags)
+PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
+    : TileSelectionViewBase(TileSelectionViewBase::UrlPopup, 0, parent, wFlags)
     , m_suggest(new Suggest())
     , m_suggestTimer(new QTimer(this))
+    , m_bckg(new QGraphicsRectItem(rect(), this))
     , m_popupWidget(new PopupWidget(this, wFlags))
     , m_pannableContainer(new PannableViewport(this, wFlags))
 {
@@ -115,6 +116,7 @@ PopupView::PopupView(QGraphicsItem* parent, QPixmap* bckg, Qt::WindowFlags wFlag
     connect(m_popupWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
     connect(m_suggestTimer, SIGNAL(timeout()), this, SLOT(startSuggest()));
     connect(m_suggest, SIGNAL(suggestionsAvailable()), this, SLOT(populateSuggestion()));
+    m_bckg->setBrush(QColor(60, 60, 60, 220));
 }
 
 PopupView::~PopupView()
@@ -126,7 +128,7 @@ void PopupView::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
     m_pannableContainer->setGeometry(rect());
     m_popupWidget->resize(rect().size());
-
+    m_bckg->setRect(rect());
     TileSelectionViewBase::resizeEvent(event);
 }
 

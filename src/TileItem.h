@@ -37,7 +37,6 @@ class TileItem : public QObject, public QGraphicsRectItem {
 public:
     virtual ~TileItem();
     
-    void resizeEvent(QGraphicsSceneResizeEvent* event);
     const UrlItem* urlItem() const { return &m_urlItem; }
 
     void setTilePos(const QPointF& pos) { m_dirty = true; setRect(QRectF(pos, rect().size())); }

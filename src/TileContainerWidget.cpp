@@ -30,6 +30,7 @@
 
 #include "HistoryStore.h"
 #include "BookmarkStore.h"
+#include "ToolbarWidget.h"
 
 const int s_viewMargin = 40;
 const int s_tileMargin = 40;
@@ -172,7 +173,7 @@ void TabWidget::layoutTiles()
     // 6 tabs max atm
     // FIXME: this is landscape oriented. check aspect ratio
     QRectF r(rect());
-    r.setHeight(r.height() - s_viewMargin);
+    r.setHeight(r.height() - s_viewMargin - s_toolbarHeight);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
@@ -211,7 +212,7 @@ void HistoryWidget::layoutTiles()
 {
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
-    r.setHeight(parentWidget()->size().height() - s_viewMargin);
+    r.setHeight(parentWidget()->size().height() - s_viewMargin - s_toolbarHeight);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
@@ -240,7 +241,7 @@ void BookmarkWidget::layoutTiles()
 
 // url filter popup
 PopupWidget::PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
-    : TileBaseWidget("Search result", parent, wFlags) 
+    : TileBaseWidget(QString(), parent, wFlags) 
 {
 }
 
@@ -255,8 +256,10 @@ void PopupWidget::removeTile(const TileItem& removed)
 
 void PopupWidget::layoutTiles()
 {
-    QRectF r(rect());
+    QRectF r(parentWidget()->rect());
     r.setTop(s_viewMargin);
+    if (m_tileList.size() * s_searchItemTileHeight < r.height()) 
+        r.setTop(r.bottom() - m_tileList.size() * s_searchItemTileHeight - s_viewMargin);
     setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height());
 }
 

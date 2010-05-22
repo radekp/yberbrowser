@@ -28,12 +28,12 @@ class PopupWidget;
 class TileItem;
 class Suggest;
 class QTimer;
-class QPixmap;
+class QGraphicsRectItem;
 
 class PopupView : public TileSelectionViewBase {
     Q_OBJECT
 public:
-    PopupView(QGraphicsItem* parent = 0, QPixmap* bckg = 0, Qt::WindowFlags wFlags = 0);
+    PopupView(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~PopupView();
 
     void resizeEvent(QGraphicsSceneResizeEvent* event);
@@ -58,6 +58,7 @@ private:
 private:
     Suggest* m_suggest;
     QTimer* m_suggestTimer;
+    QGraphicsRectItem* m_bckg;
     PopupWidget* m_popupWidget;
     PannableViewport* m_pannableContainer;
     QString m_filterText;

@@ -20,7 +20,6 @@
 
 #include "TileSelectionViewBase.h"
 #include <QGraphicsPixmapItem>
-#include <QGraphicsBlurEffect>
 #include <QTimer>
 
 #include "ApplicationWindow.h"
@@ -28,7 +27,7 @@
 
 TileSelectionViewBase::TileSelectionViewBase(ViewType type, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_bckg(new QGraphicsPixmapItem(*bckg, this))
+    , m_bckg(bckg ? new QGraphicsPixmapItem(*bckg, this) : 0)
     , m_type(type)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
@@ -43,19 +42,29 @@ TileSelectionViewBase::~TileSelectionViewBase()
 void TileSelectionViewBase::setGeometry( const QRectF &r)
 {
     QGraphicsWidget::setGeometry(r);
-    m_bckg->setPos(-geometry().topLeft());
+    if (m_bckg)
+        m_bckg->setPos(-geometry().topLeft());
 }
 
 void TileSelectionViewBase::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
-    m_bckg->setPos(-pos());
-    createViewItems();
     QGraphicsWidget::resizeEvent(event);
+    if (m_bckg)
+        m_bckg->setPos(-pos());
+    updateContent();
 }
 
 void TileSelectionViewBase::updateBackground(QPixmap* bckg)
 {
-    m_bckg->setPixmap(*bckg);
+    if (bckg) {
+        if (!m_bckg)
+            m_bckg = new QGraphicsPixmapItem(this);
+        m_bckg->setPixmap(*bckg);
+    } else {
+        delete m_bckg;
+        m_bckg = 0;
+    }
+    update();
 }
 
 void TileSelectionViewBase::updateContent()
@@ -64,17 +73,13 @@ void TileSelectionViewBase::updateContent()
     createViewItems();
 }
 
-void TileSelectionViewBase::appear(ApplicationWindow* window)
+void TileSelectionViewBase::appear()
 {
-    // FIXME: how to test if view is already in correct view?
-    if (!scene()) {
-        window->scene()->addItem(this);
-        setZValue(100);
-    }
     scene()->setActiveWindow(this);
     createViewItems();
     // bckg pos is misbehaving on device (n900), need to do an extra setPos here
-    m_bckg->setPos(-pos());
+    if (m_bckg)
+        m_bckg->setPos(-pos());
 }
 
 void TileSelectionViewBase::disappear()

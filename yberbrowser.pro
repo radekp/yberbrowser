@@ -152,6 +152,7 @@ HEADERS = \
   src/TileContainerWidget.h \
   src/TileItem.h \
   src/TileSelectionViewBase.h \
+  src/ToolbarWidget.h \
   src/UrlItem.h \
   src/WebPage.h \
   src/WebView.h \
@@ -178,6 +179,7 @@ SOURCES = \
   src/TileContainerWidget.cpp \
   src/TileItem.cpp \
   src/TileSelectionViewBase.cpp \
+  src/ToolbarWidget.cpp \
   src/UrlItem.cpp \
   src/WebPage.cpp \
   src/WebView.cpp \
