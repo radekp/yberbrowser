@@ -76,7 +76,6 @@ void TileSelectionViewBase::updateContent()
 void TileSelectionViewBase::appear()
 {
     scene()->setActiveWindow(this);
-    createViewItems();
     // bckg pos is misbehaving on device (n900), need to do an extra setPos here
     if (m_bckg)
         m_bckg->setPos(-pos());

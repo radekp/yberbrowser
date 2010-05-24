@@ -73,10 +73,8 @@ private:
     void createHistoryContent();
     void createTabSelectContent();
 
-    void animateSetPos(QPointF& pos);
-
     TileBaseWidget* widgetByType(HomeWidgetType type);
-    PannableTileContainer* activePannableContainer();
+    void resetContainerSize();
 
 private:
     HomeWidgetType m_activeWidget;

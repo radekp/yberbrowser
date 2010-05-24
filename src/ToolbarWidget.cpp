@@ -205,7 +205,6 @@ void ToolbarWidget::textEditingFinished()
 {
     m_lastEnteredText = QString();
     popupDismissed();
-    setEditMode(false);
     emit urlEditingFinished(m_urlEdit->text());
 }
 
@@ -225,6 +224,7 @@ void ToolbarWidget::popupDismissed()
 {
     delete m_urlfilterPopup;
     m_urlfilterPopup = 0;
+    setEditMode(false);
 }
 
 void ToolbarWidget::createPopup()

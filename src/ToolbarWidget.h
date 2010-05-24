@@ -31,8 +31,6 @@ class QGraphicsSceneMouseEvent;
 class AutoSelectLineEdit;
 class QGraphicsProxyWidget;
 
-const int s_toolbarHeight = 56; // fixed 48 pixel icons and 4+4 margin
-
 class ToolbarWidget : public QObject, public QGraphicsRectItem {
     Q_OBJECT
 public:

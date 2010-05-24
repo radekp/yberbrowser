@@ -125,30 +125,7 @@ bool HomeView::filterMouseEvent(QGraphicsSceneMouseEvent* e)
 
 void HomeView::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
-    QRectF r(rect()); 
-    int containerWidth = r.width() / 3 - s_containerMargin;
-
-    // tab to the leftmost pos
-    r.setWidth(containerWidth);
-    m_pannableWindowSelectContainer->setGeometry(r);
-    m_tabWidget->setGeometry(r);
-    if (m_activeWidget == WindowSelect)
-        setPos(-r.topLeft());
-
-    // move history to the middle
-    r.moveLeft(containerWidth); 
-    r.setWidth(containerWidth - s_containerMargin);
-    m_pannableHistoryContainer->setGeometry(r);
-    m_historyWidget->setGeometry(QRectF(QPointF(0, 0), r.size()));
-    if (m_activeWidget == VisitedPages)
-        setPos(QPointF(-(r.x() - s_containerMargin), 0));
-
-    // rigthmost
-    r.moveLeft(2*containerWidth - s_containerMargin); 
-    m_pannableBookmarkContainer->setGeometry(r);
-    m_bookmarkWidget->setGeometry(QRectF(QPointF(0, 0), r.size()));
-    if (m_activeWidget == Bookmarks)
-        setPos(QPointF(-(r.x() - s_containerMargin), 0));
+    resetContainerSize();
     TileSelectionViewBase::resizeEvent(event);
 }
 
@@ -244,6 +221,7 @@ void HomeView::moveViews()
 
 void HomeView::destroyViewItems()
 {
+    resetContainerSize();
     m_tabWidget->removeAll();
     m_historyWidget->removeAll();
     m_bookmarkWidget->removeAll();
@@ -337,14 +315,40 @@ TileBaseWidget* HomeView::widgetByType(HomeWidgetType type)
     return 0;    
 }
 
-PannableTileContainer* HomeView::activePannableContainer()
+void HomeView::resetContainerSize()
 {
+    QRectF r(rect()); 
+    int containerWidth = r.width() / 3 - s_containerMargin;
+
+    // tab to the leftmost pos
+    r.setWidth(containerWidth);
+    m_pannableWindowSelectContainer->setGeometry(r);
+    QRectF mr(r);
+    mr.setBottom(mr.bottom() - 64);
+    m_tabWidget->setMinimumHeight(0);
+    m_tabWidget->setGeometry(mr);
     if (m_activeWidget == WindowSelect)
-        return m_pannableWindowSelectContainer;
-    else if (m_activeWidget == VisitedPages)
-        return m_pannableHistoryContainer;
-    else if (m_activeWidget == Bookmarks)
-        return m_pannableBookmarkContainer;
-    return 0;    
+        setPos(-r.topLeft());
+
+    // move history to the middle
+    r.moveLeft(containerWidth); 
+    r.setWidth(containerWidth - s_containerMargin);
+    m_pannableHistoryContainer->setGeometry(r);
+    mr = QRectF(QPointF(0, 0), r.size());
+    mr.setBottom(mr.bottom() - 64);
+    m_historyWidget->setMinimumHeight(0);
+    m_historyWidget->setGeometry(mr);
+    if (m_activeWidget == VisitedPages)
+        setPos(QPointF(-(r.x() - s_containerMargin), 0));
+
+    // rigthmost
+    r.moveLeft(2*containerWidth - s_containerMargin); 
+    m_pannableBookmarkContainer->setGeometry(r);
+    mr = QRectF(QPointF(0, 0), r.size());
+    mr.setBottom(mr.bottom() - 64);
+    m_bookmarkWidget->setMinimumHeight(0);
+    m_bookmarkWidget->setGeometry(mr);
+    if (m_activeWidget == Bookmarks)
+        setPos(QPointF(-(r.x() - s_containerMargin), 0));
 }
 

@@ -44,7 +44,6 @@
 
 #include "WebViewportItem.h"
 #include "ProgressWidget.h"
-#include "ScrollbarItem.h"
 #include "EventHelpers.h"
 
 namespace {

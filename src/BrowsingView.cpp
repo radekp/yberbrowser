@@ -60,6 +60,7 @@
 #include "qwebframe.h"
 
 const int s_maxWindows = 6;
+const int s_toolbarHeight = 56; // fixed 48 pixel icons and 4+4 margin
 
 /*!
    \class BrowsingView view displaying the web page, e.g the main browser UI.
@@ -281,7 +282,6 @@ WebView* BrowsingView::newWindow()
 void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
 {
     if (m_homeView) {
-        m_homeView->updateContent();
         if (m_homeView->activeWidget() != type)
             m_homeView->setActiveWidget(type);
         return;
@@ -332,7 +332,7 @@ void BrowsingView::urlEditingFinished(const QString& url)
 void BrowsingView::urlEditfocusChanged(bool focused)
 {
     if (focused)
-        createHomeView(m_initialHomeWidget);
+        createHomeView(m_homeView ? m_homeView->activeWidget() : m_initialHomeWidget);
     m_toolbarWidget->setEditMode(focused);
 }
 

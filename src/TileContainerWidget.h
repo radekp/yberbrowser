@@ -56,9 +56,9 @@ private:
 
 protected:
     TileList m_tileList;
+    QGraphicsSimpleTextItem* m_titleItem;
 
 private:
-    QGraphicsSimpleTextItem* m_titleItem;
     QParallelAnimationGroup* m_slideAnimationGroup;
     QString m_title;
     bool m_editMode;
