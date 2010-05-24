@@ -216,7 +216,8 @@ void HistoryWidget::layoutTiles()
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
-    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin).height()); 
+    // add toolbarheight to make sure tiles are always visible
+    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin).height() + ToolbarWidget::height() + s_titleVMargin); 
 }
 
 // bookmarks
@@ -236,7 +237,8 @@ void BookmarkWidget::layoutTiles()
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
     r.setTop(s_titleVMargin + m_titleItem->boundingRect().height());
-    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, 0).height());
+    // add toolbarheight to make sure tiles are always visible
+    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, 0).height() + ToolbarWidget::height() + s_titleVMargin);
 }
 
 // url filter popup

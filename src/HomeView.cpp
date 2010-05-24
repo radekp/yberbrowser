@@ -38,7 +38,7 @@
 const int s_maxWindows = 6;
 const int s_containerXMargin = 60;
 const int s_containerYBottomMargin = 10;
-const int s_maxHistoryTileNum = 20;
+const int s_maxHistoryTileNum = 19;
 const int s_horizontalFlickLockThreshold = 20;
 const int s_flickTimeoutThreshold = 700;
 
