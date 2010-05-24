@@ -33,6 +33,7 @@
 #include "ToolbarWidget.h"
 
 const int s_tileMargin = 40;
+const int s_tileTopMargin = 25;
 const int s_titleVMargin = 10;
 const int s_bookmarksTileHeight = 70;
 const int s_searchItemTileHeight = 60;
@@ -173,7 +174,7 @@ void TabWidget::layoutTiles()
     // 6 tabs max atm
     // FIXME: this is landscape oriented. check aspect ratio
     QRectF r(rect());
-    r.setTop(s_titleVMargin + m_titleItem->boundingRect().height() - s_tileMargin);
+    r.setTop(s_titleVMargin + m_titleItem->boundingRect().height() + s_tileTopMargin- s_tileMargin);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
@@ -212,7 +213,7 @@ void HistoryWidget::layoutTiles()
 {
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
-    r.setTop(s_titleVMargin + m_titleItem->boundingRect().height() - s_tileMargin);
+    r.setTop(s_titleVMargin + m_titleItem->boundingRect().height() + s_tileTopMargin - s_tileMargin);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
@@ -236,7 +237,7 @@ void BookmarkWidget::layoutTiles()
 {
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
-    r.setTop(s_titleVMargin + m_titleItem->boundingRect().height());
+    r.setTop(s_titleVMargin + m_titleItem->boundingRect().height() + s_tileTopMargin);
     // add toolbarheight to make sure tiles are always visible
     setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, 0).height() + ToolbarWidget::height() + s_titleVMargin);
 }
