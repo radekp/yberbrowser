@@ -32,6 +32,7 @@
 #include "Settings.h"
 #include "HistoryStore.h"
 
+const int s_toolbarHeight = 56; // fixed 48 pixel icons and 4+4 margin
 const int s_iconXMargin = 10;
 const int s_toolbarIconWidth = 48;
 const int s_toolbarIconMargin = 4;
@@ -56,6 +57,11 @@ ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
 
 ToolbarWidget::~ToolbarWidget()
 {
+}
+
+int ToolbarWidget::height()
+{
+    return s_toolbarHeight;
 }
 
 void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)

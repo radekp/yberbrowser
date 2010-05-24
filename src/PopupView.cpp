@@ -179,6 +179,11 @@ void PopupView::tileItemEditingMode(TileItem* item)
     update();
 }
 
+void PopupView::resetContainerSize()
+{
+    m_popupWidget->setMinimumHeight(0);
+}
+
 void PopupView::destroyViewItems()
 {
     m_popupWidget->removeAll();

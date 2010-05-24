@@ -69,6 +69,7 @@ void TileSelectionViewBase::updateBackground(QPixmap* bckg)
 
 void TileSelectionViewBase::updateContent()
 {
+    resetContainerSize();
     destroyViewItems();
     createViewItems();
 }

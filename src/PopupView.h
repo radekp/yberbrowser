@@ -52,6 +52,7 @@ private Q_SLOTS:
 
 private:
     bool setupInAndOutAnimation(bool);
+    void resetContainerSize();
     void createViewItems();
     void destroyViewItems();
 

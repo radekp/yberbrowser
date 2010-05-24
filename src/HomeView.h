@@ -48,7 +48,6 @@ public:
     void setWindowList(QList<WebView*>& windowList) { m_windowList = &windowList; }
     HomeWidgetType activeWidget() const { return m_activeWidget; }
     void setActiveWidget(HomeWidgetType widget);
-    void resizeEvent(QGraphicsSceneResizeEvent* event);
     // FIXME temp hack until event handling is fixed
     bool filterMouseEvent(QGraphicsSceneMouseEvent*);
 

@@ -37,6 +37,9 @@ public:
     ToolbarWidget(QGraphicsItem* parent);
     ~ToolbarWidget();
 
+    // FIXME: 
+    static int height();
+
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 
     void setEditMode(bool on);

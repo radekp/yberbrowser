@@ -62,6 +62,7 @@ public Q_SLOTS:
 protected:
     TileSelectionViewBase(ViewType type, QPixmap* bckg, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
 
+    virtual void resetContainerSize() = 0;
     virtual void createViewItems() = 0;
     virtual void destroyViewItems() = 0;
     virtual void connectItem(TileItem&);

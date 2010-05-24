@@ -28,6 +28,7 @@
 #include "HistoryStore.h"
 #include "BookmarkStore.h"
 #include "WebView.h"
+#include "ToolbarWidget.h"
 #if USE_DUI
 #include <DuiScene>
 #endif
@@ -35,7 +36,8 @@
 #include <QDebug>
 
 const int s_maxWindows = 6;
-const int s_containerMargin = 60;
+const int s_containerXMargin = 60;
+const int s_containerYBottomMargin = 10;
 const int s_maxHistoryTileNum = 20;
 const int s_horizontalFlickLockThreshold = 20;
 const int s_flickTimeoutThreshold = 700;
@@ -76,15 +78,15 @@ void HomeView::setActiveWidget(HomeWidgetType widget)
         return;
 
     m_activeWidget = widget;
-    int containerWidth = rect().width() / 3 - s_containerMargin;
+    int containerWidth = rect().width() / 3 - s_containerXMargin;
 
     // repositon view
     if (m_activeWidget == WindowSelect)
         setPos(0, 0);
     else if (m_activeWidget == VisitedPages)
-        setPos(QPointF(-(containerWidth - s_containerMargin), 0));
+        setPos(QPointF(-(containerWidth - s_containerXMargin), 0));
     else if (m_activeWidget == Bookmarks)
-        setPos(QPointF(-(2*containerWidth - 2*s_containerMargin), 0));
+        setPos(QPointF(-(2*containerWidth - 2*s_containerXMargin), 0));
 }
 
 bool HomeView::filterMouseEvent(QGraphicsSceneMouseEvent* e)
@@ -121,12 +123,6 @@ bool HomeView::filterMouseEvent(QGraphicsSceneMouseEvent* e)
         }
     }
     return false;
-}
-
-void HomeView::resizeEvent(QGraphicsSceneResizeEvent* event)
-{
-    resetContainerSize();
-    TileSelectionViewBase::resizeEvent(event);
 }
 
 void HomeView::tileItemActivated(TileItem* item)
@@ -169,7 +165,7 @@ void HomeView::moveViews()
     bool flick = m_flickTime.elapsed() < s_flickTimeoutThreshold;
 
     // check which container wins
-    int containerWidth = size().width() / 3 - s_containerMargin;
+    int containerWidth = size().width() / 3 - s_containerXMargin;
     HomeWidgetType oldActiveWidget = m_activeWidget;
 
     if (flick) {
@@ -203,9 +199,9 @@ void HomeView::moveViews()
     int newPos = 0;
     // rightmost >> middle >> leftmost
     if (m_activeWidget == Bookmarks)
-        newPos = 2 * containerWidth - 2*s_containerMargin;
+        newPos = 2 * containerWidth - 2*s_containerXMargin;
     else if (m_activeWidget == VisitedPages)
-        newPos = containerWidth - s_containerMargin;
+        newPos = containerWidth - s_containerXMargin;
 
     QRectF to(geometry());
     to.moveLeft(-newPos);
@@ -221,7 +217,6 @@ void HomeView::moveViews()
 
 void HomeView::destroyViewItems()
 {
-    resetContainerSize();
     m_tabWidget->removeAll();
     m_historyWidget->removeAll();
     m_bookmarkWidget->removeAll();
@@ -317,38 +312,39 @@ TileBaseWidget* HomeView::widgetByType(HomeWidgetType type)
 
 void HomeView::resetContainerSize()
 {
+    m_tabWidget->setMinimumHeight(0);
+    m_historyWidget->setMinimumHeight(0);
+    m_bookmarkWidget->setMinimumHeight(0);
+
     QRectF r(rect()); 
-    int containerWidth = r.width() / 3 - s_containerMargin;
+    int containerWidth = r.width() / 3 - s_containerXMargin;
 
     // tab to the leftmost pos
     r.setWidth(containerWidth);
     m_pannableWindowSelectContainer->setGeometry(r);
-    QRectF mr(r);
-    mr.setBottom(mr.bottom() - 64);
-    m_tabWidget->setMinimumHeight(0);
-    m_tabWidget->setGeometry(mr);
+
+    // tile containers have the offset of the toolbar
+    QRectF containerRect(r);
+    containerRect.setBottom(containerRect.bottom() - ToolbarWidget::height() - s_containerYBottomMargin);
+    m_tabWidget->setGeometry(containerRect);
     if (m_activeWidget == WindowSelect)
         setPos(-r.topLeft());
 
     // move history to the middle
     r.moveLeft(containerWidth); 
-    r.setWidth(containerWidth - s_containerMargin);
+    r.setWidth(containerWidth - s_containerXMargin);
     m_pannableHistoryContainer->setGeometry(r);
-    mr = QRectF(QPointF(0, 0), r.size());
-    mr.setBottom(mr.bottom() - 64);
-    m_historyWidget->setMinimumHeight(0);
-    m_historyWidget->setGeometry(mr);
+
+    containerRect.setWidth(r.width());
+    m_historyWidget->setGeometry(containerRect);
     if (m_activeWidget == VisitedPages)
-        setPos(QPointF(-(r.x() - s_containerMargin), 0));
+        setPos(QPointF(-(r.x() - s_containerXMargin), 0));
 
     // rigthmost
-    r.moveLeft(2*containerWidth - s_containerMargin); 
+    r.moveLeft(2*containerWidth - s_containerXMargin); 
     m_pannableBookmarkContainer->setGeometry(r);
-    mr = QRectF(QPointF(0, 0), r.size());
-    mr.setBottom(mr.bottom() - 64);
-    m_bookmarkWidget->setMinimumHeight(0);
-    m_bookmarkWidget->setGeometry(mr);
+    m_bookmarkWidget->setGeometry(containerRect);
     if (m_activeWidget == Bookmarks)
-        setPos(QPointF(-(r.x() - s_containerMargin), 0));
+        setPos(QPointF(-(r.x() - s_containerXMargin), 0));
 }
 
