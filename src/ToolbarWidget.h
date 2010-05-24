@@ -22,6 +22,7 @@
 #define ToolbarWidget_h_
 
 #include <QGraphicsRectItem>
+#include <QLinearGradient>
 
 class PopupView;
 class QImage;
@@ -79,6 +80,8 @@ private:
     AutoSelectLineEdit* m_urlEdit;
     QString m_lastEnteredText;
     PopupView* m_urlfilterPopup;
+    QLinearGradient m_bckgGradient;
+    bool m_gradientSet;
 };
 
 #endif

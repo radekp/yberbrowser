@@ -47,12 +47,17 @@ ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     , m_urlProxyWidget(0)
     , m_urlEdit(new AutoSelectLineEdit(0))
     , m_urlfilterPopup(0)
+    , m_gradientSet(false)
 {
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(textEdited(const QString&)));
     connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(textEditingFinished()));
     connect(m_urlEdit, SIGNAL(focusChanged(bool)), SLOT(editorFocusChanged(bool)));
     setZValue(1);
+    QGradientStops stops;
+    stops << QGradientStop(0.00, QColor(195, 195, 195, 220)) << QGradientStop(0.10, QColor(80, 80, 80, 225)) << QGradientStop(0.90, QColor(80, 80, 80, 225)) << QGradientStop(1.00, QColor(195, 195, 195, 220));
+    for (int j=0; j<stops.size(); ++j)
+        m_bckgGradient.setColorAt(stops.at(j).first, stops.at(j).second);
 }
 
 ToolbarWidget::~ToolbarWidget()
@@ -68,9 +73,17 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
 {
     QRectF r(rect());
 
+    // FIXME: do some kind of resize listening
+    if (!m_gradientSet) {
+        m_bckgGradient.setStart(rect().topLeft());
+        m_bckgGradient.setFinalStop(rect().bottomLeft());
+        m_gradientSet = true;
+    }
+
     // editor
     painter->setPen(QColor(80, 80, 80, 220));
-    painter->setBrush(QColor(80, 80, 80, 220));
+
+    painter->setBrush(m_bckgGradient);
     painter->drawRect(r);
 
     int editorX = r.left() + s_toolbarIconWidth + 2*s_toolbarIconMargin;
