@@ -60,9 +60,6 @@
 #include "qwebframe.h"
 
 const int s_maxWindows = 6;
-const int s_toolbarMarginRight = 80;
-const int s_toolbarMarginLeft = 10;
-const int s_toolbarMarginBottom = 3;
 
 /*!
    \class BrowsingView view displaying the web page, e.g the main browser UI.
@@ -158,7 +155,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
         m_homeView->resize(QSize(3*m_browsingViewport->size().width(), m_browsingViewport->size().height()));
 
     QRectF r(rect());
-    r.adjust(s_toolbarMarginLeft, r.bottom() - s_toolbarHeight, -s_toolbarMarginRight, -s_toolbarMarginBottom);
+    r.adjust(0, r.bottom() - s_toolbarHeight, 0, 0);
     m_toolbarWidget->setRect(r);
 
 #if !USE_DUI

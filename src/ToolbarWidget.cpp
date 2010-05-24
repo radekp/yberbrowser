@@ -35,8 +35,6 @@
 const int s_iconXMargin = 10;
 const int s_toolbarIconWidth = 48;
 const int s_toolbarIconMargin = 4;
-const int s_toolbarRound = 4;
-const int s_toolbarMarginBottom = 3;
 
 ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     : QGraphicsRectItem(parent)
@@ -67,7 +65,7 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     // editor
     painter->setPen(QColor(80, 80, 80, 220));
     painter->setBrush(QColor(80, 80, 80, 220));
-    painter->drawRoundedRect(r, s_toolbarRound, s_toolbarRound);
+    painter->drawRect(r);
 
     int editorX = r.left() + s_toolbarIconWidth + 2*s_toolbarIconMargin;
     if (m_progress > 0) {
@@ -85,12 +83,12 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     // bookmark icon and bckg
     r.setRight(editorX);
     int iconY = r.top() + s_toolbarIconMargin;
-    painter->drawRoundedRect(r, s_toolbarRound, s_toolbarRound);
+    painter->drawRect(r);
     painter->drawImage(QPointF(r.left() + s_toolbarIconMargin, iconY), *m_bookmarksIcon);
 
     // stop/cancel icon and bckg
     r.moveLeft(rect().right() - (s_toolbarIconWidth + 2*s_toolbarIconMargin));
-    painter->drawRoundedRect(r, s_toolbarRound, s_toolbarRound);
+    painter->drawRect(r);
     painter->drawImage(QPointF(rect().right() - (s_toolbarIconWidth + s_toolbarIconMargin), iconY), m_progress > 0 ? *m_cancelIcon : *m_backIcon);
     
     QFont f("Times", 18);
@@ -206,6 +204,8 @@ void ToolbarWidget::textEdited(const QString& newText)
 void ToolbarWidget::textEditingFinished()
 {
     m_lastEnteredText = QString();
+    popupDismissed();
+    setEditMode(false);
     emit urlEditingFinished(m_urlEdit->text());
 }
 
@@ -217,10 +217,8 @@ void ToolbarWidget::editorFocusChanged(bool focused)
 
 void ToolbarWidget::popupItemSelected(const QUrl& url)
 {
-    popupDismissed();
     m_urlEdit->setText(url.toString());
     textEditingFinished();
-    setEditMode(false);
 }
 
 void ToolbarWidget::popupDismissed()
@@ -236,7 +234,7 @@ void ToolbarWidget::createPopup()
     m_urlfilterPopup = new PopupView(this);
     connect(m_urlfilterPopup, SIGNAL(pageSelected(const QUrl&)), this, SLOT(popupItemSelected(const QUrl&)));
     connect(m_urlfilterPopup, SIGNAL(viewDismissed()), this, SLOT(popupDismissed()));
-    m_urlfilterPopup->resize(parentWidget()->size().width(), parentWidget()->size().height() - rect().height() - s_toolbarMarginBottom);
+    m_urlfilterPopup->resize(parentWidget()->size().width(), parentWidget()->size().height() - rect().height());
     m_urlfilterPopup->appear();
 }
 
