@@ -55,7 +55,7 @@ ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     connect(m_urlEdit, SIGNAL(focusChanged(bool)), SLOT(editorFocusChanged(bool)));
     setZValue(1);
     QGradientStops stops;
-    stops << QGradientStop(0.00, QColor(195, 195, 195, 220)) << QGradientStop(0.10, QColor(80, 80, 80, 225)) << QGradientStop(0.90, QColor(80, 80, 80, 225)) << QGradientStop(1.00, QColor(195, 195, 195, 220));
+    stops << QGradientStop(0.00, QColor(165, 165, 165, 220)) << QGradientStop(0.10, QColor(80, 80, 80, 225)) << QGradientStop(0.90, QColor(80, 80, 80, 225));
     for (int j=0; j<stops.size(); ++j)
         m_bckgGradient.setColorAt(stops.at(j).first, stops.at(j).second);
 }
@@ -89,10 +89,10 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     int editorX = r.left() + s_toolbarIconWidth + 2*s_toolbarIconMargin;
     if (m_progress > 0) {
         QRectF pr(r);
-        painter->setPen(QColor(10, 10, 10, 120));
-        painter->setBrush(QColor(10, 10, 10, 120));
+        painter->setBrush(QColor(2, 2, 30, 120));
+        int progressAreaWidth = r.width() - 2*(s_toolbarIconWidth + 2*s_toolbarIconMargin);
         pr.setLeft(editorX);
-        pr.setRight(pr.left() + r.width() / 100 * m_progress);
+        pr.setRight(pr.left() + progressAreaWidth / 100 * m_progress);
         painter->drawRect(pr);
     }
 
