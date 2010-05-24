@@ -233,8 +233,12 @@ void BrowsingView::windowClosed(WebView* webView)
 void BrowsingView::windowCreated()
 {
     newWindow();
-    // move view to top pages container
-    createHomeView(HomeView::VisitedPages);
+    if (m_homeView) {
+        m_homeView->setActiveWidget(HomeView::VisitedPages);
+        m_homeView->updateContent();
+    } else {
+        createHomeView(HomeView::VisitedPages);
+    }
 }
 
 void BrowsingView::setActiveWindow(WebView* webView)
