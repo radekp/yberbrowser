@@ -317,6 +317,7 @@ void AutoScrollTest::scrollTimeout()
         //
         m_fpsResultView = new FPSResultView(m_fpsValues);
         m_fpsResultView->setGeometry(m_browsingView->pannableViewport()->rect());
+        m_browsingView->scene()->addItem(m_fpsResultView);
         m_fpsResultView->appear();
         connect(m_fpsResultView, SIGNAL(finished()), this, SLOT(fpsViewClicked()));
     }
