@@ -7,12 +7,5 @@
     <file>data/icon/48x48/stop_48.png</file>
     <file>data/icon/48x48/bookmarks_48.png</file>
     <file>data/icon/48x48/defaulticon_48.png</file>
-    <file>data/icon/16x16/defaulticon_16.png</file>
-    <file>data/_yberbrowser/facebook.ico</file>
-    <file>data/_yberbrowser/yahoo.ico</file>
-    <file>data/_yberbrowser/wikipedia.ico</file>
-    <file>data/_yberbrowser/google.ico</file>
-    <file>data/_yberbrowser/twitter.ico</file>
-    <file>data/_yberbrowser/msn.ico</file>
 </qresource>
 </RCC>
