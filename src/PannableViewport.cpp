@@ -48,6 +48,8 @@ PannableViewport::PannableViewport(QGraphicsItem* parent, Qt::WindowFlags wFlags
     , m_pannedWidget(0)
     , m_vScrollbar(new ScrollbarItem(Qt::Vertical, this))
     , m_hScrollbar(new ScrollbarItem(Qt::Horizontal, this))
+    , m_scrollbarXOffset(0)
+    , m_scrollbarYOffset(0)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
@@ -124,12 +126,18 @@ void PannableViewport::updateScrollbars()
     QPointF contentPos = panPos();
     QSizeF contentSize = m_pannedWidget->size();
 
-    QSizeF viewSize = size();
+    QSizeF viewSize(size().width() - m_scrollbarXOffset, size().height() - m_scrollbarYOffset);
 
     bool shouldFadeOut = !(state() == YberHack_Qt::QAbstractKineticScroller::MousePressed || state() == YberHack_Qt::QAbstractKineticScroller::Pushing);
 
     m_hScrollbar->contentPositionUpdated(contentPos.x(), contentSize.width(), viewSize, shouldFadeOut);
     m_vScrollbar->contentPositionUpdated(contentPos.y(), contentSize.height(), viewSize, shouldFadeOut);
+}
+
+void PannableViewport::setScrollbarOffset(int v, int h)
+{
+    m_scrollbarYOffset = v;
+    m_scrollbarXOffset = h;
 }
 
 void PannableViewport::setScrollPosition(const QPoint &pos, const QPoint &overShootDelta)

@@ -56,6 +56,7 @@ public:
     void setAutoRange(bool) { }
 
     void updateScrollbars();
+    void setScrollbarOffset(int h, int v);
 
     void setWidget(QGraphicsWidget*);
     void detachWidget() { m_pannedWidget = 0; }
@@ -93,6 +94,8 @@ private:
     QPointF m_extraPos;
     QRectF m_geomAnimEndValue;
     QPropertyAnimation m_geomAnim;
+    int m_scrollbarXOffset;
+    int m_scrollbarYOffset;
 };
 
 #endif

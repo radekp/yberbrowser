@@ -83,6 +83,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     m_browsingViewport->setWidget(m_webInteractionProxy);
 #else
     m_browsingViewport = new WebViewport(m_webInteractionProxy);
+    m_browsingViewport->setScrollbarOffset(ToolbarWidget::height(), 0);
 #endif
     m_browsingViewport->setAutoRange(false);
 
