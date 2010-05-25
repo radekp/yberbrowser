@@ -20,6 +20,7 @@
 
 #include <QApplication>
 #include <QGraphicsScene>
+#include <QMetaMethod>
 #include "WebViewport.h"
 #include "WebViewportItem.h"
 #include "EventHelpers.h"
@@ -224,7 +225,6 @@ QWebFrame* findFrame(const QPoint& pos, QWebFrame* frame)
     return 0;
 }
 
-#if defined(ENABLE_NEW_LINK_SELECTION) && ENABLE_NEW_LINK_SELECTION
 void WebViewport::adjustClickPosition(QPointF& pos)
 {
     QPointF localPos = viewportWidget()->webView()->mapFromScene(pos);
@@ -235,6 +235,11 @@ void WebViewport::adjustClickPosition(QPointF& pos)
     QWebFrame* qframe = findFrame(pp, viewportWidget()->webView()->page()->mainFrame());
     if (!qframe)
         return;
+
+    static int methodOffset = qframe->metaObject()->indexOfMethod("findClickableNode(QRect,QPoint&)");
+    if (methodOffset < 0)
+        return;
+    static QMetaMethod findClickableNodeMethod = qframe->metaObject()->method(methodOffset);
 
     QPoint resultPoint;
     // zoom dependent search rect size
@@ -252,7 +257,9 @@ void WebViewport::adjustClickPosition(QPointF& pos)
     delete m_clickablePointItem; m_clickablePointItem = 0;
 #endif
 
-    if (qframe->findClickableNode(searchRect, resultPoint)) {
+    bool found;
+    findClickableNodeMethod.invoke(qframe, Q_RETURN_ARG(bool, found), Q_ARG(QRect, searchRect), Q_RETURN_ARG(QPoint, resultPoint));
+    if (found) {
         pos = viewportWidget()->webView()->mapToScene(resultPoint);
 #if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
         m_clickablePointItem = new QGraphicsEllipseItem(viewportWidget()->webView()->mapToScene(QRect(resultPoint.x() - 3, resultPoint.y() - 3, 6, 6)).boundingRect(), this);
@@ -276,7 +283,10 @@ void WebViewport::adjustClickPosition(QPointF& pos)
 #endif
         // search again
         qframe = findFrame(searchRect.center(), viewportWidget()->webView()->page()->mainFrame());
-        if (qframe && qframe->findClickableNode(searchRect, resultPoint)) {
+        if (!qframe)
+            return;
+        findClickableNodeMethod.invoke(qframe, Q_RETURN_ARG(bool, found), Q_ARG(QRect, searchRect), Q_RETURN_ARG(QPoint, resultPoint));
+        if (found) {
             pos = viewportWidget()->webView()->mapToScene(resultPoint);
 #if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
         m_clickablePointItem = new QGraphicsEllipseItem(viewportWidget()->webView()->mapToScene(QRect(resultPoint.x() - 3, resultPoint.y() - 3, 6, 6)).boundingRect(), this);
@@ -287,11 +297,6 @@ void WebViewport::adjustClickPosition(QPointF& pos)
         }
     }
 }
-#else // ENABLE_NEW_LINK_SELECTION
-void WebViewport::adjustClickPosition(QPointF&)
-{
-}
-#endif // ENABLE_NEW_LINK_SELECTION
 
 void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
 {

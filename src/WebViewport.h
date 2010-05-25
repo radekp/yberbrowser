@@ -33,7 +33,7 @@
 #include "PannableViewport.h"
 #include "CommonGestureRecognizer.h"
 
-#define ENABLE_LINK_SELECTION_VISUAL_DEBUG
+//#define ENABLE_LINK_SELECTION_VISUAL_DEBUG
 
 class WebViewportItem;
 class LinkSelectionItem;
