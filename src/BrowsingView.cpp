@@ -313,18 +313,13 @@ void BrowsingView::deleteHomeView()
     m_webInteractionProxy->show();
     // save homeview state, so that it is positioned back to the same view when reopened
     m_initialHomeWidget = m_homeView->activeWidget();
+    // unless this is WindowSelect with empty page, users probably want to load something
+    // and not going back to WindowSelect again
+    if (m_initialHomeWidget == HomeView::WindowSelect && m_activeWebView->url().isEmpty())
+        m_initialHomeWidget = HomeView::VisitedPages;
+    
     delete m_homeView;
     m_homeView = 0;
-}
-
-void BrowsingView::toggleTabSelectionView()
-{
-    if (!m_homeView)
-        createHomeView(HomeView::WindowSelect);
-    else if (m_homeView->activeWidget() != HomeView::WindowSelect)
-        m_homeView->setActiveWidget(HomeView::WindowSelect);
-    else 
-        deleteHomeView();
 }
 
 void BrowsingView::urlEditingFinished(const QString& url)

@@ -92,7 +92,6 @@ protected Q_SLOTS:
     void loadFinished(bool success);
 
     void toggleFullScreen();
-    void toggleTabSelectionView();
 
     void prepareForResize();
 
