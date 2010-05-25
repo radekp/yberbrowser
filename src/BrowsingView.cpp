@@ -440,7 +440,9 @@ QPixmap* BrowsingView::webviewSnapshot()
         QStyleOptionGraphicsItem sItem;
         sItem.exposedRect = QRectF(QPointF(0, 0), thumbnailSize/scale);
         p.scale(scale, scale);
-        m_activeWebView->paint(&p, &sItem);
+        //FIXME until the right api is figured out
+//        m_activeWebView->paint(&p, &sItem);
+        m_activeWebView->page()->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width()/scale, thumbnailSize.height()/scale));
         p.fillRect(sItem.exposedRect, QColor(0, 0, 0, 198));
     } else {
         p.fillRect(thumbnail.rect(), QColor(30, 30, 30));
