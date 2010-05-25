@@ -54,7 +54,9 @@ HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* p
     , m_windowList(0) 
 {
     m_pannableHistoryContainer->setWidget(m_historyWidget);
+    m_pannableHistoryContainer->setScrollbarOffset(ToolbarWidget::height(), 0);
     m_pannableBookmarkContainer->setWidget(m_bookmarkWidget);
+    m_pannableBookmarkContainer->setScrollbarOffset(ToolbarWidget::height(), 0);
     m_pannableWindowSelectContainer->setWidget(m_tabWidget);
     
     m_tabWidget->setEditMode(true);

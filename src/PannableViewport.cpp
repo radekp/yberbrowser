@@ -76,7 +76,6 @@ QPointF PannableViewport::panPos() const
 
 void PannableViewport::setRange(const QRectF& )
 {
-
 }
 
 void PannableViewport::setWidget(QGraphicsWidget* view)

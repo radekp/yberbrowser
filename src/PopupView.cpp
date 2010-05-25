@@ -134,8 +134,10 @@ void PopupView::resizeEvent(QGraphicsSceneResizeEvent* event)
 
 void PopupView::setFilterText(const QString& text)
 {
+#ifdef QTSCRIPT_FIX_AVAILABLE
     m_suggestTimer->start(500);
     m_suggest->stop();
+#endif
 
     m_filterText = text;
     destroyViewItems();
