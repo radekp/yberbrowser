@@ -31,6 +31,7 @@ class WebPage : public QWebPage {
 public:
     WebPage(QObject* parent = 0, BrowsingView* ownerView = 0);
     virtual QWebPage* createWindow(QWebPage::WebWindowType);
+    virtual QString userAgentForUrl(const QUrl&) const;
 
 private:
     BrowsingView* m_ownerView;

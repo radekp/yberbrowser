@@ -49,3 +49,16 @@ QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
 
     return webView->page();
 }
+
+QString WebPage::userAgentForUrl(const QUrl&) const
+{
+    static QString userAgent = QWebPage::userAgentForUrl(QUrl())
+#if !defined(Q_OS_SYMBIAN) && !defined(Q_WS_MAEMO_5)
+        .replace("Safari", "Mobile Safari")
+#endif
+        // NOTE: For testing purposed we want to receive pages
+        // created for the iPhone or Android. Yberbrowser is not
+        // known enough for people serving us these pages.
+        .replace("Linux", "Linux, like Android");
+    return userAgent;
+}
