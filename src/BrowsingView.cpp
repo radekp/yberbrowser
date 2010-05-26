@@ -365,7 +365,11 @@ void BrowsingView::progressChanged(int progress)
 void BrowsingView::loadFinished(bool success)
 {
     m_toolbarWidget->setProgress(0);
-    urlChanged(m_activeWebView->url());
+    if (success) {
+        // I might be typing a new url while it is loading, when I press return I don't want the
+        // address bar to changed the url to the one I was loading.
+        urlChanged(m_activeWebView->url());
+    }
     updateHistoryStore(success);
 }
 

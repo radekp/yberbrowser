@@ -36,6 +36,7 @@ public:
         connect(&selectURLTimer, SIGNAL(timeout()), this, SLOT(selectAll()));
 
         connect(this, SIGNAL(textEdited(QString)), q, SIGNAL(textEdited(QString)));
+        connect(this, SIGNAL(textEdited(QString)), q, SLOT(setText(QString)));
         connect(this, SIGNAL(returnPressed()), q, SIGNAL(returnPressed()));
     }
 

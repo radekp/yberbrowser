@@ -39,11 +39,13 @@ public:
     ~AutoSelectLineEdit();
 
     QString text();
-    void setText(const QString& text);
 
     int selectionStart () const;
     void setCursorPosition(int pos);
     void setSelection(int start, int length);
+
+public Q_SLOTS:
+    void setText(const QString& text);
 
 Q_SIGNALS:
     void focusChanged(bool);
