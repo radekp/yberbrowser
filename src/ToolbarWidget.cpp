@@ -45,9 +45,8 @@ ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     , m_progress(0)
     , m_editMode(false)
     , m_urlProxyWidget(0)
-    , m_urlEdit(new AutoSelectLineEdit(0))
+    , m_urlEdit(new AutoSelectLineEdit(this))
     , m_urlfilterPopup(0)
-    , m_gradientSet(false)
 {
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(textEdited(const QString&)));
@@ -76,11 +75,12 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     bool geometryChanged = (r != oldRect);
     oldRect = r;
 
-    // FIXME: do some kind of resize listening
-    if (!m_gradientSet) {
+    if (geometryChanged) {
+        int buttonWidth = s_toolbarIconWidth + 2 * s_toolbarIconMargin;
+        m_urlEdit->setGeometry(QRectF(QPointF(r.left() + buttonWidth, r.top()), QSizeF(r.width() - 2 * buttonWidth, r.height())));
+
         m_bckgGradient.setStart(rect().topLeft());
         m_bckgGradient.setFinalStop(rect().bottomLeft());
-        m_gradientSet = true;
     }
 
     // editor
@@ -112,28 +112,11 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     r.moveLeft(rect().right() - (s_toolbarIconWidth + 2 * s_toolbarIconMargin));
     painter->drawRect(r);
     painter->drawImage(QPointF(rect().right() - (s_toolbarIconWidth + s_toolbarIconMargin), iconY), m_progress > 0 ? *m_cancelIcon : *m_backIcon);
-
-    QFont f("Nokia Sans", 18);
-    painter->setPen(QColor(Qt::white));
-    painter->setFont(f);
-    int texMargin = s_toolbarIconWidth + 3*s_toolbarIconMargin;
-    r = rect();
-    r.adjust(texMargin, 0, -texMargin, 0);
-
-    if (geometryChanged || m_text.isEmpty()) {
-        QString userFriendlyText = m_urlEdit->text();
-        if (userFriendlyText.startsWith("http://"))
-            userFriendlyText.remove(0, 7);
-        m_text = QFontMetrics(f).elidedText(userFriendlyText, Qt::ElideRight, rect().width() - (2 * s_toolbarIconWidth + 4 * s_toolbarIconMargin));
-    }
-    painter->drawText(r, Qt::AlignLeft|Qt::AlignVCenter, m_text);
 }
 
 void ToolbarWidget::setText(const QString& text)
 {
     m_urlEdit->setText(text);
-    m_text = QString(); // invalidate
-    update();
 }
 
 void ToolbarWidget::setEditMode(bool on)
@@ -142,21 +125,10 @@ void ToolbarWidget::setEditMode(bool on)
     if (on == m_editMode || m_urlfilterPopup)
         return;
 
-    if (on) {
-        if (!m_urlProxyWidget)
-            m_urlProxyWidget = scene()->addWidget(m_urlEdit);
-
-        QRectF r(rect());
-        int buttonWidth = s_toolbarIconWidth + 2 * s_toolbarIconMargin;
-        m_urlProxyWidget->setGeometry(QRectF(QPointF(r.left() + buttonWidth, r.top()), QSizeF(r.width() - 2 * buttonWidth, r.height())));
-        m_urlEdit->show();
+    if (on)
         m_urlEdit->setFocus(Qt::MouseFocusReason);
-    } else {
-        setText(m_urlEdit->text());
-        m_urlEdit->hide();
-    }
+
     m_editMode = on;
-    update();
 }
 
 void ToolbarWidget::setProgress(uint progress)

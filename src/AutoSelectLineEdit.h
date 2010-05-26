@@ -23,24 +23,36 @@
 
 #include "yberconfig.h"
 
+#include <QGraphicsWidget>
+#include <QGraphicsProxyWidget>
+#include <QGraphicsLinearLayout>
 #include <QLineEdit>
 #include <QTimer>
 
-class AutoSelectLineEdit : public QLineEdit
+class AutoSelectLineEditPrivate;
+
+class AutoSelectLineEdit : public QGraphicsWidget
 {
     Q_OBJECT
 public:
-    AutoSelectLineEdit(QWidget* parent);
+    AutoSelectLineEdit(QGraphicsItem* parent);
+    ~AutoSelectLineEdit();
+
+    QString text();
+    void setText(const QString& text);
+
+    int selectionStart () const;
+    void setCursorPosition(int pos);
+    void setSelection(int start, int length);
 
 Q_SIGNALS:
     void focusChanged(bool);
-
-protected:
-    void focusInEvent(QFocusEvent*e);
-    void focusOutEvent(QFocusEvent*e);
+    void textEdited(const QString&);
+    void returnPressed();
 
 private:
-    QTimer m_selectURLTimer;
+    friend class AutoSelectLineEditPrivate;
+    AutoSelectLineEditPrivate* d;
 };
 
 #endif

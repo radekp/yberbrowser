@@ -52,12 +52,12 @@ public:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
 
 Q_SIGNALS:
-    void bookmarkPressed();    
-    void cancelPressed();    
-    void backPressed();    
+    void bookmarkPressed();
+    void cancelPressed();
+    void backPressed();
     void urlTextChanged(const QString& newText);
     void urlEditingFinished(const QString& url);
-    void urlEditorFocusChanged(bool);    
+    void urlEditorFocusChanged(bool);
 
 protected Q_SLOTS:
     void textEdited(const QString&);
@@ -81,7 +81,6 @@ private:
     QString m_lastEnteredText;
     PopupView* m_urlfilterPopup;
     QLinearGradient m_bckgGradient;
-    bool m_gradientSet;
 };
 
 #endif
