@@ -56,7 +56,7 @@ ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     setZValue(1);
     QGradientStops stops;
     stops << QGradientStop(0.00, QColor(165, 165, 165, 220)) << QGradientStop(0.10, QColor(80, 80, 80, 225)) << QGradientStop(0.90, QColor(80, 80, 80, 225));
-    for (int j=0; j<stops.size(); ++j)
+    for (int j = 0; j < stops.size(); ++j)
         m_bckgGradient.setColorAt(stops.at(j).first, stops.at(j).second);
 }
 
@@ -71,7 +71,10 @@ int ToolbarWidget::height()
 
 void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
 {
+    static QRectF oldRect;
     QRectF r(rect());
+    bool geometryChanged = (r != oldRect);
+    oldRect = r;
 
     // FIXME: do some kind of resize listening
     if (!m_gradientSet) {
@@ -86,11 +89,11 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     painter->setBrush(m_bckgGradient);
     painter->drawRect(r);
 
-    int editorX = r.left() + s_toolbarIconWidth + 2*s_toolbarIconMargin;
+    int editorX = r.left() + s_toolbarIconWidth + 2 * s_toolbarIconMargin;
     if (m_progress > 0) {
         QRectF pr(r);
         painter->setBrush(QColor(2, 2, 30, 120));
-        int progressAreaWidth = r.width() - 2*(s_toolbarIconWidth + 2*s_toolbarIconMargin);
+        int progressAreaWidth = r.width() - 2 * (s_toolbarIconWidth + 2 * s_toolbarIconMargin);
         pr.setLeft(editorX);
         pr.setRight(pr.left() + progressAreaWidth / 100 * m_progress);
         painter->drawRect(pr);
@@ -106,27 +109,30 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     painter->drawImage(QPointF(r.left() + s_toolbarIconMargin, iconY), *m_bookmarksIcon);
 
     // stop/cancel icon and bckg
-    r.moveLeft(rect().right() - (s_toolbarIconWidth + 2*s_toolbarIconMargin));
+    r.moveLeft(rect().right() - (s_toolbarIconWidth + 2 * s_toolbarIconMargin));
     painter->drawRect(r);
     painter->drawImage(QPointF(rect().right() - (s_toolbarIconWidth + s_toolbarIconMargin), iconY), m_progress > 0 ? *m_cancelIcon : *m_backIcon);
-    
+
     QFont f("Nokia Sans", 18);
     painter->setPen(QColor(Qt::white));
     painter->setFont(f);
     int texMargin = s_toolbarIconWidth + 3*s_toolbarIconMargin;
-    r = rect(); 
+    r = rect();
     r.adjust(texMargin, 0, -texMargin, 0);
 
-    // FIXME find out resize event and do the elideright there
-    if (m_text.isEmpty())
-        m_text = QFontMetrics(f).elidedText(m_urlEdit->text(), Qt::ElideRight, rect().width() - (2*s_toolbarIconWidth + 4*s_toolbarIconMargin));
-    painter->drawText(r, Qt::AlignLeft|Qt::AlignVCenter, m_text); 
+    if (geometryChanged || m_text.isEmpty()) {
+        QString userFriendlyText = m_urlEdit->text();
+        if (userFriendlyText.startsWith("http://"))
+            userFriendlyText.remove(0, 7);
+        m_text = QFontMetrics(f).elidedText(userFriendlyText, Qt::ElideRight, rect().width() - (2 * s_toolbarIconWidth + 4 * s_toolbarIconMargin));
+    }
+    painter->drawText(r, Qt::AlignLeft|Qt::AlignVCenter, m_text);
 }
 
 void ToolbarWidget::setText(const QString& text)
 {
-    m_text = QFontMetrics(QFont("Nokia Sans", 18)).elidedText(text, Qt::ElideRight, rect().width() - (2*s_toolbarIconWidth + 4*s_toolbarIconMargin));
     m_urlEdit->setText(text);
+    m_text = QString(); // invalidate
     update();
 }
 
@@ -141,8 +147,8 @@ void ToolbarWidget::setEditMode(bool on)
             m_urlProxyWidget = scene()->addWidget(m_urlEdit);
 
         QRectF r(rect());
-        int buttonWidth = s_toolbarIconWidth + 2*s_toolbarIconMargin;
-        m_urlProxyWidget->setGeometry(QRectF(QPointF(r.left() + buttonWidth, r.top()), QSizeF(r.width() - 2*buttonWidth, r.height())));
+        int buttonWidth = s_toolbarIconWidth + 2 * s_toolbarIconMargin;
+        m_urlProxyWidget->setGeometry(QRectF(QPointF(r.left() + buttonWidth, r.top()), QSizeF(r.width() - 2 * buttonWidth, r.height())));
         m_urlEdit->show();
         m_urlEdit->setFocus(Qt::MouseFocusReason);
     } else {
@@ -159,9 +165,9 @@ void ToolbarWidget::setProgress(uint progress)
     update();
 }
 
-QString ToolbarWidget::text() 
-{ 
-    return m_urlEdit->text(); 
+QString ToolbarWidget::text()
+{
+    return m_urlEdit->text();
 }
 
 void ToolbarWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
@@ -176,7 +182,7 @@ void ToolbarWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     if (r.contains(event->pos())) {
         emit bookmarkPressed();
         return;
-    } 
+    }
 
     r.setLeft(r.right());
     r.setRight(rect().right() - toolbarButtonWidth);
