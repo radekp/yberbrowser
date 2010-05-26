@@ -82,7 +82,7 @@ void NotificationWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem
 
     painter->drawRect(rect());
  
-    QFont f("Times", 18);
+    QFont f("Nokia Sans", 18);
     painter->setFont(f);
     painter->setPen(Qt::white);
     painter->drawText(rect(), Qt::AlignHCenter|Qt::AlignVCenter, m_text);
@@ -91,7 +91,7 @@ void NotificationWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem
 void NotificationWidget::doShow()
 {
     QRectF r(parentWidget()->rect());
-    QFont f("Times", 18);
+    QFont f("Nokia Sans", 18);
     int height = QFontMetrics(f).height() + 2;
     
     r.setTop(r.center().y()/2 - height/2);

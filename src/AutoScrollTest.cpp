@@ -119,7 +119,7 @@ void FPSResultView::addHorizontalLineItem(int y)
 
 void FPSResultView::addTextItem(const QRectF& rect, const QString& text)
 {
-    QFont f("Times", 10);
+    QFont f("Nokia Sans", 10);
     QFontMetrics m(f);
 
     QGraphicsSimpleTextItem* fpsTextItem = new QGraphicsSimpleTextItem(text, this);

@@ -45,7 +45,7 @@ TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::
     , m_title(title)
     , m_editMode(false)
 {
-    m_titleItem->setFont(QFont("Times", 30));
+    m_titleItem->setFont(QFont("Nokia Sans", 30));
     m_titleItem->setPen(QPen(Qt::white));
     m_titleItem->setBrush(QBrush(Qt::white));
     m_titleItem->setCacheMode(QGraphicsItem::DeviceCoordinateCache);

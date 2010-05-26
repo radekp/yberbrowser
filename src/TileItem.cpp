@@ -151,7 +151,7 @@ ThumbnailTileItem::~ThumbnailTileItem()
 
 void ThumbnailTileItem::doLayoutTile()
 {
-    QFont f("Times", 10);
+    QFont f("Nokia Sans", 10);
     QRectF r(rect()); 
 
     m_textRect = r;
@@ -182,7 +182,7 @@ void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     QRectF thumbnailRect(r);
     painter->drawImage(m_thumbnailRect, *(m_defaultIcon ? m_defaultIcon : m_urlItem.thumbnail()));
 
-    painter->setFont(QFont("Times", 10));
+    painter->setFont(QFont("Nokia Sans", 10));
     painter->setPen(Qt::black);
     painter->drawText(m_textRect, Qt::AlignHCenter|Qt::AlignBottom, m_title);
     paintExtra(painter);
@@ -224,7 +224,7 @@ void NewWindowTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     painter->setBrush(m_selected ? Qt::white : Qt::black);
     painter->drawRoundedRect(rect(), 5, 5);
 
-    painter->setFont(QFont("Times", 12));
+    painter->setFont(QFont("Nokia Sans", 12));
     painter->setPen(Qt::white);
     painter->drawText(rect(), Qt::AlignCenter, "Open new tab");
 }
@@ -260,8 +260,8 @@ void ListTileItem::doLayoutTile()
     m_titleRect = r;
     m_urlRect = r;
 
-    QFont fbig("Times", 18);
-    QFont fsmall("Times", 12);
+    QFont fbig("Nokia Sans", 18);
+    QFont fsmall("Nokia Sans", 12);
     QFontMetrics fmfbig(fbig);
     QFontMetrics fmfsmall(fsmall);
 
@@ -287,11 +287,11 @@ void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*op
     painter->drawRoundedRect(r, 3, 3);
 
     painter->setPen(Qt::black);
-    painter->setFont(QFont("Times", 18));
+    painter->setFont(QFont("Nokia Sans", 18));
     painter->drawText(m_titleRect, Qt::AlignLeft|Qt::AlignVCenter, m_title);
 
     painter->setPen(QColor(110, 110, 110));
-    painter->setFont(QFont("Times", 12));
+    painter->setFont(QFont("Nokia Sans", 12));
     painter->drawText(m_urlRect, Qt::AlignLeft|Qt::AlignVCenter, m_url);
 
     paintExtra(painter);
