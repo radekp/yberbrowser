@@ -59,6 +59,7 @@ QString WebPage::userAgentForUrl(const QUrl&) const
         // NOTE: For testing purposed we want to receive pages
         // created for the iPhone or Android. Yberbrowser is not
         // known enough for people serving us these pages.
-        .replace("Linux", "Linux, like Android");
+        .replace("Linux", "Linux, like Android")
+        .replace("Macintosh", "iPhone");
     return userAgent;
 }
