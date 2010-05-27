@@ -19,60 +19,7 @@
  */
 
 #include "AutoSelectLineEdit.h"
-
-// timeout between clicking url bar and marking the url selected
-static const int s_urlTapSelectAllTimeout = 200;
-
-class AutoSelectLineEditPrivate : public QLineEdit
-{
-public:
-    AutoSelectLineEditPrivate(AutoSelectLineEdit* qq)
-        : QLineEdit()
-        , q(qq)
-        , selectURLTimer(this)
-    {
-        selectURLTimer.setSingleShot(true);
-        selectURLTimer.setInterval(s_urlTapSelectAllTimeout);
-        connect(&selectURLTimer, SIGNAL(timeout()), this, SLOT(selectAll()));
-
-        connect(this, SIGNAL(textEdited(QString)), q, SIGNAL(textEdited(QString)));
-        connect(this, SIGNAL(textEdited(QString)), q, SLOT(setText(QString)));
-        connect(this, SIGNAL(returnPressed()), q, SIGNAL(returnPressed()));
-    }
-
-    void adjustText()
-    {
-        if (!hasFocus() && url.startsWith("http://")) {
-            QString text = url;
-            setText(text.remove(0, 7));
-        } else
-            setText(url);
-    }
-
-protected:
-    virtual void focusInEvent(QFocusEvent* e)
-    {
-        QLineEdit::focusInEvent(e);
-        adjustText();
-        selectURLTimer.start();
-        emit q->focusChanged(true);
-    }
-
-    virtual void focusOutEvent(QFocusEvent* e)
-    {
-        QLineEdit::focusOutEvent(e);
-        adjustText();
-        selectURLTimer.stop();
-        emit q->focusChanged(false);
-        deselect();
-    }
-
-    friend class AutoSelectLineEdit;
-    AutoSelectLineEdit* q;
-    QTimer selectURLTimer;
-    QString url;
-};
-
+#include "AutoSelectLineEdit_p.h"
 
 /*! \class AutoSelectLineEdit input element (\QLineEdit) that selects
   its contents when focused in.
@@ -124,6 +71,11 @@ QString AutoSelectLineEdit::text()
 
 void AutoSelectLineEdit::setText(const QString& text)
 {
+    // FIXME: Move elsewhere.
+    // When the user is editing, we don't want a loadFinished to override the current text.
+    //if (d->hasFocus())
+    //    return;
+
     d->url = text;
     d->adjustText();
 }

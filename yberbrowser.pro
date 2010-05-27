@@ -131,6 +131,7 @@ HEADERS = \
   src/ApplicationWindow.h \
   src/ApplicationWindowHost.h \
   src/AutoSelectLineEdit.h \
+  src/AutoSelectLineEdit_p.h \
   src/AutoScrollTest.h \
   src/BackingStoreVisualizerWidget.h \
   src/BookmarkStore.h \

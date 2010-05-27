@@ -44,7 +44,7 @@ public:
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 
     void setEditMode(bool on);
-    void setText(const QString& text);
+    void setTextIfUnfocused(const QString& text);
     void setProgress(uint progress);
     QString text();
 

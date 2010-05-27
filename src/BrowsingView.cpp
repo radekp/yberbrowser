@@ -246,7 +246,7 @@ void BrowsingView::setActiveWindow(WebView* webView)
     if (webView == m_activeWebView)
         return;
     // invalidate url bar
-    m_toolbarWidget->setText(webView->url().isEmpty() ? "no page loaded yet" : webView->url().toString());
+    m_toolbarWidget->setTextIfUnfocused(webView->url().isEmpty() ? "no page loaded yet" : webView->url().toString());
     connectWebViewSignals(webView, m_activeWebView);
     if (m_activeWebView)
         m_activeWebView->hide();
@@ -375,7 +375,7 @@ void BrowsingView::loadFinished(bool success)
 
 void BrowsingView::urlChanged(const QUrl& url)
 {
-    m_toolbarWidget->setText(url.toString());
+    m_toolbarWidget->setTextIfUnfocused(url.toString());
 }
 
 #if !USE_DUI

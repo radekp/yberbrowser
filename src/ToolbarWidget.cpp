@@ -114,9 +114,12 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     painter->drawImage(QPointF(rect().right() - (s_toolbarIconWidth + s_toolbarIconMargin), iconY), m_progress > 0 ? *m_cancelIcon : *m_backIcon);
 }
 
-void ToolbarWidget::setText(const QString& text)
+void ToolbarWidget::setTextIfUnfocused(const QString& text)
 {
-    m_urlEdit->setText(text);
+    // If the url edit is focused, it means that the user it in edit mode
+    // and we, thus, do not want to change the text ie. on loadFinished().
+    if (!m_urlEdit->hasFocus())
+        m_urlEdit->setText(text);
 }
 
 void ToolbarWidget::setEditMode(bool on)
