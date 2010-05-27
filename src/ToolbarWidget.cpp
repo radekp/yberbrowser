@@ -207,8 +207,7 @@ void ToolbarWidget::textEditingFinished()
 
 void ToolbarWidget::editorFocusChanged(bool focused)
 {
-    if (!focused)
-        urlEditorFocusChanged(false);
+    emit urlEditorFocusChanged(focused);
 }
 
 void ToolbarWidget::popupItemSelected(const QUrl& url)
