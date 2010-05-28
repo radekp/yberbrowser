@@ -39,14 +39,18 @@
 #include <qwebelement.h>
 #include <qwebframe.h>
 #include <qgraphicswebview.h>
-#include <qwebpage.h>
 #include <qwebsettings.h>
 #include <qwebview.h>
 #include <QtGlobal>
 
+#include "WebViewportItem.h"
+#include "WebPage.h"
+#include "ProgressWidget.h"
+#include "EventHelpers.h"
+
 namespace {
-const int s_defaultPreferredWidth = 1024;
-const int s_defaultPreferredHeight = 768;
+const int s_defaultPreferredWidth = 800;
+const int s_defaultPreferredHeight = 480;
 const qreal s_minZoomScale = .01; // arbitrary
 const qreal s_maxZoomScale = 10.; // arbitrary
 const int s_minDoubleClickZoomTargetWidth = 100; // in document coords, aka CSS pixels
@@ -97,9 +101,8 @@ void WebViewportItem::setWebView(QGraphicsWebView* webView)
     m_webView->setParentItem(this);
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
 
-    updatePreferredSize();
-
     connect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
+    connect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportHints&)), this, SLOT(adjustViewport(const QWebPage::ViewportHints&)));
 }
 
 void WebViewportItem::commitZoom()
@@ -116,9 +119,11 @@ void WebViewportItem::webViewContentsSizeChanged(const QSize& sz)
 {
     Q_UNUSED(sz);
     qreal scale = zoomScale();
-    if (m_resizeMode == WebViewportItem::ResizeWidgetHeightToContent) {
+
+    if (m_resizeMode == WebViewportItem::ResizeWidgetHeightToContent
+        || contentsSize().width() * scale < size().width())
         scale = size().width() / contentsSize().width();
-    }
+
     resize(contentsSize() * scale);
     emit contentsSizeChangeCausedResize();
 }
@@ -162,14 +167,34 @@ void WebViewportItem::enableContentUpdates()
 //    m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
 }
 
-void WebViewportItem::updatePreferredSize()
+/*!
+    This method is called before the first layout of the contents and might
+    come with viewport data requested by the page via the viewport meta tag.
+*/
+void WebViewportItem::adjustViewport(const QWebPage::ViewportHints& viewportInfo)
 {
-    // FIXME: we have bug in QtWebKit API when tileCacheEnabled is true.
-    // this causes viewport not to reset between the page loads.
-    // Thus, we need to update viewport manually until we have fix for this.
+    // for an explanation of pixelScale look at:
+    // http://hacks.mozilla.org/2010/05/upcoming-changes-to-the-viewport-meta-tag-for-firefox-mobile/
+    qreal pixelScale = 1.0;
 
-    m_webView->page()->setPreferredContentsSize(QSize(s_defaultPreferredWidth, s_defaultPreferredHeight));
-    resize(contentsSize());
+    QSize viewportSize = QSize(s_defaultPreferredWidth, s_defaultPreferredHeight);
+
+    if (viewportInfo.size().width() > 0)
+        viewportSize.setWidth(viewportInfo.size().width());
+    if (viewportInfo.size().height() > 0)
+        viewportSize.setHeight(viewportInfo.size().height());
+
+    m_webView->page()->setPreferredContentsSize(viewportSize / pixelScale);
+
+    // FIXME we should start using the scale range at some point
+    // viewportInfo.minimumScaleFactor() and viewportInfor.maximumScaleFactor()
+    if (viewportInfo.initialScaleFactor() > 0) {
+        setResizeMode(ResizeWidgetToContent);
+        setZoomScale(viewportInfo.initialScaleFactor() * pixelScale, /* immediate */ true);
+    } else {
+        setResizeMode(ResizeWidgetHeightToContent);
+        setZoomScale(1.0 * pixelScale, /* immediate */ true);
+    }
 }
 
 /*!  Returns a rectangle of a content element containing point \p in

@@ -32,6 +32,7 @@
 
 #include <QGraphicsWidget>
 #include <QTimer>
+#include <qwebpage.h>
 
 class QGraphicsWebView;
 
@@ -67,6 +68,7 @@ public:
 
 public Q_SLOTS:
     void commitZoom();
+    void adjustViewport(const QWebPage::ViewportHints& viewportInfo);
 
 Q_SIGNALS:
     void contentsSizeChangeCausedResize();
@@ -84,7 +86,6 @@ protected Q_SLOTS:
 
 private:
     Q_DISABLE_COPY(WebViewportItem)
-    
     void updatePreferredSize();
 
     QGraphicsWebView* m_webView;
