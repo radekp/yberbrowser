@@ -324,7 +324,6 @@ void BrowsingView::deleteHomeView()
 
 void BrowsingView::urlEditingFinished(const QString& url)
 {
-    // nullify on hitting enter. end  of editing.
     load(urlFromUserInput(url));
 }
 
@@ -332,7 +331,6 @@ void BrowsingView::urlEditfocusChanged(bool focused)
 {
     if (focused)
         createHomeView(m_homeView ? m_homeView->activeWidget() : m_initialHomeWidget);
-    m_toolbarWidget->setEditMode(focused);
 }
 
 void BrowsingView::updateHistoryStore(bool successLoad)

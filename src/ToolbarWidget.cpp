@@ -23,12 +23,9 @@
 #include <QImage>
 #include <QPainter>
 #include <QGraphicsScene>
-#include <QGraphicsProxyWidget>
-#include <QGraphicsProxyWidget>
 #include <QGraphicsSceneMouseEvent>
 
 #include "AutoSelectLineEdit.h"
-#include "PopupView.h"
 #include "Settings.h"
 #include "HistoryStore.h"
 
@@ -43,14 +40,11 @@ ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     , m_backIcon(new QImage(":/data/icon/48x48/back_48.png"))
     , m_cancelIcon(new QImage(":/data/icon/48x48/stop_48.png"))
     , m_progress(0)
-    , m_editMode(false)
-    , m_urlProxyWidget(0)
     , m_urlEdit(new AutoSelectLineEdit(this))
-    , m_urlfilterPopup(0)
 {
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(textEdited(const QString&)));
-    connect(m_urlEdit, SIGNAL(returnPressed()), SLOT(textEditingFinished()));
+    connect(m_urlEdit, SIGNAL(textEditingFinished(const QString&)), SLOT(textEditingFinished(const QString&)));
     connect(m_urlEdit, SIGNAL(focusChanged(bool)), SLOT(editorFocusChanged(bool)));
     setZValue(1);
     QGradientStops stops;
@@ -122,27 +116,10 @@ void ToolbarWidget::setTextIfUnfocused(const QString& text)
         m_urlEdit->setText(text);
 }
 
-void ToolbarWidget::setEditMode(bool on)
-{
-    // dont close when editor looses focus while urlpopup on.
-    if (on == m_editMode || m_urlfilterPopup)
-        return;
-
-    if (on)
-        m_urlEdit->setFocus(Qt::MouseFocusReason);
-
-    m_editMode = on;
-}
-
 void ToolbarWidget::setProgress(uint progress)
 {
     m_progress = progress;
     update();
-}
-
-QString ToolbarWidget::text()
-{
-    return m_urlEdit->text();
 }
 
 void ToolbarWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
@@ -159,15 +136,15 @@ void ToolbarWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
         return;
     }
 
-    r.setLeft(r.right());
-    r.setRight(rect().right() - toolbarButtonWidth);
+    r.setLeft(rect().right() - toolbarButtonWidth);
+    r.setRight(rect().right());
 
-    if (!m_editMode && r.contains(event->pos()))
-        emit urlEditorFocusChanged(true);
-    else if (m_progress == 0)
-        emit backPressed();
-    else
-        emit cancelPressed();
+    if (r.contains(event->pos())) {
+        if (m_progress == 0)
+            emit backPressed();
+        else
+            emit cancelPressed();
+    }
 }
 
 void ToolbarWidget::textEdited(const QString& newText)
@@ -189,23 +166,12 @@ void ToolbarWidget::textEdited(const QString& newText)
         }
     }
     m_lastEnteredText = newText;
-
-    // create home view and remove popupview when no text in the url field
-    if (newText.isEmpty())
-        popupDismissed();
-    else {
-        if (!m_urlfilterPopup)
-            createPopup();
-        m_urlfilterPopup->setFilterText(newText);
-    }
-    emit urlTextChanged(newText);
 }
 
-void ToolbarWidget::textEditingFinished()
+void ToolbarWidget::textEditingFinished(const QString& text)
 {
     m_lastEnteredText = QString();
-    popupDismissed();
-    emit urlEditingFinished(m_urlEdit->text());
+    emit urlEditingFinished(text);
 }
 
 void ToolbarWidget::editorFocusChanged(bool focused)
@@ -213,27 +179,4 @@ void ToolbarWidget::editorFocusChanged(bool focused)
     emit urlEditorFocusChanged(focused);
 }
 
-void ToolbarWidget::popupItemSelected(const QUrl& url)
-{
-    m_urlEdit->setText(url.toString());
-    textEditingFinished();
-}
-
-void ToolbarWidget::popupDismissed()
-{
-    delete m_urlfilterPopup;
-    m_urlfilterPopup = 0;
-    setEditMode(false);
-}
-
-void ToolbarWidget::createPopup()
-{
-    if (m_urlfilterPopup)
-        return;
-    m_urlfilterPopup = new PopupView(this);
-    connect(m_urlfilterPopup, SIGNAL(pageSelected(const QUrl&)), this, SLOT(popupItemSelected(const QUrl&)));
-    connect(m_urlfilterPopup, SIGNAL(viewDismissed()), this, SLOT(popupDismissed()));
-    m_urlfilterPopup->resize(parentWidget()->size().width(), parentWidget()->size().height() - rect().height());
-    m_urlfilterPopup->appear();
-}
 

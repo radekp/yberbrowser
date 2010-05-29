@@ -143,6 +143,7 @@ HEADERS = \
   src/Helpers.h \
   src/HistoryStore.h \
   src/HomeView.h \
+  src/KeypadWidget.h \
   src/LinkSelectionItem.h \
   src/PannableTileContainer.h \
   src/PannableViewport.h \
@@ -173,6 +174,7 @@ SOURCES = \
   src/Helpers.cpp \
   src/HistoryStore.cpp \
   src/HomeView.cpp \
+  src/KeypadWidget.cpp \
   src/LinkSelectionItem.cpp \
   src/PopupView.cpp \
   src/ProgressWidget.cpp \

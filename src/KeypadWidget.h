@@ -18,58 +18,40 @@
  *
  */
 
-#ifndef ToolbarWidget_h_
-#define ToolbarWidget_h_
+#ifndef KeypadWidget_h_
+#define KeypadWidget_h_
 
 #include <QGraphicsRectItem>
 #include <QLinearGradient>
 
-class PopupView;
-class QImage;
-class QStyleOptionGraphicsItem;
-class QWidget;
-class QGraphicsSceneMouseEvent;
-class AutoSelectLineEdit;
+class KeypadItem;
 
-class ToolbarWidget : public QObject, public QGraphicsRectItem {
+class KeypadWidget : public QObject, public QGraphicsRectItem {
     Q_OBJECT
 public:
-    ToolbarWidget(QGraphicsItem* parent);
-    ~ToolbarWidget();
+    KeypadWidget(const QRectF& rect, QGraphicsItem* parent);
+    ~KeypadWidget();
 
-    // FIXME: 
-    static int height();
+    void appear(int stickyY);
 
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
-
-    void setTextIfUnfocused(const QString& text);
-    void setProgress(uint progress);
-
     void mousePressEvent(QGraphicsSceneMouseEvent* event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
 
 Q_SIGNALS:
-    void bookmarkPressed();
-    void cancelPressed();
-    void backPressed();
-    void urlEditingFinished(const QString& url);
-    void urlEditorFocusChanged(bool);
+    void charEntered(char key);
+    void backspace();
+    void enter();
+    void dismissed();
 
 protected Q_SLOTS:
-    void textEdited(const QString&);
-    void textEditingFinished(const QString&);
-    void editorFocusChanged(bool);
+    void keypadItemPressed(char character);
 
 private:
-    QImage* m_bookmarksIcon;
-    QImage* m_backIcon;
-    QImage* m_cancelIcon;
-    QString m_text;
-    uint m_progress;
-    bool m_editMode;
-    AutoSelectLineEdit* m_urlEdit;
-    QString m_lastEnteredText;
-    QLinearGradient m_bckgGradient;
-};
+    void layoutKeypad();
 
+    QList<KeypadItem*> m_buttons;
+    QRectF m_keypadRect;
+};
 #endif
+

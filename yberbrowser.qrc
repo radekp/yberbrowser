@@ -7,5 +7,10 @@
     <file>data/icon/48x48/stop_48.png</file>
     <file>data/icon/48x48/bookmarks_48.png</file>
     <file>data/icon/48x48/defaulticon_48.png</file>
+    <file>data/icon/48x48/capslock_48.png</file>
+    <file>data/icon/48x48/backspace_48.png</file>
+    <file>data/icon/48x48/enter_48.png</file>
+    <file>data/icon/32x32/keyboard_32.png</file>
+    <file>data/icon/32x32/popup_32.png</file>
 </qresource>
 </RCC>

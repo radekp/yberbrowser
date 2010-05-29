@@ -30,6 +30,8 @@
 #include <QTimer>
 
 class AutoSelectLineEditPrivate;
+class KeypadWidget;
+class PopupView;
 
 class AutoSelectLineEdit : public QGraphicsWidget
 {
@@ -40,9 +42,14 @@ public:
 
     QString text();
 
-    int selectionStart () const;
+    int selectionStart() const;
     void setCursorPosition(int pos);
     void setSelection(int start, int length);
+
+    void togglePopup();
+    bool popupOn() const { return m_virtualKeypad || m_urlfilterPopup; }
+    bool virtualKeypadOn() const { return m_virtualKeypad; }
+    bool urlFilterPopupOn() const { return m_urlfilterPopup; }
 
 public Q_SLOTS:
     void setText(const QString& text);
@@ -50,11 +57,34 @@ public Q_SLOTS:
 Q_SIGNALS:
     void focusChanged(bool);
     void textEdited(const QString&);
+    void textEditingFinished(const QString&);
+
+protected Q_SLOTS:
+    void popupItemSelected(const QUrl&);
+    void popupDismissed();
+
+    void keyPadCharEntered(char key);
+    void keyPadBackspace();
+    void keyPadEnter();
+    void keypadDismissed();
+
     void returnPressed();
+
+protected:
+    bool realFocusEvent();
+    void newEditedText(const QString& newText);
+
+private:
+    void createVirtualKeypad();
+    void createUrlFilterPopup();
+    QRectF clientRect();
+    void cleanupAndSendFinished(const QString& text);
 
 private:
     friend class AutoSelectLineEditPrivate;
     AutoSelectLineEditPrivate* d;
+    KeypadWidget* m_virtualKeypad;
+    PopupView* m_urlfilterPopup;
 };
 
 #endif
