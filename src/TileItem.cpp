@@ -31,6 +31,8 @@
 
 const int s_hTextMargin = 10;
 const int s_longpressTimeoutThreshold = 400;
+const int s_closeIconSize = 48;
+const int s_closeIconClickAreaMargin = 24;
 
 TileItem::TileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
     : QGraphicsRectItem(parent)
@@ -50,6 +52,13 @@ TileItem::~TileItem()
     delete m_closeIcon;
 }
 
+void TileItem::setTilePos(const QPointF& pos) 
+{ 
+    m_dirty = true; 
+    setRect(QRectF(pos, rect().size())); 
+    update(boundingRect()); 
+}
+
 void TileItem::setEditMode(bool on) 
 { 
     if (!m_editable)
@@ -61,16 +70,16 @@ void TileItem::setEditMode(bool on)
         delete m_closeIcon;
         m_closeIcon = 0;
     }
-    update();
+    update(boundingRect());
 }
 
 void TileItem::setEditIconRect()
 {
     if (!m_closeIcon)
         return;
-    m_closeIconRect = QRectF(rect().topRight(), m_closeIcon->rect().size());
-    m_closeIconRect.moveRight(m_closeIconRect.right() - m_closeIconRect.width() + 10);
-    m_closeIconRect.moveTop(m_closeIconRect.top() - 5);
+    m_closeIconRect = QRectF(rect().topRight(), QSizeF(s_closeIconSize, s_closeIconSize));
+    m_closeIconRect.moveRight(m_closeIconRect.right() - m_closeIconRect.width()/2 - 5);
+    m_closeIconRect.moveTop(m_closeIconRect.top() - m_closeIconRect.height()/2 + 5);
 }
 
 void TileItem::paintExtra(QPainter* painter)
@@ -93,6 +102,13 @@ void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
     painter.drawRoundedRect(r, 5, 5);
 }
 
+QRectF TileItem::boundingRect() const
+{
+    QRectF r(rect());
+    r.adjust(0, -s_closeIconSize, s_closeIconSize, 0);
+    return r;
+}
+
 void TileItem::layoutTile()
 {
     if (!m_dirty)
@@ -106,7 +122,7 @@ void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
     // expand it to fit thumbs
     QRectF r(m_closeIconRect);
-    r.adjust(-20, -20, 20, 20);
+    r.adjust(-s_closeIconClickAreaMargin, -s_closeIconClickAreaMargin, s_closeIconClickAreaMargin, s_closeIconClickAreaMargin);
 
     if (m_longpressTime.elapsed() > s_longpressTimeoutThreshold) {
         emit itemEditingMode(this);
@@ -115,7 +131,7 @@ void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
         QTimer::singleShot(200, this, SLOT(closeItem()));
     } else {    
         m_selected = true;
-        update();
+        update(boundingRect());
         QTimer::singleShot(200, this, SLOT(activateItem()));
     }
 }

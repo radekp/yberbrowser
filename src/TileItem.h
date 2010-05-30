@@ -39,7 +39,7 @@ public:
     
     const UrlItem* urlItem() const { return &m_urlItem; }
 
-    void setTilePos(const QPointF& pos) { m_dirty = true; setRect(QRectF(pos, rect().size())); }
+    void setTilePos(const QPointF& pos);
     QPointF tilePos() const { return rect().topLeft(); }
     void setEditMode(bool on);
     void setFixed(bool on) { m_fixed = on; }
@@ -57,6 +57,7 @@ protected:
     void paintExtra(QPainter* painter);
     void addDropShadow(QPainter& painter, const QRectF rect);
     void layoutTile();
+    QRectF boundingRect () const;
 
     virtual void doLayoutTile() = 0;
 
