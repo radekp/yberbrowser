@@ -228,6 +228,7 @@ void AutoSelectLineEdit::cleanupAndSendFinished(const QString& text)
 {
     popupDismissed();
     keypadDismissed();
+    clearFocus();
     emit textEditingFinished(text);
 }
 
