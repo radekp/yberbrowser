@@ -23,6 +23,8 @@
 
 #include <QGraphicsRectItem>
 #include <QLinearGradient>
+#include <QImage>
+#include <QTimer>
 
 class KeypadItem;
 
@@ -45,13 +47,18 @@ Q_SIGNALS:
     void dismissed();
 
 protected Q_SLOTS:
-    void keypadItemPressed(char character);
+    void keypadItemPressed(KeypadItem& item);
+    void keypadItemSelected(KeypadItem& item);
+    void cancelBubble();
 
 private:
     void layoutKeypad();
 
     QList<KeypadItem*> m_buttons;
+    KeypadItem* m_prevButton;
+    QTimer m_bubbleTimer;
     QRectF m_keypadRect;
+    QImage m_bubbleIcon;
 };
 #endif
 

@@ -44,6 +44,8 @@ const int s_backspace = -5;
 const int s_enter = -6;
 const int s_keypadSpecialCols = 5;
 const int s_specialKeypadLine[] = {s_capslock, s_numpad, s_space, s_backspace, s_enter};
+const int s_bubbleIconSize = 64;
+const int s_bubbleTimeout = 800;
 
 class KeypadItem : public QObject, public QGraphicsRectItem {
     Q_OBJECT
@@ -53,17 +55,18 @@ public:
 
     void toggleCaps();
     void flip();
-
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
-
-    void mousePressEvent(QGraphicsSceneMouseEvent*);
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent*);
+    void setBubble(QImage* bubble);
+    char getChar();
 
 Q_SIGNALS:
-    void itemPressed(char character);
+    void itemSelected(KeypadItem& item);
+    void itemPressed(KeypadItem& item);
 
-private:
-    char getchar();
+protected:
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
+    void mousePressEvent(QGraphicsSceneMouseEvent*);
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent*);
+    QRectF boundingRect () const;
 
 private:
     int m_index;
@@ -71,6 +74,7 @@ private:
     bool m_capsOn;
     bool m_flipped;
     QImage* m_image;
+    QImage* m_bubbleIcon;
     QLinearGradient m_bckgGradient;
 };
 
@@ -81,6 +85,7 @@ KeypadItem::KeypadItem(uint index, const QRectF& rect, QGraphicsItem* parent)
     , m_capsOn(false)
     , m_flipped(false)
     , m_image(0)
+    , m_bubbleIcon(0)
 {
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
     QGradientStops stops;
@@ -118,6 +123,15 @@ void KeypadItem::flip()
     update(); 
 }
 
+void KeypadItem::setBubble(QImage* bubble)
+{
+    // no bubble for special buttons
+    if (m_index < 0)
+        return;
+    m_bubbleIcon = bubble;
+    update(boundingRect());
+}
+
 void KeypadItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     QRectF r(rect());
@@ -140,7 +154,7 @@ void KeypadItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*opti
     painter->setPen(Qt::black);
     QString title;
     if (m_index >= 0)
-        title = getchar();
+        title = getChar();
     else if (m_index == s_numpad)
         title = m_flipped ? "abc" : "123";
 
@@ -150,22 +164,38 @@ void KeypadItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*opti
         QPointF p(rect().left() + rect().width()/2 - m_image->size().width()/2, rect().top() + rect().height()/2 - m_image->size().height()/2);
         painter->drawImage(p, *m_image);
     }
+    if (m_bubbleIcon) {
+        QPointF p(r.right() - m_bubbleIcon->size().width()/2, r.top() - m_bubbleIcon->size().height());
+        painter->drawImage(p, *m_bubbleIcon);
+        painter->setPen(Qt::white);
+        QRectF tr(p, QSizeF(m_bubbleIcon->size().width(), 3*m_bubbleIcon->size().height()/4));
+        painter->drawText(tr, Qt::AlignHCenter|Qt::AlignVCenter, title);
+    }
 }
 
 void KeypadItem::mousePressEvent(QGraphicsSceneMouseEvent*)
 {
     m_pressed = true;
-    update();
+    update(boundingRect());
+    emit itemPressed(*this);
 }
 
 void KeypadItem::mouseReleaseEvent(QGraphicsSceneMouseEvent*)
 {
     m_pressed = false;
-    update();
-    emit itemPressed(getchar());
+    update(boundingRect());
+    emit itemSelected(*this);
 }
 
-char KeypadItem::getchar()
+QRectF KeypadItem::boundingRect() const
+{
+    QRectF r(rect());
+    // extend paint bounding rect to get the bubble updated
+    r.adjust(0, -s_bubbleIconSize, s_bubbleIconSize, 0);
+    return r;
+}
+
+char KeypadItem::getChar()
 {
     if (m_index < 0)
         return m_index;
@@ -177,8 +207,12 @@ char KeypadItem::getchar()
 
 KeypadWidget::KeypadWidget(const QRectF& rect, QGraphicsItem* parent)
     : QGraphicsRectItem(rect, parent)    
+    , m_prevButton(0)
+    , m_bubbleIcon(QImage(":/data/icon/64x64/bubble_64.png"))
 {
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+    m_bubbleTimer.setSingleShot(true);
+    connect(&m_bubbleTimer, SIGNAL(timeout()), SLOT(cancelBubble())); 
 }
 
 KeypadWidget::~KeypadWidget()
@@ -217,8 +251,18 @@ void KeypadWidget::appear(int stickyY)
     layoutKeypad();
 }
 
-void KeypadWidget::keypadItemPressed(char character)
+void KeypadWidget::keypadItemPressed(KeypadItem& item)
 {
+    if (m_prevButton)
+        m_prevButton->setBubble(0);
+    item.setBubble(&m_bubbleIcon);
+    m_prevButton = &item;
+    m_bubbleTimer.start(s_bubbleTimeout);
+}
+
+void KeypadWidget::keypadItemSelected(KeypadItem& item)
+{
+    char character = item.getChar();
     if (character == s_numpad) {
         for (int i = 0; i < m_buttons.size(); ++i)
             m_buttons.at(i)->flip();
@@ -236,6 +280,12 @@ void KeypadWidget::keypadItemPressed(char character)
     }
 }
 
+void KeypadWidget::cancelBubble()
+{
+    m_prevButton->setBubble(0);
+    m_prevButton = 0;
+}
+
 void KeypadWidget::layoutKeypad()
 {
     int x = m_keypadRect.left() + s_keypadMargin;
@@ -244,7 +294,8 @@ void KeypadWidget::layoutKeypad()
     for (int i = 0; i < s_keypadRows; ++i) {
         for (int j = 0; j < s_keypadCols; ++j) {
             KeypadItem* item = new KeypadItem(j + s_keypadCols*i, QRectF(QPointF(x, y), s_keypadItemSize), this);
-            connect(item, SIGNAL(itemPressed(char)), SLOT(keypadItemPressed(char)));
+            connect(item, SIGNAL(itemPressed(KeypadItem&)), SLOT(keypadItemPressed(KeypadItem&)));
+            connect(item, SIGNAL(itemSelected(KeypadItem&)), SLOT(keypadItemSelected(KeypadItem&)));
             m_buttons.append(item);
             x+= s_keypadItemSize.width();
         }
@@ -260,7 +311,8 @@ void KeypadWidget::layoutKeypad()
             itemSize.setWidth(lo);
         }
         KeypadItem* item = new KeypadItem(s_specialKeypadLine[i], QRectF(QPointF(x, y), itemSize), this);
-        connect(item, SIGNAL(itemPressed(char)), SLOT(keypadItemPressed(char)));
+        connect(item, SIGNAL(itemPressed(KeypadItem&)), SLOT(keypadItemPressed(KeypadItem&)));
+        connect(item, SIGNAL(itemSelected(KeypadItem&)), SLOT(keypadItemSelected(KeypadItem&)));
         m_buttons.append(item);
         x+= itemSize.width();
     }
