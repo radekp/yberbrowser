@@ -20,10 +20,17 @@
 
 #include "FontFactory.h"
 
+#include <QFontDatabase>
+#include <QStringList>
+#include <QRegExp>
+#include <QDebug>
+
+const QString s_defaultFontFamily = QString("Nokia Sans");
+
 // FIXME this needs some proper API. barebone, all we need, impl atm.
 FontFactory* FontFactory::instance()
 {
-    FontFactory* s_instance = 0;
+    static FontFactory* s_instance = 0;
     if (!s_instance)
         s_instance = new FontFactory();
     return s_instance;
@@ -31,9 +38,21 @@ FontFactory* FontFactory::instance()
 
 FontFactory::FontFactory()
 {
-    m_smallFont.setFamily("Nokia Sans");
-    m_mediumFont.setFamily("Nokia Sans");
-    m_bigFont.setFamily("Nokia Sans");
+    QString fontFamily = s_defaultFontFamily;
+    // find something Sansish, if not, pick the first one
+    QStringList l = QFontDatabase().families(QFontDatabase::Latin);
+    if (!l.contains(s_defaultFontFamily, Qt::CaseInsensitive)) {
+        QRegExp rx("*Sans*");
+        rx.setPatternSyntax(QRegExp::Wildcard);
+        int index = l.indexOf(rx);  
+        if (index == -1)
+            index = 0;
+        fontFamily = l.at(index);
+    }
+
+    m_smallFont.setFamily(fontFamily);
+    m_mediumFont.setFamily(fontFamily);
+    m_bigFont.setFamily(fontFamily);
 
     int small = 12;
     int medium = 18;
