@@ -19,15 +19,16 @@
  */
 
 #include <QApplication>
-#include <QGraphicsScene>
-#include <QMetaMethod>
+#include "EventHelpers.h"
+#include "LinkSelectionItem.h"
 #include "WebViewport.h"
 #include "WebViewportItem.h"
-#include "EventHelpers.h"
 #include "qwebframe.h"
 #include "qgraphicswebview.h"
 #include "qwebelement.h"
-#include "LinkSelectionItem.h"
+
+#include <QGraphicsScene>
+#include <QMetaMethod>
 
 //#define ENABLE_LINK_SELECTION_DEBUG
 

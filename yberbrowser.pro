@@ -140,6 +140,7 @@ HEADERS = \
   src/CookieJar.h \
   src/EnvHttpProxyFactory.h \
   src/EventHelpers.h \
+  src/FontFactory.h \
   src/Helpers.h \
   src/HistoryStore.h \
   src/HomeView.h \
@@ -171,6 +172,7 @@ SOURCES = \
   src/CookieJar.cpp \
   src/EnvHttpProxyFactory.cpp\
   src/EventHelpers.cpp \
+  src/FontFactory.cpp \
   src/Helpers.cpp \
   src/HistoryStore.cpp \
   src/HomeView.cpp \

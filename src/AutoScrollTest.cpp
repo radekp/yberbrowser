@@ -20,6 +20,7 @@
 
 #include "AutoScrollTest.h"
 #include "BrowsingView.h"
+#include "FontFactory.h"
 #include "PannableViewport.h"
 #include "WebViewport.h"
 #include "WebViewportItem.h"
@@ -119,7 +120,7 @@ void FPSResultView::addHorizontalLineItem(int y)
 
 void FPSResultView::addTextItem(const QRectF& rect, const QString& text)
 {
-    QFont f("Nokia Sans", 10);
+    const QFont& f = FontFactory::instance()->small();
     QFontMetrics m(f);
 
     QGraphicsSimpleTextItem* fpsTextItem = new QGraphicsSimpleTextItem(text, this);

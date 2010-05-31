@@ -19,6 +19,7 @@
  */
 
 #include "UrlItem.h"
+
 #include <QDateTime>
 #include <QImage>
 #include <QDebug>

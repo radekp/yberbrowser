@@ -19,19 +19,15 @@
  */
 
 #include "HistoryStore.h"
+#include "Helpers.h"
+
 #include <QDateTime>
 #include <QImage>
 #include <QTimer>
 #include <QRegExp>
-#include "Helpers.h"
-
 #include <QDebug>
 
 //#define ENABLE_HISTORYSTORE_DEBUG 1
-
-#if defined(ENABLE_HISTORYSTORE_DEBUG)
-#include <QDebug>
-#endif
 
 static uint s_currentVersion = 3;
 

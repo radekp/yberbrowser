@@ -25,6 +25,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "WebViewportItem.h"
+#include "EventHelpers.h"
+
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QGraphicsWidget>
@@ -41,10 +44,6 @@
 #include <qwebsettings.h>
 #include <qwebview.h>
 #include <QtGlobal>
-
-#include "WebViewportItem.h"
-#include "ProgressWidget.h"
-#include "EventHelpers.h"
 
 namespace {
 const int s_defaultPreferredWidth = 1024;

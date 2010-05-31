@@ -19,7 +19,6 @@
  */
 
 #include "BrowsingView.h"
-
 #include "WebView.h"
 #include "WebPage.h"
 #include "WebViewportItem.h"
@@ -33,10 +32,14 @@
 #include "HistoryStore.h"
 #include "BookmarkStore.h"
 #include "AutoScrollTest.h"
+#include "ToolbarWidget.h"
+#include "qwebframe.h"
+
 #include <QAction>
 #include <QGraphicsLinearLayout>
 #include <QGraphicsProxyWidget>
 #include <QStyleOptionGraphicsItem>
+
 #if defined(Q_WS_MAEMO_5) && !defined(QT_NO_OPENGL)
 #include <QGLWidget>
 #endif
@@ -49,15 +52,9 @@
 #include <DuiButton>
 #include <QToolBar>
 #else
-#include "WebViewport.h"
-#include "ToolbarWidget.h"
-
-#include <QToolBar>
-#include <QStyle>
 #include <QMenuBar>
+#include "WebViewport.h"
 #endif
-
-#include "qwebframe.h"
 
 const int s_maxWindows = 6;
 

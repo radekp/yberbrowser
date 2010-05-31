@@ -19,17 +19,17 @@
  */
 
 #include "PopupView.h"
+#include "UrlItem.h"
+#include "HistoryStore.h"
+#include "TileContainerWidget.h"
+#include "PannableViewport.h"
+
 #include <QTimer>
 #include <qgraphicswebview.h>
 #include <qwebpage.h>
 #include <qwebframe.h>
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValueIterator>
-
-#include "UrlItem.h"
-#include "HistoryStore.h"
-#include "TileContainerWidget.h"
-#include "PannableViewport.h"
 
 class Suggest : public QObject {
     Q_OBJECT

@@ -18,10 +18,11 @@
  *
  */
 
+#include "BackingStoreVisualizerWidget.h"
+
 #include <qgraphicswebview.h>
 #include <QTimer>
 #include <QDebug>
-#include "BackingStoreVisualizerWidget.h"
 
 static const unsigned s_tileSize = 35;
 

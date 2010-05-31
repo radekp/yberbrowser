@@ -18,10 +18,9 @@
  *
  */
 
-#include <QGraphicsSceneMouseEvent>
-
 #include "EventHelpers.h"
 
+#include <QGraphicsSceneMouseEvent>
 
 void copyMouseEvent(const QGraphicsSceneMouseEvent* from, QGraphicsSceneMouseEvent* to)
 {

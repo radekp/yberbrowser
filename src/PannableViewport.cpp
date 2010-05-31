@@ -18,12 +18,13 @@
  *
  */
 
-#include <QPointF>
-#include <QGraphicsSceneMouseEvent>
-#include <QGraphicsScene>
 #include "PannableViewport.h"
 #include "ScrollbarItem.h"
 #include "EventHelpers.h"
+
+#include <QPointF>
+#include <QGraphicsSceneMouseEvent>
+#include <QGraphicsScene>
 
 namespace {
 const unsigned s_scrollsPerSecond = 60;

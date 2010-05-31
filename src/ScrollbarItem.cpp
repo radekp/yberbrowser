@@ -18,15 +18,13 @@
  *
  */
 
+#include "ScrollbarItem.h"
+
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QGraphicsWidget>
 #include <QPropertyAnimation>
-
-#include "ScrollbarItem.h"
-
 #include <QDebug>
-
 
 static const qreal s_thumbSize = 6;
 static const qreal s_thumbMinSize = 20;

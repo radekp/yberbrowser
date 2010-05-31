@@ -19,9 +19,6 @@
  */
 
 #include "HomeView.h"
-#include <QGraphicsSceneMouseEvent>
-#include <QPropertyAnimation>
-
 #include "PannableTileContainer.h"
 #include "TileContainerWidget.h"
 #include "TileItem.h"
@@ -29,11 +26,14 @@
 #include "BookmarkStore.h"
 #include "WebView.h"
 #include "ToolbarWidget.h"
+
+#include <QGraphicsSceneMouseEvent>
+#include <QPropertyAnimation>
+#include <QDebug>
+
 #if USE_DUI
 #include <DuiScene>
 #endif
-
-#include <QDebug>
 
 const int s_maxWindows = 6;
 const int s_containerXMargin = 60;

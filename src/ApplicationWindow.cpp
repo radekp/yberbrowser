@@ -18,9 +18,10 @@
  *
  */
 
-#include <QGraphicsWidget>
 #include "ApplicationWindow.h"
 #include "ApplicationWindowHost.h"
+
+#include <QGraphicsWidget>
 #include <QMenuBar>
 
 /*!

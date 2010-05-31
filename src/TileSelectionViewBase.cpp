@@ -19,11 +19,11 @@
  */
 
 #include "TileSelectionViewBase.h"
-#include <QGraphicsPixmapItem>
-#include <QTimer>
-
 #include "ApplicationWindow.h"
 #include "TileItem.h"
+
+#include <QGraphicsPixmapItem>
+#include <QTimer>
 
 TileSelectionViewBase::TileSelectionViewBase(ViewType type, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)

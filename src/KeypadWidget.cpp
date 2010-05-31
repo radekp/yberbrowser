@@ -19,11 +19,12 @@
  */
 
 #include "KeypadWidget.h"
+#include "FontFactory.h"
+
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsWidget>
 #include <QPainter>
-
 #include <QDebug>
 
 const int s_keypadMargin = 5;
@@ -148,9 +149,7 @@ void KeypadItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*opti
         painter->setBrush(QColor(90, 90, 90, 100));
         painter->drawRoundedRect(r, 5, 5);
     }
-    QFont f(QFont("Nokia Sans", 10));
-    f.setBold(true);
-    painter->setFont(f);
+    painter->setFont(FontFactory::instance()->small());
     painter->setPen(Qt::black);
     QString title;
     if (m_index >= 0)

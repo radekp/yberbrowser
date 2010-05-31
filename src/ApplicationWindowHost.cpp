@@ -18,15 +18,15 @@
  *
  */
 
+#include "ApplicationWindowHost.h"
+#include "ApplicationWindow.h"
+#include "Settings.h"
+
 #include <qglobal.h>
 #if !defined(QT_NO_OPENGL)
 #include <QGLWidget>
 #endif
 #include <QGraphicsItem>
-
-#include "ApplicationWindowHost.h"
-#include "Settings.h"
-#include "ApplicationWindow.h"
 #if defined(Q_WS_MAEMO_5)
 #include <QtDBus>
 #include <QtMaemo5>

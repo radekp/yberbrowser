@@ -19,8 +19,10 @@
  */
 
 #include "Helpers.h"
-#include <QFileInfo>
+#include "FontFactory.h"
 #include "Settings.h"
+
+#include <QFileInfo>
 #include <QImage>
 #include <QPropertyAnimation>
 #include <QGraphicsWidget>
@@ -33,7 +35,6 @@
 #include <qgraphicswebview.h>
 #include <qwebpage.h>
 #include <qwebframe.h>
-
 #include <QDebug>
 
 static int s_maxUrlItems = 50;
@@ -82,8 +83,7 @@ void NotificationWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem
 
     painter->drawRect(rect());
  
-    QFont f("Nokia Sans", 18);
-    painter->setFont(f);
+    painter->setFont(FontFactory::instance()->medium());
     painter->setPen(Qt::white);
     painter->drawText(rect(), Qt::AlignHCenter|Qt::AlignVCenter, m_text);
 }
@@ -91,7 +91,7 @@ void NotificationWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem
 void NotificationWidget::doShow()
 {
     QRectF r(parentWidget()->rect());
-    QFont f("Nokia Sans", 18);
+    const QFont& f = FontFactory::instance()->medium();
     int height = QFontMetrics(f).height() + 2;
     
     r.setTop(r.center().y()/2 - height/2);

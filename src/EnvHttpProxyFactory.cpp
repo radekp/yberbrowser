@@ -18,10 +18,10 @@
  *
  */
 
-#include <QUrl>
-
 #include "EnvHttpProxyFactory.h"
 #include "Helpers.h"
+
+#include <QUrl>
 
 EnvHttpProxyFactory::EnvHttpProxyFactory()
 {

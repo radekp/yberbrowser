@@ -19,6 +19,8 @@
  */
 
 #include "TileItem.h"
+#include "FontFactory.h"
+
 #include <QGraphicsWidget>
 #include <QPainter>
 #include <QtGlobal>
@@ -26,7 +28,6 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QPropertyAnimation>
 #include <QGraphicsScene>
-
 #include <QDebug>
 
 const int s_hTextMargin = 10;
@@ -167,7 +168,7 @@ ThumbnailTileItem::~ThumbnailTileItem()
 
 void ThumbnailTileItem::doLayoutTile()
 {
-    QFont f("Nokia Sans", 10);
+    const QFont& f = FontFactory::instance()->small();
     QRectF r(rect()); 
 
     m_textRect = r;
@@ -198,7 +199,7 @@ void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     QRectF thumbnailRect(r);
     painter->drawImage(m_thumbnailRect, *(m_defaultIcon ? m_defaultIcon : m_urlItem.thumbnail()));
 
-    painter->setFont(QFont("Nokia Sans", 10));
+    painter->setFont(FontFactory::instance()->small());
     painter->setPen(Qt::black);
     painter->drawText(m_textRect, Qt::AlignHCenter|Qt::AlignBottom, m_title);
     paintExtra(painter);
@@ -240,7 +241,7 @@ void NewWindowTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     painter->setBrush(m_selected ? Qt::white : Qt::black);
     painter->drawRoundedRect(rect(), 5, 5);
 
-    painter->setFont(QFont("Nokia Sans", 12));
+    painter->setFont(FontFactory::instance()->small());
     painter->setPen(Qt::white);
     painter->drawText(rect(), Qt::AlignCenter, "Open new tab");
 }
@@ -276,16 +277,16 @@ void ListTileItem::doLayoutTile()
     m_titleRect = r;
     m_urlRect = r;
 
-    QFont fbig("Nokia Sans", 18);
-    QFont fsmall("Nokia Sans", 12);
-    QFontMetrics fmfbig(fbig);
+    const QFont& fmedium = FontFactory::instance()->medium();
+    const QFont& fsmall = FontFactory::instance()->small();
+    QFontMetrics fmfmedium(fmedium);
     QFontMetrics fmfsmall(fsmall);
 
-    int fontHeightRatio = r.height() / (fmfbig.height() + fmfsmall.height() + 5);
-    m_titleRect.setHeight(fmfbig.height() * fontHeightRatio);
+    int fontHeightRatio = r.height() / (fmfmedium.height() + fmfsmall.height() + 5);
+    m_titleRect.setHeight(fmfmedium.height() * fontHeightRatio);
     m_urlRect.setTop(m_titleRect.bottom() + 5); 
 
-    m_title = fmfbig.elidedText(m_urlItem.title(), Qt::ElideRight, r.width());
+    m_title = fmfmedium.elidedText(m_urlItem.title(), Qt::ElideRight, r.width());
     m_url = fmfsmall.elidedText(m_urlItem.url().toString(), Qt::ElideRight, r.width());
 }
 
@@ -303,11 +304,11 @@ void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*op
     painter->drawRoundedRect(r, 3, 3);
 
     painter->setPen(Qt::black);
-    painter->setFont(QFont("Nokia Sans", 18));
+    painter->setFont(FontFactory::instance()->medium());
     painter->drawText(m_titleRect, Qt::AlignLeft|Qt::AlignVCenter, m_title);
 
     painter->setPen(QColor(110, 110, 110));
-    painter->setFont(QFont("Nokia Sans", 12));
+    painter->setFont(FontFactory::instance()->small());
     painter->drawText(m_urlRect, Qt::AlignLeft|Qt::AlignVCenter, m_url);
 
     paintExtra(painter);

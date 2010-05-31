@@ -19,10 +19,12 @@
  */
 
 #include "AutoSelectLineEdit.h"
-#include <QUrl>
 #include "AutoSelectLineEdit_p.h"
+#include "FontFactory.h"
 #include "KeypadWidget.h"
 #include "PopupView.h"
+
+#include <QUrl>
 
 /*! \class AutoSelectLineEdit input element (\QLineEdit) that selects
   its contents when focused in.
@@ -56,7 +58,7 @@ AutoSelectLineEdit::AutoSelectLineEdit(QGraphicsItem* parent)
     setFocusProxy(proxy);
 
     // set font settings
-    QFont font("Nokia Sans", 18);
+    const QFont& font = FontFactory::instance()->medium();
     QPalette palette = d->palette();
     palette.setColor(QPalette::Text, Qt::white);
     d->setPalette(palette);

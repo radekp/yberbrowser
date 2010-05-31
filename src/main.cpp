@@ -32,6 +32,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "YberApplication.h"
+#include "Settings.h"
+#include "Helpers.h"
+
 #include <QDebug>
 #include <QFile>
 #include <QGraphicsScene>
@@ -54,13 +58,6 @@
 #include <DuiApplicationWindow>
 #include <DuiTheme>
 #endif
-
-//#include <QGLWidget>
-//#include <Qt/QtOpenGL>
-
-#include "YberApplication.h"
-#include "Settings.h"
-#include "Helpers.h"
 
 void usage(const char* name);
 void debugMessageOutput(QtMsgType type, const char *msg)

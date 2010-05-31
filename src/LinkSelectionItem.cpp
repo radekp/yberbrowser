@@ -19,15 +19,14 @@
  */
 
 #include "LinkSelectionItem.h"
+
 #include <QGraphicsBlurEffect>
 #include <QPropertyAnimation>
 
-namespace {
 const qreal s_linkOpacity = 0.7;
 const QColor s_linkRectangleColor(10, 10, 80);
 const int s_appearAnimDuration = 350;
 const int s_disappearAnimDuration = 650;
-}
 
 /*!
   \class LinkSelectionItem class responsible for implementing the link selection UI

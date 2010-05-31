@@ -19,15 +19,15 @@
  */
 
 #include "ToolbarWidget.h"
+#include "AutoSelectLineEdit.h"
+#include "Settings.h"
+#include "HistoryStore.h"
+
 #include <QUrl>
 #include <QImage>
 #include <QPainter>
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
-
-#include "AutoSelectLineEdit.h"
-#include "Settings.h"
-#include "HistoryStore.h"
 
 const int s_toolbarHeight = 56; // fixed 48 pixel icons and 4+4 margin
 const int s_iconXMargin = 10;

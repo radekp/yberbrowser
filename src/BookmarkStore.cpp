@@ -19,12 +19,11 @@
  */
 
 #include "BookmarkStore.h"
+#include "Helpers.h"
+
 #include <QImage>
 #include <QPixmap>
 #include <QTimer>
-
-#include "Helpers.h"
-
 #include <QDebug>
 
 static uint s_currentVersion = 3;

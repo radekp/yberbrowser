@@ -18,11 +18,11 @@
  *
  */
 
-#include <QDebug>
+#include "ProgressWidget.h"
+
 #include <QPropertyAnimation>
 #include <QPainter>
-
-#include "ProgressWidget.h"
+#include <QDebug>
 
 static QString s_initialProgressText("Loading...");
 static qreal s_progressbarOpacity = 0.8;

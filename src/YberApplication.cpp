@@ -18,19 +18,17 @@
  *
  */
 
-#include <QUrl>
-#include <QNetworkProxyFactory>
-
 #include "YberApplication.h"
 #include "BrowsingView.h"
 #include "Settings.h"
 #include "Helpers.h"
 #include "EnvHttpProxyFactory.h"
-
 #include "ApplicationWindow.h"
 
-
+#include <QUrl>
+#include <QNetworkProxyFactory>
 #include <QDebug>
+
 YberApplication::YberApplication(int & argc, char ** argv)
     : YberApplicationBase(argc, argv)
     , appwin(0)

@@ -19,12 +19,12 @@
  */
 
 #include "PannableTileContainer.h"
+#include "TileSelectionViewBase.h" // FIXME temp
+
 #include <QGraphicsSceneMouseEvent>
 #include <QApplication>
 #include <QGraphicsScene>
 #include <QCoreApplication>
-//temp
-#include "TileSelectionViewBase.h"
 
 PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : PannableViewport(parent, wFlags)

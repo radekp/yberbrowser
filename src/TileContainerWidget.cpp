@@ -19,18 +19,18 @@
  */
 
 #include "TileContainerWidget.h"
+#include "BookmarkStore.h"
+#include "HistoryStore.h"
+#include "FontFactory.h"
+#include "ToolbarWidget.h"
+
 #include <QGraphicsItem>
 #include <QGraphicsSceneMouseEvent>
 #include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
 #include <QGraphicsSimpleTextItem>
 #include <QPen>
-
 #include <QDebug>
-
-#include "HistoryStore.h"
-#include "BookmarkStore.h"
-#include "ToolbarWidget.h"
 
 const int s_tileMargin = 40;
 const int s_tileTopMargin = 25;
@@ -45,7 +45,7 @@ TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::
     , m_title(title)
     , m_editMode(false)
 {
-    m_titleItem->setFont(QFont("Nokia Sans", 30));
+    m_titleItem->setFont(FontFactory::instance()->big());
     m_titleItem->setPen(QPen(Qt::white));
     m_titleItem->setBrush(QBrush(Qt::white));
     m_titleItem->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
