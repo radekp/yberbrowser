@@ -61,7 +61,6 @@ public:
 
 #if !USE_DUI
     void appear(ApplicationWindow* window);
-    YberWidget* centralWidget()  { return m_centralWidget; }
     PannableViewport* pannableViewport() { return m_browsingViewport; }
 
     void createHomeView(HomeView::HomeWidgetType type);
@@ -111,10 +110,6 @@ private:
 
 #if !USE_DUI
     QMenuBar* createMenu(QWidget* parent);
-#endif
-
-#if !USE_DUI
-    YberWidget* m_centralWidget;
 #endif
 
     WebView* m_activeWebView;

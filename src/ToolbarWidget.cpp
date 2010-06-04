@@ -26,7 +26,6 @@
 #include <QUrl>
 #include <QImage>
 #include <QPainter>
-#include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 
 const int s_toolbarSize = 48; // fixed 48 pixel

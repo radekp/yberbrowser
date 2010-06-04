@@ -63,11 +63,8 @@ const int s_maxWindows = 6;
 */
 BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     : BrowsingViewBase(parent)
-#if !USE_DUI
-    , m_centralWidget(new QGraphicsWidget(this))
-#endif
     , m_activeWebView(0)
-    , m_webInteractionProxy(new WebViewportItem())
+    , m_webInteractionProxy(new WebViewportItem(this))
     , m_autoScrollTest(0)
     , m_homeView(0)
     , m_initialHomeWidget(HomeView::VisitedPages)
@@ -79,23 +76,16 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     m_browsingViewport = new PannableViewport();
     m_browsingViewport->setWidget(m_webInteractionProxy);
 #else
-    m_browsingViewport = new WebViewport(m_webInteractionProxy);
-    m_browsingViewport->setScrollbarOffset(ToolbarWidget::height(), 0);
+    m_browsingViewport = new WebViewport(m_webInteractionProxy, this);
 #endif
     m_browsingViewport->setAutoRange(false);
+    m_browsingViewport->attachWidget(m_toolbarWidget);
 
     connect(m_toolbarWidget, SIGNAL(bookmarkPressed()), SLOT(addBookmark()));
     connect(m_toolbarWidget, SIGNAL(backPressed()), SLOT(pageBack()));
     connect(m_toolbarWidget, SIGNAL(cancelPressed()), SLOT(stopLoad()));
     connect(m_toolbarWidget, SIGNAL(urlEditingFinished(const QString&)), SLOT(urlEditingFinished(const QString&)));
     connect(m_toolbarWidget, SIGNAL(urlEditorFocusChanged(bool)), SLOT(urlEditfocusChanged(bool)));
-
-    YberWidget* w = centralWidget();
-    QGraphicsLinearLayout* layout = new QGraphicsLinearLayout(Qt::Vertical, w);
-    layout->setContentsMargins(0,0,0,0);
-    layout->setSpacing(0.);
-    layout->addItem(m_browsingViewport);
-
     // create and activate new window
     newWindow();
 }
@@ -146,9 +136,9 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
     QGraphicsWidget::resizeEvent(event);
 
-    YberWidget* w = centralWidget();
-    w->setGeometry(QRectF(w->pos(), size()));
-    w->setPreferredSize(size());
+    m_webInteractionProxy->resize(size());
+    m_browsingViewport->resize(size());
+
     if (m_homeView)
         m_homeView->resize(QSize(3*m_browsingViewport->size().width(), m_browsingViewport->size().height()));
 
@@ -190,6 +180,7 @@ void BrowsingView::appear(ApplicationWindow* window)
     m_appWin = window;
     window->setPage(this);
     window->setMenuBar(createMenu(window));
+    window->scene()->addItem(this);
     // create home view on startup
     createHomeView(HomeView::VisitedPages);
 }

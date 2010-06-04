@@ -51,6 +51,7 @@ PannableViewport::PannableViewport(QGraphicsItem* parent, Qt::WindowFlags wFlags
     , m_hScrollbar(new ScrollbarItem(Qt::Horizontal, this))
     , m_scrollbarXOffset(0)
     , m_scrollbarYOffset(0)
+    , m_attachedItem(0)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
@@ -67,19 +68,19 @@ PannableViewport::~PannableViewport()
 
 void PannableViewport::setPanPos(const QPointF& pos)
 {
-    setPannedWidgetGeometry(QRectF(pos, pannedWidget()->size()));
+    setPannedWidgetGeometry(QRectF(pos, pannedWidget()->size() + (QSize(0, m_attachedItem ? m_attachedItem->boundingRect().height() : 0))));
 }
 
 QPointF PannableViewport::panPos() const
 {
-    return pannedWidget()->pos() - m_extraPos - m_overShootDelta;
+    return pannedWidget()->pos() - m_extraPos - m_overShootDelta - (QPointF(0, m_attachedItem ? m_attachedItem->boundingRect().height() : 0));
 }
 
 void PannableViewport::setRange(const QRectF& )
 {
 }
 
-void PannableViewport::setWidget(QGraphicsWidget* view)
+void PannableViewport::setPannedWidget(QGraphicsWidget* view)
 {
     if (view == m_pannedWidget)
         return;
@@ -100,9 +101,21 @@ void PannableViewport::setWidget(QGraphicsWidget* view)
 
 }
 
+void PannableViewport::attachWidget(QGraphicsItem* item)
+{
+    m_attachedItem = item;
+}
+
+void PannableViewport::detachWidget(QGraphicsItem*)
+{
+    // FIXME only one attached widget atm
+    m_attachedItem = 0;
+}
+
+
 QPoint PannableViewport::maximumScrollPosition() const
 {
-    QSizeF contentsSize = m_pannedWidget->size();
+    QSizeF contentsSize = m_pannedWidget->size() + (QSize(0, m_attachedItem ? m_attachedItem->boundingRect().height() : 0));
     QSizeF sz = size();
     QSize maxSize = (contentsSize - sz).toSize();
 
@@ -248,7 +261,12 @@ QRectF PannableViewport::adjustRectForPannedWidgetGeometry(const QRectF& g)
 
 void PannableViewport::setPannedWidgetGeometry(const QRectF& g)
 {
-    pannedWidget()->setGeometry(adjustRectForPannedWidgetGeometry(g));
+    QRectF r(adjustRectForPannedWidgetGeometry(g));
+    if (m_attachedItem) {
+        m_attachedItem->setPos(r.topLeft());
+        r.setTop(r.top() + m_attachedItem->boundingRect().height());
+    }
+    pannedWidget()->setGeometry(r);
     updateScrollbars();
 }
 

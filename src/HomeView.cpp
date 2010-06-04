@@ -53,11 +53,11 @@ HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* p
     , m_pannableWindowSelectContainer(new PannableTileContainer(this, wFlags))
     , m_windowList(0) 
 {
-    m_pannableHistoryContainer->setWidget(m_historyWidget);
+    m_pannableHistoryContainer->setPannedWidget(m_historyWidget);
     m_pannableHistoryContainer->setScrollbarOffset(ToolbarWidget::height(), 0);
-    m_pannableBookmarkContainer->setWidget(m_bookmarkWidget);
+    m_pannableBookmarkContainer->setPannedWidget(m_bookmarkWidget);
     m_pannableBookmarkContainer->setScrollbarOffset(ToolbarWidget::height(), 0);
-    m_pannableWindowSelectContainer->setWidget(m_tabWidget);
+    m_pannableWindowSelectContainer->setPannedWidget(m_tabWidget);
     
     m_tabWidget->setEditMode(true);
 
@@ -327,7 +327,7 @@ void HomeView::resetContainerSize()
 
     // tile containers have the offset of the toolbar
     QRectF containerRect(r);
-    containerRect.setBottom(containerRect.bottom() - ToolbarWidget::height() - s_containerYBottomMargin);
+    containerRect.setBottom(containerRect.bottom() - s_containerYBottomMargin);
     m_tabWidget->setGeometry(containerRect);
     if (m_activeWidget == WindowSelect)
         setPos(-r.topLeft());

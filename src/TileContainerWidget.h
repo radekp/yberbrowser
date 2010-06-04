@@ -48,6 +48,8 @@ protected:
     TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
 
     QSize doLayoutTiles(const QRectF& rect, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed = false);
+    int titleVMargin();
+    int tileTopVMargin();
 
 private:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
@@ -56,11 +58,10 @@ private:
 
 protected:
     TileList m_tileList;
-    QGraphicsSimpleTextItem* m_titleItem;
+    QGraphicsSimpleTextItem m_titleItem;
 
 private:
     QParallelAnimationGroup* m_slideAnimationGroup;
-    QString m_title;
     bool m_editMode;
 };
 

@@ -44,7 +44,6 @@ ApplicationWindow::ApplicationWindow(QWidget* parent)
 
 void ApplicationWindow::setPage(QGraphicsWidget* page)
 {
-    scene()->addItem(page);
     m_page = page;
     m_page->setGeometry(QRectF(m_page->pos(), size()));
 }
@@ -56,7 +55,7 @@ void ApplicationWindow::resizeEvent(QResizeEvent* event)
         QRectF rect(QPointF(0, 0), size());
         scene()->setSceneRect(rect);
         if (m_page)
-            m_page->setGeometry(QRectF(m_page->pos(), size()));
+            m_page->resize(size());
     }
 }
 

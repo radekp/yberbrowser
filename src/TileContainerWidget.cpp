@@ -38,22 +38,17 @@ const int s_titleVMargin = 10;
 const int s_bookmarksTileHeight = 70;
 const int s_searchItemTileHeight = 60;
 
-int titleVMargin() 
-{
-    return s_titleVMargin + ToolbarWidget::height();
-}
-
 TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_titleItem(new QGraphicsSimpleTextItem(title, this))
     , m_slideAnimationGroup(0)
-    , m_title(title)
     , m_editMode(false)
 {
-    m_titleItem->setFont(FontFactory::instance()->big());
-    m_titleItem->setPen(QPen(Qt::white));
-    m_titleItem->setBrush(QBrush(Qt::white));
-    m_titleItem->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+    m_titleItem.setParentItem(this);
+    m_titleItem.setText(title);
+    m_titleItem.setFont(FontFactory::instance()->big());
+    m_titleItem.setPen(QPen(Qt::white));
+    m_titleItem.setBrush(QBrush(Qt::white));
+    m_titleItem.setCacheMode(QGraphicsItem::DeviceCoordinateCache);
 }
 
 TileBaseWidget::~TileBaseWidget()
@@ -70,7 +65,7 @@ QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTile
     int y = rect_.top() + marginY;
     int x = rect_.left() + marginX;
 
-    m_titleItem->setPos(x, titleVMargin());
+    m_titleItem.setPos(x, titleVMargin());
 
     int width = rect_.width() - (hTileNum + 1)*marginX;
     int height = rect_.height() - (vTileNum)*marginY;
@@ -165,6 +160,16 @@ void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QPointF& 
     m_slideAnimationGroup->addAnimation(moveAnim);
 }
 
+int TileBaseWidget::titleVMargin() 
+{
+    return s_titleVMargin + ToolbarWidget::height();
+}
+
+int TileBaseWidget::tileTopVMargin() 
+{
+    return titleVMargin() + m_titleItem.boundingRect().height() + s_tileTopMargin;
+}
+
 // subclasses
 // ##########
 
@@ -179,7 +184,7 @@ void TabWidget::layoutTiles()
     // 6 tabs max atm
     // FIXME: this is landscape oriented. check aspect ratio
     QRectF r(rect());
-    r.setTop(titleVMargin() + m_titleItem->boundingRect().height() + s_tileTopMargin - s_tileMargin);
+    r.setTop(tileTopVMargin() - s_tileMargin);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
@@ -218,7 +223,7 @@ void HistoryWidget::layoutTiles()
 {
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
-    r.setTop(titleVMargin() + m_titleItem->boundingRect().height() + s_tileTopMargin - s_tileMargin);
+    r.setTop(tileTopVMargin() - s_tileMargin);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
@@ -242,9 +247,9 @@ void BookmarkWidget::layoutTiles()
 {
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
-    r.setTop(titleVMargin() + m_titleItem->boundingRect().height() + s_tileTopMargin);
+    r.setTop(tileTopVMargin());
     // add toolbarheight to make sure tiles are always visible
-    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, 0).height() + titleVMargin());
+    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, 0).height() + tileTopVMargin());
 }
 
 // url filter popup
@@ -266,5 +271,4 @@ void PopupWidget::layoutTiles()
 {
     setMinimumHeight(doLayoutTiles(rect(), 1, rect().height()/s_searchItemTileHeight, s_tileMargin, -1).height());
 }
-
 

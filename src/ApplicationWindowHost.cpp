@@ -116,8 +116,6 @@ ApplicationWindowHost::~ApplicationWindowHost()
 #if QT_VERSION < QT_VERSION_CHECK(4, 6, 2)
 bool ApplicationWindowHost::event(QEvent *ev)
 {
-    qDebug() << ev;
-
     switch (ev->type()) {
     case QEvent::WindowActivate:
         QDBusConnection::systemBus().call(

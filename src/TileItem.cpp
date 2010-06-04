@@ -137,7 +137,7 @@ void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     }
 }
 
-void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* /*event*/)
+void TileItem::mousePressEvent(QGraphicsSceneMouseEvent*)
 {
     m_longpressTime.start();        
 }

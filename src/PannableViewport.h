@@ -39,6 +39,7 @@ class PannableViewport : public DuiPannableViewport
 #include "3rdparty/qabstractkineticscroller.h"
 
 class ScrollbarItem;
+class QGraphicsItem;
 
 class PannableViewport : public QGraphicsWidget, public YberHack_Qt::QAbstractKineticScroller
 {
@@ -58,8 +59,11 @@ public:
     void updateScrollbars();
     void setScrollbarOffset(int h, int v);
 
-    void setWidget(QGraphicsWidget*);
-    void detachWidget() { m_pannedWidget = 0; }
+    void setPannedWidget(QGraphicsWidget*);
+    void removePannedWidget() { m_pannedWidget = 0; }
+
+    void attachWidget(QGraphicsItem* item);
+    void detachWidget(QGraphicsItem* item);
 
 protected:
     bool sceneEvent(QEvent* e);
@@ -96,6 +100,7 @@ private:
     QPropertyAnimation m_geomAnim;
     int m_scrollbarXOffset;
     int m_scrollbarYOffset;
+    QGraphicsItem* m_attachedItem;
 };
 
 #endif

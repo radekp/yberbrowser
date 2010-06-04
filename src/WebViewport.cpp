@@ -67,7 +67,7 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
 {
     m_recognizer.reset();
 
-    setWidget(viewportWidget);
+    setPannedWidget(viewportWidget);
     connect(viewportWidget, SIGNAL(contentsSizeChangeCausedResize()), this, SLOT(contentsSizeChangeCausedResize()));
     m_backingStoreUpdateEnableTimer.setSingleShot(true);
     connect(&m_backingStoreUpdateEnableTimer, SIGNAL(timeout()), this, SLOT(enableBackingStoreUpdates()));
