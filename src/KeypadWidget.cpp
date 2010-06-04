@@ -242,7 +242,7 @@ void KeypadWidget::appear(int stickyY)
 {
     m_keypadRect = QRectF(0, 0, 0, 0);
     int keypadWidth = 2* s_keypadMargin + (s_keypadCols * s_keypadItemSize.width());
-    m_keypadRect.setLeft((parentWidget()->rect().width() - keypadWidth) / 2);
+    m_keypadRect.setLeft(rect().left() + (rect().width() - keypadWidth) / 2);
     m_keypadRect.setWidth(keypadWidth);
     int keypadHeight = 2* s_keypadMargin + ((s_keypadRows + 1) * s_keypadItemSize.height());
     m_keypadRect.setHeight(keypadHeight);

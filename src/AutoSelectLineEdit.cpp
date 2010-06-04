@@ -26,6 +26,8 @@
 
 #include <QUrl>
 
+const int s_clientItemMargin = 5;
+
 /*! \class AutoSelectLineEdit input element (\QLineEdit) that selects
   its contents when focused in.
 
@@ -190,7 +192,7 @@ bool AutoSelectLineEdit::realFocusEvent()
 void AutoSelectLineEdit::createVirtualKeypad()
 {
     m_virtualKeypad = new KeypadWidget(clientRect(), this);
-    m_virtualKeypad->appear(rect().top());
+    m_virtualKeypad->appear(clientRect().bottom());
     
     connect(m_virtualKeypad, SIGNAL(charEntered(char)), SLOT(keyPadCharEntered(char)));
     connect(m_virtualKeypad, SIGNAL(enter()), SLOT(keyPadEnter()));
@@ -218,11 +220,12 @@ void AutoSelectLineEdit::createUrlFilterPopup()
 
 QRectF AutoSelectLineEdit::clientRect()
 {
-    // FIXME figure out this funky - business
+    // client items like keypad and popup should offset back to
+    // the edge of the screen
     QRectF r(parentWidget()->geometry());
     r.moveLeft(r.left() - pos().x());
-    r.moveTop(r.top() - pos().y());
-    r.setHeight(r.height() - rect().size().height());
+    r.moveTop(rect().bottom() + s_clientItemMargin);
+    r.setHeight(r.height() - rect().height() - s_clientItemMargin);
     return r;
 }
 

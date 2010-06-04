@@ -32,6 +32,8 @@ TileSelectionViewBase::TileSelectionViewBase(ViewType type, QPixmap* bckg, QGrap
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
+    if (m_bckg)
+        m_bckg->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
 }
 
 TileSelectionViewBase::~TileSelectionViewBase()
@@ -60,6 +62,7 @@ void TileSelectionViewBase::updateBackground(QPixmap* bckg)
         if (!m_bckg)
             m_bckg = new QGraphicsPixmapItem(this);
         m_bckg->setPixmap(*bckg);
+        m_bckg->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
     } else {
         delete m_bckg;
         m_bckg = 0;

@@ -29,10 +29,8 @@
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 
-const int s_toolbarHeight = 56; // fixed 48 pixel icons and 4+4 margin
+const int s_toolbarSize = 48; // fixed 48 pixel
 const int s_iconXMargin = 10;
-const int s_toolbarIconWidth = 48;
-const int s_toolbarIconMargin = 4;
 
 ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     : QGraphicsRectItem(parent)
@@ -59,7 +57,7 @@ ToolbarWidget::~ToolbarWidget()
 
 int ToolbarWidget::height()
 {
-    return s_toolbarHeight;
+    return s_toolbarSize;
 }
 
 void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
@@ -70,11 +68,10 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     oldRect = r;
 
     if (geometryChanged) {
-        int buttonWidth = s_toolbarIconWidth + 2 * s_toolbarIconMargin;
-        m_urlEdit->setGeometry(QRectF(QPointF(r.left() + buttonWidth, r.top()), QSizeF(r.width() - 2 * buttonWidth, r.height())));
+        m_urlEdit->setGeometry(QRectF(QPointF(r.left() + s_toolbarSize, r.top()), QSizeF(r.width() - 2 * s_toolbarSize, r.height())));
 
-        m_bckgGradient.setStart(rect().topLeft());
-        m_bckgGradient.setFinalStop(rect().bottomLeft());
+        m_bckgGradient.setStart(rect().bottomLeft());
+        m_bckgGradient.setFinalStop(rect().topLeft());
     }
 
     // editor
@@ -83,11 +80,11 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     painter->setBrush(m_bckgGradient);
     painter->drawRect(r);
 
-    int editorX = r.left() + s_toolbarIconWidth + 2 * s_toolbarIconMargin;
+    int editorX = r.left() + s_toolbarSize;
     if (m_progress > 0) {
         QRectF pr(r);
         painter->setBrush(QColor(2, 2, 30, 120));
-        int progressAreaWidth = r.width() - 2 * (s_toolbarIconWidth + 2 * s_toolbarIconMargin);
+        int progressAreaWidth = r.width() - 2 * s_toolbarSize;
         pr.setLeft(editorX);
         pr.setRight(pr.left() + progressAreaWidth / 100 * m_progress);
         painter->drawRect(pr);
@@ -98,14 +95,13 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
 
     // bookmark icon and bckg
     r.setRight(editorX);
-    int iconY = r.top() + s_toolbarIconMargin;
     painter->drawRect(r);
-    painter->drawImage(QPointF(r.left() + s_toolbarIconMargin, iconY), *m_bookmarksIcon);
+    painter->drawImage(r.topLeft(), *m_bookmarksIcon);
 
     // stop/cancel icon and bckg
-    r.moveLeft(rect().right() - (s_toolbarIconWidth + 2 * s_toolbarIconMargin));
+    r.moveLeft(rect().right() - s_toolbarSize);
     painter->drawRect(r);
-    painter->drawImage(QPointF(rect().right() - (s_toolbarIconWidth + s_toolbarIconMargin), iconY), m_progress > 0 ? *m_cancelIcon : *m_backIcon);
+    painter->drawImage(QPointF(rect().right() - s_toolbarSize, rect().top()), m_progress > 0 ? *m_cancelIcon : *m_backIcon);
 }
 
 void ToolbarWidget::setTextIfUnfocused(const QString& text)
@@ -129,14 +125,13 @@ void ToolbarWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
 void ToolbarWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
     QRectF r(rect());
-    int toolbarButtonWidth = s_toolbarIconWidth + 2*s_toolbarIconMargin;
-    r.setRight(r.left() + toolbarButtonWidth);
+    r.setRight(r.left() + s_toolbarSize);
     if (r.contains(event->pos())) {
         emit bookmarkPressed();
         return;
     }
 
-    r.setLeft(rect().right() - toolbarButtonWidth);
+    r.setLeft(rect().right() - s_toolbarSize);
     r.setRight(rect().right());
 
     if (r.contains(event->pos())) {

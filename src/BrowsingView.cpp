@@ -153,7 +153,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
         m_homeView->resize(QSize(3*m_browsingViewport->size().width(), m_browsingViewport->size().height()));
 
     QRectF r(rect());
-    r.adjust(0, r.bottom() - ToolbarWidget::height(), 0, 0);
+    r.setHeight(ToolbarWidget::height());
     m_toolbarWidget->setRect(r);
 
 #if !USE_DUI

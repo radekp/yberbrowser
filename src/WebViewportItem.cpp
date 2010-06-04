@@ -35,7 +35,6 @@
 #include <QTextStream>
 #include <QVector>
 #include <QtGui>
-#include <QtNetwork/QNetworkProxy>
 #include <cstdio>
 #include <qwebelement.h>
 #include <qwebframe.h>
