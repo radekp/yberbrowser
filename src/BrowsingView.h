@@ -61,11 +61,9 @@ public:
 
 #if !USE_DUI
     void appear(ApplicationWindow* window);
-    PannableViewport* pannableViewport() { return m_browsingViewport; }
-
+#endif
     void createHomeView(HomeView::HomeWidgetType type);
 
-#endif
 public Q_SLOTS:
     void load(const QUrl&);
     WebView* newWindow();

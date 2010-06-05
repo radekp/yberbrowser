@@ -407,7 +407,8 @@ void BrowsingView::startAutoScrollTest()
     if (Settings::instance()->isFullScreen() && !m_appWin->isFullScreen())
         toggleFullScreen();
     delete m_autoScrollTest;
-    m_autoScrollTest = new AutoScrollTest(this);
+    m_autoScrollTest = new AutoScrollTest(m_browsingViewport, m_activeWebView, this);
+    m_autoScrollTest->resize(rect().size());
     connect(m_autoScrollTest, SIGNAL(finished()), this, SLOT(finishedAutoScrollTest()));
     m_autoScrollTest->starScrollTest();
 }
