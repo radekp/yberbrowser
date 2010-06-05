@@ -66,6 +66,7 @@ protected Q_SLOTS:
     void keyPadCharEntered(char key);
     void keyPadBackspace();
     void keyPadEnter();
+    void keyPadDotcom();
     void keypadDismissed();
 
     void returnPressed();

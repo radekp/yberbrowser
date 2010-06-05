@@ -28,9 +28,12 @@
 #include <QDebug>
 
 const int s_keypadMargin = 5;
-const QSize s_keypadItemSize = QSize(60, 80);
-const QSize s_keypadSpecialItemSize = QSize(80, 80);
+const QSize s_keypadItemMaxSize = QSize(68, 51);
 const int s_keypadItemMargin = 2;
+// keys width/height proportion
+const qreal s_keySizePropotion = 0.75;
+// special keys are this much wider
+const qreal s_speclialKeySizePropotion = 1.12;
 
 const int s_keypadCols = 10;
 const int s_keypadRows = 3;
@@ -41,10 +44,12 @@ const char s_keypad[][10][2] = {{{'q', '1'}, {'w', '2'}, {'e','3'}, {'r','4'}, {
 const int s_capslock = -1;
 const int s_numpad = -2;
 const int s_space = -4;
-const int s_backspace = -5;
-const int s_enter = -6;
-const int s_keypadSpecialCols = 5;
-const int s_specialKeypadLine[] = {s_capslock, s_numpad, s_space, s_backspace, s_enter};
+const int s_dotcom = -5;
+const int s_backspace = -6;
+const int s_enter = -7;
+const int s_keypadSpecialCols = 6;
+const int s_keypadSpecialRows = 1;
+const int s_specialKeypadLine[] = {s_capslock, s_numpad, s_space, s_dotcom, s_backspace, s_enter};
 const int s_bubbleIconSize = 64;
 const int s_bubbleTimeout = 800;
 
@@ -141,9 +146,10 @@ void KeypadItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*opti
     m_bckgGradient.setStart(r.topLeft());
     m_bckgGradient.setFinalStop(r.bottomLeft());
 
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     painter->setPen(QColor(80, 80, 80, 220));
     painter->setBrush(m_bckgGradient);
-    painter->drawRoundedRect(r, 5, 5);
+    painter->drawRoundedRect(r, 15, 15);
 
     if (m_pressed) {
         painter->setBrush(QColor(90, 90, 90, 100));
@@ -156,19 +162,25 @@ void KeypadItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*opti
         title = getChar();
     else if (m_index == s_numpad)
         title = m_flipped ? "abc" : "123";
+    else if (m_index == s_dotcom)
+        title = ".com";
 
     if (!title.isEmpty())
         painter->drawText(r, Qt::AlignHCenter|Qt::AlignVCenter, title);
     else if (m_image) {
-        QPointF p(rect().left() + rect().width()/2 - m_image->size().width()/2, rect().top() + rect().height()/2 - m_image->size().height()/2);
-        painter->drawImage(p, *m_image);
+        QRectF ir(rect());
+        // image margin
+        ir.adjust(5, 5, -5, -5);
+        painter->drawImage(ir, *m_image);
     }
     if (m_bubbleIcon) {
-        QPointF p(r.right() - m_bubbleIcon->size().width()/2, r.top() - m_bubbleIcon->size().height());
-        painter->drawImage(p, *m_bubbleIcon);
+        QRectF br(rect());
+        br.moveBottom(br.top());
+        painter->drawImage(br, *m_bubbleIcon);
         painter->setPen(Qt::white);
-        QRectF tr(p, QSizeF(m_bubbleIcon->size().width(), 3*m_bubbleIcon->size().height()/4));
-        painter->drawText(tr, Qt::AlignHCenter|Qt::AlignVCenter, title);
+        // shape of the bubble icon drives the rectangle of the text
+        br.adjust(0, 0, 0, -1*br.height()/4);
+        painter->drawText(br, Qt::AlignHCenter|Qt::AlignVCenter, title);
     }
 }
 
@@ -220,11 +232,11 @@ KeypadWidget::~KeypadWidget()
 
 void KeypadWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
 {
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     painter->setPen(Qt::NoPen);
+
     painter->setBrush(QColor(80, 80, 80, 220));
     painter->drawRect(rect());
-
-    painter->setPen(Qt::NoPen);
     painter->setBrush(QColor(20, 20, 20, 120));
     painter->drawRoundedRect(m_keypadRect, 5, 5);
 }
@@ -240,12 +252,15 @@ void KeypadWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent*)
 
 void KeypadWidget::appear(int stickyY)
 {
-    m_keypadRect = QRectF(0, 0, 0, 0);
-    int keypadWidth = 2* s_keypadMargin + (s_keypadCols * s_keypadItemSize.width());
-    m_keypadRect.setLeft(rect().left() + (rect().width() - keypadWidth) / 2);
+    m_keypadRect = QRectF(rect());
+    int keypadWidth = s_keypadItemMaxSize.width() * s_keypadCols + 2*s_keypadMargin;
+    // too wide??    
+    if (keypadWidth > rect().width())
+        keypadWidth = rect().width();
+
     m_keypadRect.setWidth(keypadWidth);
-    int keypadHeight = 2* s_keypadMargin + ((s_keypadRows + 1) * s_keypadItemSize.height());
-    m_keypadRect.setHeight(keypadHeight);
+    m_keypadRect.setHeight((m_keypadRect.width() / s_keypadCols) * s_keySizePropotion * (s_keypadRows + s_keypadSpecialRows) + 2*s_keypadMargin);
+    m_keypadRect.moveLeft(rect().left() + (rect().width()/2 - m_keypadRect.width()/2));
     m_keypadRect.moveBottom(stickyY);
     layoutKeypad();
 }
@@ -274,6 +289,8 @@ void KeypadWidget::keypadItemSelected(KeypadItem& item)
         emit enter();
     } else if (character == s_space) {
         emit charEntered(32);
+    } else if (character == s_dotcom) {
+        emit dotcom();
     } else {
         emit charEntered(character);
     }
@@ -289,24 +306,27 @@ void KeypadWidget::layoutKeypad()
 {
     int x = m_keypadRect.left() + s_keypadMargin;
     int y = m_keypadRect.top() + s_keypadMargin;
-
+    QSizeF keySize;
+    keySize.setWidth((m_keypadRect.width() - 2 * s_keypadMargin) / s_keypadCols);
+    keySize.setHeight(keySize.width() * s_keySizePropotion);
     for (int i = 0; i < s_keypadRows; ++i) {
         for (int j = 0; j < s_keypadCols; ++j) {
-            KeypadItem* item = new KeypadItem(j + s_keypadCols*i, QRectF(QPointF(x, y), s_keypadItemSize), this);
+            KeypadItem* item = new KeypadItem(j + s_keypadCols*i, QRectF(QPointF(x, y), keySize), this);
             connect(item, SIGNAL(itemPressed(KeypadItem&)), SLOT(keypadItemPressed(KeypadItem&)));
             connect(item, SIGNAL(itemSelected(KeypadItem&)), SLOT(keypadItemSelected(KeypadItem&)));
             m_buttons.append(item);
-            x+= s_keypadItemSize.width();
+            x+= keySize.width();
         }
         x = m_keypadRect.left() + s_keypadMargin;
-        y+= s_keypadItemSize.height();
+        y+= keySize.height();
     }
 
+    int specialKeyWidth = keySize.width() * s_speclialKeySizePropotion;
     for (int i = 0; i < s_keypadSpecialCols; ++i) {
         // special handling for space, it takes over the leftover place, in the middle
-        QSizeF itemSize(s_keypadSpecialItemSize);
+        QSizeF itemSize(specialKeyWidth, keySize.height());
         if (s_specialKeypadLine[i] == s_space) {
-            int lo = m_keypadRect.right() - x - s_keypadMargin - ((s_keypadSpecialCols - i - 1)*s_keypadSpecialItemSize.width());
+            int lo = m_keypadRect.right() - x - s_keypadMargin - ((s_keypadSpecialCols - i - 1)*specialKeyWidth);
             itemSize.setWidth(lo);
         }
         KeypadItem* item = new KeypadItem(s_specialKeypadLine[i], QRectF(QPointF(x, y), itemSize), this);

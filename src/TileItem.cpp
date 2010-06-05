@@ -34,6 +34,7 @@ const int s_hTextMargin = 10;
 const int s_longpressTimeoutThreshold = 400;
 const int s_closeIconSize = 48;
 const int s_closeIconClickAreaMargin = 24;
+const int s_tilesRound = 10;
 
 TileItem::TileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
     : QGraphicsRectItem(parent)
@@ -90,7 +91,7 @@ void TileItem::paintExtra(QPainter* painter)
 
     if (m_selected) {
         painter->setBrush(QColor(80, 80, 80, 160));
-        painter->drawRoundRect(rect(), 5, 5);
+        painter->drawRoundedRect(rect(), s_tilesRound, s_tilesRound);
     }
 }
 
@@ -99,8 +100,8 @@ void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
     // FIXME: dropshadow shouldnt be a rect
     painter.setPen(QColor(40, 40, 40));
     painter.setBrush(QColor(20, 20, 20));
-    QRectF r(rect); r.moveTopLeft(r.topLeft() + QPointF(2,2));
-    painter.drawRoundedRect(r, 5, 5);
+    QRectF r(rect); r.moveTopLeft(r.topLeft() + QPointF(3, 3));
+    painter.drawRoundedRect(r, s_tilesRound, s_tilesRound);
 }
 
 QRectF TileItem::boundingRect() const
@@ -170,6 +171,7 @@ void ThumbnailTileItem::doLayoutTile()
 {
     const QFont& f = FontFactory::instance()->small();
     QRectF r(rect()); 
+    r.adjust(s_tilesRound/2, s_tilesRound/2, -(s_tilesRound/2), 0);
 
     m_textRect = r;
     m_thumbnailRect = r;
@@ -179,9 +181,9 @@ void ThumbnailTileItem::doLayoutTile()
         m_thumbnailRect.moveCenter(r.center());
     } else {
         // stretch thumbnail
-        m_thumbnailRect.adjust(2, 2, -2, -(QFontMetrics(f).height() + 3));
+        m_thumbnailRect.adjust(0, 0, 0, -(QFontMetrics(f).height() + 3));
     }
-    m_title = QFontMetrics(f).elidedText(m_urlItem.title(), Qt::ElideRight, m_textRect.width());
+    m_title = QFontMetrics(f).elidedText(m_urlItem.title(), Qt::ElideRight, m_textRect.width() - s_tilesRound);
 }
 
 void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
@@ -189,14 +191,13 @@ void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     layoutTile();
 
     QRectF r(rect()); 
-
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     // QGraphicsDropShadowEffect doesnt perform well on n900.
     addDropShadow(*painter, r);
  
     painter->setBrush(Qt::white);
-    painter->setPen(Qt::black);
-    painter->drawRoundedRect(r, 5, 5);
-    QRectF thumbnailRect(r);
+    painter->setPen(Qt::NoPen);
+    painter->drawRoundedRect(r, s_tilesRound, s_tilesRound);
     painter->drawImage(m_thumbnailRect, *(m_defaultIcon ? m_defaultIcon : m_urlItem.thumbnail()));
 
     painter->setFont(FontFactory::instance()->small());
@@ -237,9 +238,10 @@ void NewWindowTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
 {
     layoutTile();
 
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     painter->setPen(Qt::white);
     painter->setBrush(m_selected ? Qt::white : Qt::black);
-    painter->drawRoundedRect(rect(), 5, 5);
+    painter->drawRoundedRect(rect(), s_tilesRound, s_tilesRound);
 
     painter->setFont(FontFactory::instance()->small());
     painter->setPen(Qt::white);
@@ -259,9 +261,10 @@ void NewWindowMarkerTileItem::paint(QPainter* painter, const QStyleOptionGraphic
 
     QPen p(Qt::DashLine);
     p.setColor(QColor(100, 100, 100));
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     painter->setPen(p);
     painter->setBrush(Qt::NoBrush);
-    painter->drawRoundedRect(rect(), 5, 5);
+    painter->drawRoundedRect(rect(), s_tilesRound, s_tilesRound);
 }
 
 //
@@ -297,11 +300,12 @@ void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*op
     QRectF r(rect()); 
 
     // QGraphicsDropShadowEffect doesnt perform well on n900.
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     addDropShadow(*painter, r);
  
     painter->setBrush(Qt::white);
     painter->setPen(Qt::black);
-    painter->drawRoundedRect(r, 3, 3);
+    painter->drawRoundedRect(r, 1, 1);
 
     painter->setPen(Qt::black);
     painter->setFont(FontFactory::instance()->medium());

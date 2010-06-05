@@ -171,6 +171,14 @@ void AutoSelectLineEdit::keyPadEnter()
     cleanupAndSendFinished(text());
 }
 
+void AutoSelectLineEdit::keyPadDotcom()
+{
+    if (d->hasSelectedText())
+        d->url.remove(d->selectionStart(), d->selectedText().size()); 
+    setText(d->url + ".com");
+    emit textEdited(text());
+}
+
 void AutoSelectLineEdit::keypadDismissed()
 {
     d->setFocus();
@@ -197,6 +205,7 @@ void AutoSelectLineEdit::createVirtualKeypad()
     connect(m_virtualKeypad, SIGNAL(charEntered(char)), SLOT(keyPadCharEntered(char)));
     connect(m_virtualKeypad, SIGNAL(enter()), SLOT(keyPadEnter()));
     connect(m_virtualKeypad, SIGNAL(backspace()), SLOT(keyPadBackspace()));
+    connect(m_virtualKeypad, SIGNAL(dotcom()), SLOT(keyPadDotcom()));
     connect(m_virtualKeypad, SIGNAL(dismissed()), SLOT(keypadDismissed()));
 }
 

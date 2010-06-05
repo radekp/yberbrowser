@@ -44,6 +44,7 @@ Q_SIGNALS:
     void charEntered(char key);
     void backspace();
     void enter();
+    void dotcom();
     void dismissed();
 
 protected Q_SLOTS:
