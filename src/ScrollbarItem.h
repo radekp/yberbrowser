@@ -37,6 +37,8 @@ public:
     ScrollbarItem(Qt::Orientation orientation, QGraphicsItem* parent = 0);
     ~ScrollbarItem();
 
+    void setMargins(int top, int bottom);
+
     void updateVisibilityAndFading(bool shouldFadeOut);
 
     void contentPositionUpdated(qreal pos, qreal contentLength, const QSizeF& viewSize, bool shouldFadeOut);
@@ -53,6 +55,8 @@ private:
     Qt::Orientation m_orientation;
     QPropertyAnimation m_fadeAnim;
     QTimer m_fadeOutTimeout;
+    int m_topMargin;
+    int m_bottomMargin;
 };
 
 #endif

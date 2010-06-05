@@ -19,6 +19,8 @@
  */
 
 #include "PannableTileContainer.h"
+#include "ScrollbarItem.h"
+#include "ToolbarWidget.h" 
 #include "TileSelectionViewBase.h" // FIXME temp
 
 #include <QGraphicsSceneMouseEvent>
@@ -29,6 +31,7 @@
 PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : PannableViewport(parent, wFlags)
 {
+    m_vScrollbar->setMargins(ToolbarWidget::height() + 5, -1);
 }
 
 PannableTileContainer::~PannableTileContainer()

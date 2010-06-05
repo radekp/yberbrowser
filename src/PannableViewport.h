@@ -56,14 +56,11 @@ public:
     void setRange(const QRectF&);
     void setAutoRange(bool) { }
 
-    void updateScrollbars();
-    void setScrollbarOffset(int h, int v);
-
     void setPannedWidget(QGraphicsWidget*);
     void removePannedWidget() { m_pannedWidget = 0; }
 
-    void attachWidget(QGraphicsItem* item);
-    void detachWidget(QGraphicsItem* item);
+    void attachWidget(QGraphicsItem*);
+    void detachWidget(QGraphicsItem*);
 
 protected:
     bool sceneEvent(QEvent* e);
@@ -78,7 +75,6 @@ protected:
     bool canStartScrollingAt(const QPoint &globalPos) const;
     QPointF clipPointToViewport(const QPointF& p) const;
 
-    QGraphicsWidget* pannedWidget() const { return m_pannedWidget; }
     virtual void setPannedWidgetGeometry(const QRectF& r);
 
     void startPannedWidgetGeomAnim(const QRectF& geom);
@@ -87,20 +83,25 @@ protected:
 protected Q_SLOTS:
     void geomAnimStateChanged(QAbstractAnimation::State newState, QAbstractAnimation::State);
 
+protected:
+    QGraphicsWidget* m_pannedWidget;
+    ScrollbarItem* m_vScrollbar;
+    ScrollbarItem* m_hScrollbar;
+    QGraphicsItem* m_attachedItem;
+
+private:
+    void updateScrollbars();
+
 private:
     void transferAnimStateToView();
     QRectF adjustRectForPannedWidgetGeometry(const QRectF&);
 
-    QGraphicsWidget* m_pannedWidget;
-    ScrollbarItem* m_vScrollbar;
-    ScrollbarItem* m_hScrollbar;
     QPointF m_overShootDelta;
     QPointF m_extraPos;
     QRectF m_geomAnimEndValue;
     QPropertyAnimation m_geomAnim;
     int m_scrollbarXOffset;
     int m_scrollbarYOffset;
-    QGraphicsItem* m_attachedItem;
 };
 
 #endif

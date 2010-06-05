@@ -26,9 +26,9 @@
 #include <QPropertyAnimation>
 #include <QDebug>
 
-static const qreal s_thumbSize = 6;
+static const qreal s_thumbWidth = 7;
 static const qreal s_thumbMinSize = 20;
-static const qreal s_thumbMargin = 12;
+static const qreal s_thumbDefaultMargin = 12;
 
 const unsigned s_scrollbarFadeTimeout = 300; // in msec
 const unsigned s_scrollbarFadeDuration = 300; // in msec
@@ -41,6 +41,8 @@ ScrollbarItem::ScrollbarItem(Qt::Orientation orientation, QGraphicsItem* parent)
     , m_orientation(orientation)
     , m_fadeAnim(this, "opacity")
     , m_fadeOutTimeout(this)
+    , m_topMargin(0)
+    , m_bottomMargin(s_thumbDefaultMargin)
 {
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
     m_fadeAnim.setDuration(s_scrollbarFadeDuration);
@@ -56,6 +58,15 @@ ScrollbarItem::ScrollbarItem(Qt::Orientation orientation, QGraphicsItem* parent)
 
 ScrollbarItem::~ScrollbarItem()
 {
+}
+
+void ScrollbarItem::setMargins(int top, int bottom)
+{
+    // obviously, it mean right and left margin for horizontal bar
+    if (top != -1)
+        m_topMargin = top;
+    if (bottom != -1)
+        m_bottomMargin = bottom;
 }
 
 void ScrollbarItem::updateVisibilityAndFading(bool shouldFadeOut)
@@ -74,7 +85,7 @@ void ScrollbarItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*o
 {
     painter->setPen(QPen(QBrush(QColor(60, 60, 60)), 1));
     painter->setBrush(QColor(100, 100, 100));
-    painter->drawRoundRect(rect(), 10, 10);
+    painter->drawRect(rect());
 }
 
 void ScrollbarItem::fadingFinished()
@@ -91,13 +102,7 @@ void ScrollbarItem::startFadeOut()
 
 void ScrollbarItem::startFading(bool in)
 {
-    if (in) {
-        m_fadeAnim.setDirection(QAbstractAnimation::Forward);
-
-    } else {
-        m_fadeAnim.setDirection(QAbstractAnimation::Backward);
-    }
-
+    m_fadeAnim.setDirection(in ? QAbstractAnimation::Forward : QAbstractAnimation::Backward);
     if (m_fadeAnim.state() != QAbstractAnimation::Running)
         m_fadeAnim.start();
 }
@@ -113,7 +118,7 @@ void ScrollbarItem::contentPositionUpdated(qreal contentPos, qreal contentLength
     if (contentLength < viewLength)
         contentLength = viewLength;
 
-    qreal thumbRange = viewLength - 2 * s_thumbMargin;
+    qreal thumbRange = viewLength - m_topMargin - m_bottomMargin;
 
     qreal thumbPos = (thumbRange) * (-contentPos  / (contentLength));
     qreal thumbPosMax = (thumbRange) * (-contentPos + viewLength)  / (contentLength);
@@ -123,9 +128,9 @@ void ScrollbarItem::contentPositionUpdated(qreal contentPos, qreal contentLength
     qreal thumbLength = thumbPosMax - thumbPos;
 
     if (m_orientation == Qt::Horizontal)
-        setRect(QRectF(s_thumbMargin + thumbPos, viewSize.height() - s_thumbSize, thumbLength, s_thumbSize));
+        setRect(QRectF(m_topMargin + thumbPos, viewSize.height() - s_thumbWidth - 1, thumbLength, s_thumbWidth));
     else
-        setRect(QRectF(viewSize.width() - s_thumbSize, s_thumbMargin + thumbPos, s_thumbSize,  thumbLength));
+        setRect(QRectF(viewSize.width() - s_thumbWidth - 1, m_topMargin + thumbPos, s_thumbWidth,  thumbLength));
 
     // show scrollbar only when scrolling is possible
     if (thumbLength < thumbRange)

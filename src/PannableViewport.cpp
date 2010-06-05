@@ -49,9 +49,9 @@ PannableViewport::PannableViewport(QGraphicsItem* parent, Qt::WindowFlags wFlags
     , m_pannedWidget(0)
     , m_vScrollbar(new ScrollbarItem(Qt::Vertical, this))
     , m_hScrollbar(new ScrollbarItem(Qt::Horizontal, this))
+    , m_attachedItem(0)
     , m_scrollbarXOffset(0)
     , m_scrollbarYOffset(0)
-    , m_attachedItem(0)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
@@ -68,12 +68,12 @@ PannableViewport::~PannableViewport()
 
 void PannableViewport::setPanPos(const QPointF& pos)
 {
-    setPannedWidgetGeometry(QRectF(pos, pannedWidget()->size() + (QSize(0, m_attachedItem ? m_attachedItem->boundingRect().height() : 0))));
+    setPannedWidgetGeometry(QRectF(pos, m_pannedWidget->size() + (QSize(0, m_attachedItem ? m_attachedItem->boundingRect().height() : 0))));
 }
 
 QPointF PannableViewport::panPos() const
 {
-    return pannedWidget()->pos() - m_extraPos - m_overShootDelta - (QPointF(0, m_attachedItem ? m_attachedItem->boundingRect().height() : 0));
+    return m_pannedWidget->pos() - m_extraPos - m_overShootDelta - (QPointF(0, m_attachedItem ? m_attachedItem->boundingRect().height() : 0));
 }
 
 void PannableViewport::setRange(const QRectF& )
@@ -103,15 +103,19 @@ void PannableViewport::setPannedWidget(QGraphicsWidget* view)
 
 void PannableViewport::attachWidget(QGraphicsItem* item)
 {
+    // FIXME only one attached widget atm
+    // it should also define where to attach (top, bottom, left, right)
     m_attachedItem = item;
+    // assume this widget is attached to the top
+    m_vScrollbar->setMargins(item->boundingRect().height() + 5, -1);
 }
 
 void PannableViewport::detachWidget(QGraphicsItem*)
 {
     // FIXME only one attached widget atm
     m_attachedItem = 0;
+    m_vScrollbar->setMargins(0, -1);
 }
-
 
 QPoint PannableViewport::maximumScrollPosition() const
 {
@@ -134,23 +138,17 @@ QPoint PannableViewport::scrollPosition() const
 
 void PannableViewport::updateScrollbars()
 {
-    if (!m_vScrollbar || !m_hScrollbar)
-        return;
+    // FIXME: find out how to update marging based on the attached widget when the widget boundingrect is changed
+    if (m_attachedItem)
+        m_vScrollbar->setMargins(m_attachedItem->boundingRect().height() + 5, -1);
+
     QPointF contentPos = panPos();
     QSizeF contentSize = m_pannedWidget->size();
 
-    QSizeF viewSize(size().width() - m_scrollbarXOffset, size().height() - m_scrollbarYOffset);
-
     bool shouldFadeOut = !(state() == YberHack_Qt::QAbstractKineticScroller::MousePressed || state() == YberHack_Qt::QAbstractKineticScroller::Pushing);
 
-    m_hScrollbar->contentPositionUpdated(contentPos.x(), contentSize.width(), viewSize, shouldFadeOut);
-    m_vScrollbar->contentPositionUpdated(contentPos.y(), contentSize.height(), viewSize, shouldFadeOut);
-}
-
-void PannableViewport::setScrollbarOffset(int v, int h)
-{
-    m_scrollbarYOffset = v;
-    m_scrollbarXOffset = h;
+    m_hScrollbar->contentPositionUpdated(contentPos.x(), contentSize.width(), size(), shouldFadeOut);
+    m_vScrollbar->contentPositionUpdated(contentPos.y(), contentSize.height(), size(), shouldFadeOut);
 }
 
 void PannableViewport::setScrollPosition(const QPoint &pos, const QPoint &overShootDelta)
@@ -266,13 +264,13 @@ void PannableViewport::setPannedWidgetGeometry(const QRectF& g)
         m_attachedItem->setPos(r.topLeft());
         r.setTop(r.top() + m_attachedItem->boundingRect().height());
     }
-    pannedWidget()->setGeometry(r);
+    m_pannedWidget->setGeometry(r);
     updateScrollbars();
 }
 
 void PannableViewport::startPannedWidgetGeomAnim(const QRectF& geom)
 {
-    m_geomAnim.setStartValue(pannedWidget()->geometry());
+    m_geomAnim.setStartValue(m_pannedWidget->geometry());
     m_geomAnimEndValue = adjustRectForPannedWidgetGeometry(geom);
     m_geomAnim.setEndValue(m_geomAnimEndValue);
     m_geomAnim.start();
@@ -287,7 +285,7 @@ void PannableViewport::stopPannedWidgetGeomAnim()
 void PannableViewport::transferAnimStateToView()
 {
     if (m_geomAnimEndValue.isValid())
-        pannedWidget()->setGeometry(m_geomAnimEndValue);
+        m_pannedWidget->setGeometry(m_geomAnimEndValue);
     updateScrollbars();
 }
 

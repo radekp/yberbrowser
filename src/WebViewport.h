@@ -50,8 +50,6 @@ public:
     WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent = 0);
     ~WebViewport();
 
-    WebViewportItem* viewportWidget() const;
-
     void startZoomAnimToItemHotspot(const QPointF& hotspot,  const QPointF& viewTargetHotspot, qreal scale);
 
 public Q_SLOTS:
@@ -83,6 +81,8 @@ private:
     bool isZoomedIn() const;
     void stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState);
 
+private:
+    WebViewportItem* m_viewportWidget;
     CommonGestureRecognizer m_recognizer;
     QEvent* m_selfSentEvent;
 
