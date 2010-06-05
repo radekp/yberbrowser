@@ -38,8 +38,9 @@ public:
     AutoScrollTest(PannableViewport* viewport, WebView* webView, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~AutoScrollTest();
 
-public Q_SLOTS:
     void starScrollTest();
+
+public Q_SLOTS:
     void doScroll();
     void fpsTick();
     void loadFinished(bool);

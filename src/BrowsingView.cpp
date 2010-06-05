@@ -118,7 +118,6 @@ void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
 #if !USE_DUI
     connect(currentView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
 #endif
-
 }
 
 void BrowsingView::addBookmark()
@@ -162,6 +161,7 @@ void BrowsingView::load(const QUrl& url)
     deleteHomeView();
     if (url.isValid())
         m_activeWebView->load(url.toString());
+    m_toolbarWidget->setTextIfUnfocused(url.toString());
 }
 
 void BrowsingView::stopLoad()
