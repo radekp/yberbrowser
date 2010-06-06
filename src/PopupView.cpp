@@ -28,8 +28,10 @@
 #include <qgraphicswebview.h>
 #include <qwebpage.h>
 #include <qwebframe.h>
+#ifndef Q_OS_SYMBIAN
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValueIterator>
+#endif
 
 class Suggest : public QObject {
     Q_OBJECT
@@ -80,6 +82,7 @@ void Suggest::loadFinished(bool success)
 
     if (!success)
         return;
+#ifndef Q_OS_SYMBIAN
     QString json = m_view.page()->mainFrame()->toPlainText();
     int start = json.indexOf("(");
     if (start != -1) {
@@ -102,6 +105,7 @@ void Suggest::loadFinished(bool success)
         }
     }
     emit suggestionsAvailable();
+#endif
 }
 
 PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)

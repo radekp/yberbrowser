@@ -57,10 +57,10 @@ FontFactory::FontFactory()
     int small = 12;
     int medium = 18;
     int big = 30;
-#if defined(Q_WS_SYMBIAN)
-    small = 8;
-    medium = 12;
-    big = 18;
+#ifdef Q_OS_SYMBIAN
+    small = 6;
+    medium = 8;
+    big = 12;
 #endif
     m_smallFont.setPointSize(small);
     m_mediumFont.setPointSize(medium);

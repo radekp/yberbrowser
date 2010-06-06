@@ -11,9 +11,11 @@ isEmpty(PREFIX) {
 DATADIR = $$PREFIX/share
 BINDIR = $$PREFIX/bin
 
-MOC_DIR     = $$PWD/.moc
-OBJECTS_DIR = $$PWD/.obj
-RCC_DIR     = $$PWD/.rcc
+!symbian {
+	MOC_DIR     = $$PWD/.moc
+	OBJECTS_DIR = $$PWD/.obj
+	RCC_DIR     = $$PWD/.rcc
+}
 
 dui {
     CONFIG+=dui
@@ -45,6 +47,7 @@ enable_engine_thread {
     DEFINES+=ENABLE_ENGINE_THREAD=0
 }
 
+!symbian {
 
 contains(WEBKIT, system) {
     QT += webkit
@@ -105,12 +108,14 @@ contains(WEBKIT, system) {
 } else {
   error(Specify WEBKIT build mode: WEBKIT=[system|custom|local])
 }
-
+}
 
 
 symbian {
-    TARGET.UID3 = 0xA000E544
-    TARGET.CAPABILITY = ReadUserData WriteUserData NetworkServices
+	TARGET.UID3 = 0xA000E544
+	TARGET.CAPABILITY = All -Tcb
+	TARGET.EPOCHEAPSIZE = 0x20000 0x2000000
+	QT += webkit
 }
 
 target.path = $$BINDIR

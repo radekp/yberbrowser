@@ -27,9 +27,9 @@
 #include <QPainter>
 #include <QDebug>
 
-const int s_keypadMargin = 5;
+const int s_keypadMargin = 0;
 const QSize s_keypadItemMaxSize = QSize(68, 51);
-const int s_keypadItemMargin = 2;
+const int s_keypadItemMargin = 1;
 // keys width/height proportion
 const qreal s_keySizePropotion = 0.75;
 // special keys are this much wider
@@ -93,7 +93,9 @@ KeypadItem::KeypadItem(uint index, const QRectF& rect, QGraphicsItem* parent)
     , m_image(0)
     , m_bubbleIcon(0)
 {
+#ifndef Q_OS_SYMBIAN
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+#endif    
     QGradientStops stops;
     stops << QGradientStop(0.00, QColor(120, 120, 120, 240)) << QGradientStop(0.10, QColor(253, 253, 253, 245)) << QGradientStop(0.90, QColor(213, 213, 213, 245));
     for (int j = 0; j < stops.size(); ++j)
@@ -221,7 +223,9 @@ KeypadWidget::KeypadWidget(const QRectF& rect, QGraphicsItem* parent)
     , m_prevButton(0)
     , m_bubbleIcon(QImage(":/data/icon/64x64/bubble_64.png"))
 {
+#ifndef Q_OS_SYMBIAN
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+#endif    
     m_bubbleTimer.setSingleShot(true);
     connect(&m_bubbleTimer, SIGNAL(timeout()), SLOT(cancelBubble())); 
 }

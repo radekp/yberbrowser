@@ -74,6 +74,11 @@ AutoSelectLineEdit::~AutoSelectLineEdit()
     delete d;
 }
 
+QRectF AutoSelectLineEdit::boundingRect() const
+{
+    return clientRect();
+}
+
 QString AutoSelectLineEdit::text()
 {
     return d->url;
@@ -199,8 +204,9 @@ bool AutoSelectLineEdit::realFocusEvent()
 
 void AutoSelectLineEdit::createVirtualKeypad()
 {
-    m_virtualKeypad = new KeypadWidget(clientRect(), this);
-    m_virtualKeypad->appear(clientRect().bottom());
+    QRectF r(clientRect());
+    m_virtualKeypad = new KeypadWidget(r, this);
+    m_virtualKeypad->appear(r.bottom());
     
     connect(m_virtualKeypad, SIGNAL(charEntered(char)), SLOT(keyPadCharEntered(char)));
     connect(m_virtualKeypad, SIGNAL(enter()), SLOT(keyPadEnter()));
@@ -227,7 +233,7 @@ void AutoSelectLineEdit::createUrlFilterPopup()
     connect(m_urlfilterPopup, SIGNAL(viewDismissed()), this, SLOT(popupDismissed()));
 }
 
-QRectF AutoSelectLineEdit::clientRect()
+QRectF AutoSelectLineEdit::clientRect() const
 {
     // client items like keypad and popup should offset back to
     // the edge of the screen

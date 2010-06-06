@@ -50,6 +50,7 @@ public:
     bool popupOn() const { return m_virtualKeypad || m_urlfilterPopup; }
     bool virtualKeypadOn() const { return m_virtualKeypad; }
     bool urlFilterPopupOn() const { return m_urlfilterPopup; }
+    QRectF boundingRect () const;
 
 public Q_SLOTS:
     void setText(const QString& text);
@@ -78,7 +79,7 @@ protected:
 private:
     void createVirtualKeypad();
     void createUrlFilterPopup();
-    QRectF clientRect();
+    QRectF clientRect() const;
     void cleanupAndSendFinished(const QString& text);
 
 private:

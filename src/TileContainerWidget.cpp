@@ -48,7 +48,9 @@ TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::
     m_titleItem.setFont(FontFactory::instance()->big());
     m_titleItem.setPen(QPen(Qt::white));
     m_titleItem.setBrush(QBrush(Qt::white));
-    m_titleItem.setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+#ifndef Q_OS_SYMBIAN
+    setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+#endif    
 }
 
 TileBaseWidget::~TileBaseWidget()

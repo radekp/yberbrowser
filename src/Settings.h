@@ -70,7 +70,7 @@ private:
         m_autoCompleteEnabled = true;
         m_tilingEnabled = true;
         m_engineThreadEnabled = false;
-#if defined(Q_WS_MAEMO_5) || defined(Q_WS_SYMBIAN) || USE_DUI
+#if defined(Q_WS_MAEMO_5) || defined(Q_OS_SYMBIAN) || USE_DUI
         m_isFullScreen = true;
 #else
         m_isFullScreen = false;

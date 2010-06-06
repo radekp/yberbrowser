@@ -39,7 +39,9 @@ ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     , m_progress(0)
     , m_urlEdit(new AutoSelectLineEdit(this))
 {
+#ifndef Q_OS_SYMBIAN
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+#endif    
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(textEdited(const QString&)));
     connect(m_urlEdit, SIGNAL(textEditingFinished(const QString&)), SLOT(textEditingFinished(const QString&)));
     connect(m_urlEdit, SIGNAL(focusChanged(bool)), SLOT(editorFocusChanged(bool)));

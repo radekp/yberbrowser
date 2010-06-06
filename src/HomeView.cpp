@@ -206,12 +206,12 @@ void HomeView::moveViews()
     QRectF to(geometry());
     to.moveLeft(-newPos);
 
-    QPropertyAnimation* slideAnim = new QPropertyAnimation(this, "geometry");
-    slideAnim->setStartValue(geometry());
-    slideAnim->setEndValue(to);
+    QPropertyAnimation* slideAnim = new QPropertyAnimation(this, "pos");
+    slideAnim->setStartValue(geometry().topLeft());
+    slideAnim->setEndValue(to.topLeft());
 
-    slideAnim->setDuration(500);
-    slideAnim->setEasingCurve(flick ? QEasingCurve::OutQuad : QEasingCurve::OutExpo);
+    slideAnim->setDuration(300);
+    slideAnim->setEasingCurve(QEasingCurve::OutExpo);
     slideAnim->start();
 }
 
