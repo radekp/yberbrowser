@@ -29,25 +29,31 @@
 #include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
 #include <QGraphicsSimpleTextItem>
+#include <QPainter>
 #include <QPen>
+#include <QFontMetrics>
 #include <QDebug>
 
-const int s_tileMargin = 40;
-const int s_tileTopMargin = 25;
+#ifdef Q_OS_SYMBIAN
+const int s_tileMargin = 25;
+const int s_tileTopMargin = 5;
+const int s_titleVMargin = 5;
+const int s_bookmarksTileHeight = 60;
+const int s_searchItemTileHeight = 60;
+#else
+const int s_tileMargin = 25;
+const int s_tileTopMargin = 10;
 const int s_titleVMargin = 10;
 const int s_bookmarksTileHeight = 70;
 const int s_searchItemTileHeight = 60;
+#endif
 
 TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
+    , m_title(title)
     , m_slideAnimationGroup(0)
     , m_editMode(false)
 {
-    m_titleItem.setParentItem(this);
-    m_titleItem.setText(title);
-    m_titleItem.setFont(FontFactory::instance()->big());
-    m_titleItem.setPen(QPen(Qt::white));
-    m_titleItem.setBrush(QBrush(Qt::white));
 #ifndef Q_OS_SYMBIAN
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
 #endif    
@@ -59,15 +65,26 @@ TileBaseWidget::~TileBaseWidget()
     delete m_slideAnimationGroup;
 }
 
+void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
+{
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+    painter->setFont(FontFactory::instance()->big());
+    painter->setPen(QColor(Qt::white));
+    painter->drawText(m_titleRect, Qt::AlignLeft|Qt::AlignVCenter, m_title);
+}
+
 QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed)
 {
     if (!m_tileList.size())
         return QSize(0, 0) ;
 
+    m_titleRect.setLeft(rect().left() + marginX);
+    m_titleRect.setTop(titleVMargin());
+    m_titleRect.setHeight(QFontMetrics(FontFactory::instance()->big()).height());
+    m_titleRect.setWidth(rect_.width());    
+
     int y = rect_.top() + marginY;
     int x = rect_.left() + marginX;
-
-    m_titleItem.setPos(x, titleVMargin());
 
     int width = rect_.width() - (hTileNum + 1)*marginX;
     int height = rect_.height() - (vTileNum)*marginY;
@@ -169,7 +186,7 @@ int TileBaseWidget::titleVMargin()
 
 int TileBaseWidget::tileTopVMargin() 
 {
-    return titleVMargin() + m_titleItem.boundingRect().height() + s_tileTopMargin;
+    return titleVMargin() + QFontMetrics(FontFactory::instance()->big()).height() + s_tileTopMargin;
 }
 
 // subclasses
@@ -251,7 +268,7 @@ void BookmarkWidget::layoutTiles()
     QRectF r(rect());
     r.setTop(r.top() + tileTopVMargin());
     // add toolbarheight to make sure tiles are always visible
-    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, 0).height() + tileTopVMargin());
+    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, -1).height() + tileTopVMargin());
 }
 
 // url filter popup
@@ -275,4 +292,5 @@ void PopupWidget::layoutTiles()
     r.setTop(r.top() + ToolbarWidget::height());
     setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height());
 }
+
 

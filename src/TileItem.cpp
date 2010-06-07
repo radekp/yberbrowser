@@ -198,7 +198,7 @@ void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     addDropShadow(*painter, r);
  
     painter->setBrush(Qt::white);
-    painter->setPen(Qt::NoPen);
+    painter->setPen(Qt::gray);
     painter->drawRoundedRect(r, s_tilesRound, s_tilesRound);
     painter->drawImage(m_thumbnailRect, *(m_defaultIcon ? m_defaultIcon : m_urlItem.thumbnail()));
 
@@ -305,8 +305,8 @@ void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*op
     painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
  
     painter->setBrush(Qt::white);
-    painter->setPen(Qt::black);
-    painter->drawRoundedRect(r, 1, 1);
+    painter->setPen(Qt::gray);
+    painter->drawRoundedRect(r, 2, 2);
 
     painter->setPen(Qt::black);
     painter->setFont(FontFactory::instance()->medium());

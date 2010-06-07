@@ -35,14 +35,15 @@
 #endif
 
 const int s_maxWindows = 6;
-const int s_containerXMargin = 60;
 const int s_containerYBottomMargin = 10;
 const int s_maxHistoryTileNum = 19;
 const int s_horizontalFlickLockThreshold = 20;
 const int s_flickTimeoutThreshold = 700;
 #ifdef Q_OS_SYMBIAN
+const int s_containerXMargin = 10;
 const int s_slideTimeout = 300;
 #else
+const int s_containerXMargin = 40;
 const int s_slideTimeout = 500;
 #endif
 
@@ -351,4 +352,5 @@ void HomeView::resetContainerSize()
     if (m_activeWidget == Bookmarks)
         setPos(QPointF(-(r.x() - s_containerXMargin), 0));
 }
+
 

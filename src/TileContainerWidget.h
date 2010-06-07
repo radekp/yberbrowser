@@ -26,7 +26,6 @@
 
 class QGraphicsSceneMouseEvent;
 class QParallelAnimationGroup;
-class QGraphicsSimpleTextItem;
 
 class TileBaseWidget : public QGraphicsWidget {
     Q_OBJECT
@@ -47,6 +46,7 @@ Q_SIGNALS:
 protected:
     TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
 
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
     QSize doLayoutTiles(const QRectF& rect, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed = false);
     int titleVMargin();
     int tileTopVMargin();
@@ -58,7 +58,8 @@ private:
 
 protected:
     TileList m_tileList;
-    QGraphicsSimpleTextItem m_titleItem;
+    QString m_title;
+    QRectF m_titleRect;
 
 private:
     QParallelAnimationGroup* m_slideAnimationGroup;
@@ -104,3 +105,4 @@ public:
 };
 
 #endif
+

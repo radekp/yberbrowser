@@ -34,6 +34,11 @@ const int s_toolbarSize = 48; // fixed 48 pixel
 const int s_iconSize = 48; // fixed 48 pixel
 const int s_iconXMargin = 10;
 const int s_thinToolbarHeight = 32;
+#ifdef Q_OS_SYMBIAN
+const int s_shrinkAnimTimeout = 200;
+#else
+const int s_shrinkAnimTimeout = 500;
+#endif
 
 ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     : QGraphicsRectItem(parent)
@@ -205,7 +210,7 @@ void ToolbarWidget::keypadVisible(bool on)
 void ToolbarWidget::animateToolbarMove(bool on)
 {
     QPropertyAnimation* moveAnim = new QPropertyAnimation(this, "toolbarHeight");
-    moveAnim->setDuration(500);
+    moveAnim->setDuration(s_shrinkAnimTimeout);
 
     moveAnim->setStartValue(rect().height());
     moveAnim->setEndValue(on ? s_thinToolbarHeight : height());
