@@ -55,7 +55,7 @@ FontFactory::FontFactory()
     m_bigFont.setFamily(fontFamily);
 
     int small = 12;
-    int medium = 18;
+    int medium = 16;
     int big = 30;
 #ifdef Q_OS_SYMBIAN
     small = 6;

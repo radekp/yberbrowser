@@ -41,7 +41,7 @@ public:
     void appear();
     void disappear();
 
-    void setGeometry( const QRectF & );
+    void setGeometry(const QRectF&);
     void resizeEvent(QGraphicsSceneResizeEvent* event);
     ViewType viewtype() const { return m_type; }
 

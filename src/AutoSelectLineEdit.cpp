@@ -23,6 +23,7 @@
 #include "FontFactory.h"
 #include "KeypadWidget.h"
 #include "PopupView.h"
+#include "ToolbarWidget.h"
 
 #include <QUrl>
 
@@ -38,33 +39,26 @@ AutoSelectLineEdit::AutoSelectLineEdit(QGraphicsItem* parent)
     , d(new AutoSelectLineEditPrivate(this))
     , m_virtualKeypad(0)
     , m_urlfilterPopup(0)
+    , m_proxyWidget(new QGraphicsProxyWidget(this))
 {
     setFlag(QGraphicsItem::ItemIsFocusable, true);
 
     // create internal widgets
-    QGraphicsProxyWidget* proxy;
-    proxy = new QGraphicsProxyWidget(this);
-    proxy->setWidget(d);
-    proxy->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-    QGraphicsLinearLayout* layout;
-    layout = new QGraphicsLinearLayout(Qt::Horizontal, this);
-    setLayout(layout);
-    layout->addItem(proxy);
+    m_proxyWidget->setWidget(d);
+    m_proxyWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     // remove default background
     d->setFrame(false);
     d->setAttribute(Qt::WA_NoSystemBackground);
     d->setStyleSheet("background: transparent;");
 
-    setFocusProxy(proxy);
+    setFocusProxy(m_proxyWidget);
 
     // set font settings
-    const QFont& font = FontFactory::instance()->medium();
     QPalette palette = d->palette();
     palette.setColor(QPalette::Text, Qt::white);
     d->setPalette(palette);
-    d->setFont(font);
+    d->setFont(FontFactory::instance()->medium());
 }
 
 AutoSelectLineEdit::~AutoSelectLineEdit()
@@ -72,6 +66,12 @@ AutoSelectLineEdit::~AutoSelectLineEdit()
     delete m_virtualKeypad;
     delete m_urlfilterPopup;
     delete d;
+}
+
+void AutoSelectLineEdit::setGeometry(const QRectF& rect)
+{
+    QGraphicsWidget::setGeometry(rect);
+    m_proxyWidget->resize(rect.size());
 }
 
 QString AutoSelectLineEdit::text()
@@ -184,6 +184,7 @@ void AutoSelectLineEdit::keypadDismissed()
     delete m_virtualKeypad;
     m_virtualKeypad = 0;
     update();
+    emit keypadVisible(false);
 }
 
 void AutoSelectLineEdit::returnPressed()
@@ -213,7 +214,7 @@ void AutoSelectLineEdit::createVirtualKeypad()
     connect(m_virtualKeypad, SIGNAL(dismissed()), SLOT(keypadDismissed()));
     connect(m_virtualKeypad, SIGNAL(pageSelected(const QUrl&)), this, SLOT(popupItemSelected(const QUrl&)));
     connect(this, SIGNAL(textEdited(const QString&)), m_virtualKeypad, SLOT(updatePopup(const QString&)));
-
+    emit keypadVisible(true);
 }
 
 void AutoSelectLineEdit::createUrlFilterPopup()

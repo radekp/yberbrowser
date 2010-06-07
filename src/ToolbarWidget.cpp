@@ -28,9 +28,12 @@
 #include <QImage>
 #include <QPainter>
 #include <QGraphicsSceneMouseEvent>
+#include <QPropertyAnimation>
 
 const int s_toolbarSize = 48; // fixed 48 pixel
+const int s_iconSize = 48; // fixed 48 pixel
 const int s_iconXMargin = 10;
+const int s_thinToolbarHeight = 32;
 
 ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     : QGraphicsRectItem(parent)
@@ -46,6 +49,7 @@ ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(textEdited(const QString&)));
     connect(m_urlEdit, SIGNAL(textEditingFinished(const QString&)), SLOT(textEditingFinished(const QString&)));
     connect(m_urlEdit, SIGNAL(focusChanged(bool)), SLOT(editorFocusChanged(bool)));
+    connect(m_urlEdit, SIGNAL(keypadVisible(bool)), SLOT(keypadVisible(bool)));
     setZValue(1);
     QGradientStops stops;
     stops << QGradientStop(0.00, QColor(165, 165, 165, 220)) << QGradientStop(0.10, QColor(80, 80, 80, 225)) << QGradientStop(0.90, QColor(80, 80, 80, 225));
@@ -62,15 +66,28 @@ int ToolbarWidget::height()
     return s_toolbarSize;
 }
 
+void ToolbarWidget::setToolbarHeight(int height)
+{
+    QRectF r(rect());
+    r.setHeight(height);
+    setRect(r);
+}
+
+int ToolbarWidget::toolbarHeight()
+{
+    return rect().height();
+}
+
 void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
 {
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+
     static QRectF oldRect;
     QRectF r(rect());
     bool geometryChanged = (r != oldRect);
     oldRect = r;
-
     if (geometryChanged) {
-        m_urlEdit->setGeometry(QRectF(QPointF(r.left() + s_toolbarSize, r.top()), QSizeF(r.width() - 2 * s_toolbarSize, r.height())));
+        m_urlEdit->setGeometry(QRectF(QPointF(r.left() + s_iconSize, r.top()), QSizeF(r.width() - 2 * s_iconSize, r.height())));
 
         m_bckgGradient.setStart(rect().bottomLeft());
         m_bckgGradient.setFinalStop(rect().topLeft());
@@ -80,13 +97,13 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     painter->setPen(QColor(80, 80, 80, 220));
 
     painter->setBrush(m_bckgGradient);
-    painter->drawRect(r);
+    painter->drawRoundedRect(r, 5, 5);
 
-    int editorX = r.left() + s_toolbarSize;
+    int editorX = r.left() + s_iconSize;
     if (m_progress > 0) {
         QRectF pr(r);
         painter->setBrush(QColor(2, 2, 30, 120));
-        int progressAreaWidth = r.width() - 2 * s_toolbarSize;
+        int progressAreaWidth = r.width() - 2 * s_iconSize;
         pr.setLeft(editorX);
         pr.setRight(pr.left() + progressAreaWidth / 100 * m_progress);
         painter->drawRect(pr);
@@ -95,15 +112,18 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     painter->setPen(QColor(20, 20, 20, 120));
     painter->setBrush(QColor(20, 20, 20, 120));
 
-    // bookmark icon and bckg
-    r.setRight(editorX);
-    painter->drawRect(r);
-    painter->drawImage(r.topLeft(), m_bookmarksIcon);
+    // dont paint icons while in thin mode
+    if (rect().height() == height()) {
+        // bookmark icon and bckg
+        r.setRight(editorX);
+        painter->drawRoundedRect(r, 3, 3);
+        painter->drawImage(r.topLeft(), m_bookmarksIcon);
 
-    // stop/cancel icon and bckg
-    r.moveLeft(rect().right() - s_toolbarSize);
-    painter->drawRect(r);
-    painter->drawImage(r.topLeft(), m_progress > 0 ? m_cancelIcon : m_backIcon);
+        // stop/cancel icon and bckg
+        r.moveLeft(rect().right() - s_iconSize);
+        painter->drawRoundedRect(r, 3, 3);
+        painter->drawImage(r.topLeft(), m_progress > 0 ? m_cancelIcon : m_backIcon);
+    }
 }
 
 void ToolbarWidget::setTextIfUnfocused(const QString& text)
@@ -127,13 +147,13 @@ void ToolbarWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
 void ToolbarWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
     QRectF r(rect());
-    r.setRight(r.left() + s_toolbarSize);
+    r.setRight(r.left() + s_iconSize);
     if (r.contains(event->pos())) {
         emit bookmarkPressed();
         return;
     }
 
-    r.setLeft(rect().right() - s_toolbarSize);
+    r.setLeft(rect().right() - s_iconSize);
     r.setRight(rect().right());
 
     if (r.contains(event->pos())) {
@@ -177,4 +197,20 @@ void ToolbarWidget::editorFocusChanged(bool focused)
     emit urlEditorFocusChanged(focused);
 }
 
+void ToolbarWidget::keypadVisible(bool on)
+{
+    animateToolbarMove(on);
+}
+
+void ToolbarWidget::animateToolbarMove(bool on)
+{
+    QPropertyAnimation* moveAnim = new QPropertyAnimation(this, "toolbarHeight");
+    moveAnim->setDuration(500);
+
+    moveAnim->setStartValue(rect().height());
+    moveAnim->setEndValue(on ? s_thinToolbarHeight : height());
+
+    moveAnim->setEasingCurve(QEasingCurve::OutQuad);
+    moveAnim->start();
+}
 

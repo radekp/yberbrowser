@@ -33,12 +33,16 @@ class AutoSelectLineEdit;
 
 class ToolbarWidget : public QObject, public QGraphicsRectItem {
     Q_OBJECT
+    Q_PROPERTY(int toolbarHeight READ toolbarHeight WRITE setToolbarHeight)
 public:
     ToolbarWidget(QGraphicsItem* parent);
     ~ToolbarWidget();
 
     // FIXME: 
     static int height();
+
+    void setToolbarHeight(int);
+    int toolbarHeight();
 
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 
@@ -59,6 +63,11 @@ protected Q_SLOTS:
     void textEdited(const QString&);
     void textEditingFinished(const QString&);
     void editorFocusChanged(bool);
+
+    void keypadVisible(bool);
+
+private:
+    void animateToolbarMove(bool);
 
 private:
     QImage m_bookmarksIcon;

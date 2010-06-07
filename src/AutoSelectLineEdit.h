@@ -32,6 +32,7 @@
 class AutoSelectLineEditPrivate;
 class KeypadWidget;
 class PopupView;
+class QGraphicsProxyWidget;
 
 class AutoSelectLineEdit : public QGraphicsWidget
 {
@@ -39,6 +40,8 @@ class AutoSelectLineEdit : public QGraphicsWidget
 public:
     AutoSelectLineEdit(QGraphicsItem* parent);
     ~AutoSelectLineEdit();
+
+    void setGeometry(const QRectF&);
 
     QString text();
 
@@ -55,6 +58,8 @@ Q_SIGNALS:
     void focusChanged(bool);
     void textEdited(const QString&);
     void textEditingFinished(const QString&);
+
+    void keypadVisible(bool);
 
 protected Q_SLOTS:
     void popupItemSelected(const QUrl&);
@@ -83,6 +88,7 @@ private:
     AutoSelectLineEditPrivate* d;
     KeypadWidget* m_virtualKeypad;
     PopupView* m_urlfilterPopup;
+    QGraphicsProxyWidget* m_proxyWidget;
 };
 
 #endif
