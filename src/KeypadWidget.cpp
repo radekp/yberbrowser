@@ -20,20 +20,29 @@
 
 #include "KeypadWidget.h"
 #include "FontFactory.h"
+#include "PopupView.h"
+#include "AutoSelectLineEdit.h"
 
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
-#include <QGraphicsWidget>
 #include <QPainter>
+#include <QUrl>
 #include <QDebug>
 
-const int s_keypadMargin = 0;
+#ifdef Q_OS_SYMBIAN
+const int s_keypadXMargin = 1;
+#else
+const int s_keypadXMargin = 5;
+#endif
+const int s_keypadYMargin = 5;
 const QSize s_keypadItemMaxSize = QSize(68, 51);
 const int s_keypadItemMargin = 1;
 // keys width/height proportion
 const qreal s_keySizePropotion = 0.75;
 // special keys are this much wider
 const qreal s_speclialKeySizePropotion = 1.12;
+const int s_popupMargin = 4;
+const int s_keypadBottomMargin = 2;
 
 const int s_keypadCols = 10;
 const int s_keypadRows = 3;
@@ -52,6 +61,8 @@ const int s_keypadSpecialRows = 1;
 const int s_specialKeypadLine[] = {s_capslock, s_numpad, s_space, s_dotcom, s_backspace, s_enter};
 const int s_bubbleIconSize = 64;
 const int s_bubbleTimeout = 800;
+
+const QString s_dotcomStr = QString(".com");
 
 class KeypadItem : public QObject, public QGraphicsRectItem {
     Q_OBJECT
@@ -165,7 +176,7 @@ void KeypadItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*opti
     else if (m_index == s_numpad)
         title = m_flipped ? "abc" : "123";
     else if (m_index == s_dotcom)
-        title = ".com";
+        title = s_dotcomStr;
 
     if (!title.isEmpty())
         painter->drawText(r, Qt::AlignHCenter|Qt::AlignVCenter, title);
@@ -218,8 +229,9 @@ char KeypadItem::getChar()
     return character;
 }
 
-KeypadWidget::KeypadWidget(const QRectF& rect, QGraphicsItem* parent)
-    : QGraphicsRectItem(rect, parent)    
+KeypadWidget::KeypadWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
+    : QGraphicsWidget(parent, wFlags)    
+    , m_urlfilterPopup(new PopupView(this))
     , m_prevButton(0)
     , m_bubbleIcon(QImage(":/data/icon/64x64/bubble_64.png"))
 {
@@ -228,19 +240,36 @@ KeypadWidget::KeypadWidget(const QRectF& rect, QGraphicsItem* parent)
 #endif    
     m_bubbleTimer.setSingleShot(true);
     connect(&m_bubbleTimer, SIGNAL(timeout()), SLOT(cancelBubble())); 
+    connect(m_urlfilterPopup, SIGNAL(pageSelected(const QUrl&)), SLOT(popupItemSelected(const QUrl&)));
+    connect(m_urlfilterPopup, SIGNAL(viewDismissed()), SLOT(popupDismissed()));
+    m_urlfilterPopup->appear();
 }
 
 KeypadWidget::~KeypadWidget()
 {
 }
 
+void KeypadWidget::updatePopup(const QString& text)
+{
+    // signal from the connected url editor
+    m_urlfilterPopup->setFilterText(text);
+}
+
+void KeypadWidget::resizeEvent(QGraphicsSceneResizeEvent*)
+{
+}
+
 void KeypadWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
 {
     painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-    painter->setPen(Qt::NoPen);
 
-    painter->setBrush(QColor(80, 80, 80, 220));
-    painter->drawRect(rect());
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(QColor(60, 60, 60, 220));
+    QRectF r(rect());
+    r.setTop(r.top() + m_urlfilterPopup->geometry().height() + s_popupMargin);
+    painter->drawRect(r);
+
+    painter->setPen(Qt::white);
     painter->setBrush(QColor(20, 20, 20, 120));
     painter->drawRoundedRect(m_keypadRect, 5, 5);
 }
@@ -257,16 +286,23 @@ void KeypadWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent*)
 void KeypadWidget::appear(int stickyY)
 {
     m_keypadRect = QRectF(rect());
-    int keypadWidth = s_keypadItemMaxSize.width() * s_keypadCols + 2*s_keypadMargin;
+    int keypadWidth = s_keypadItemMaxSize.width() * s_keypadCols + 2*s_keypadXMargin;
     // too wide??    
     if (keypadWidth > rect().width())
         keypadWidth = rect().width();
 
     m_keypadRect.setWidth(keypadWidth);
-    m_keypadRect.setHeight((m_keypadRect.width() / s_keypadCols) * s_keySizePropotion * (s_keypadRows + s_keypadSpecialRows) + 2*s_keypadMargin);
+    m_keypadRect.setHeight((m_keypadRect.width() / s_keypadCols) * s_keySizePropotion * (s_keypadRows + s_keypadSpecialRows) + 2*s_keypadYMargin);
     m_keypadRect.moveLeft(rect().left() + (rect().width()/2 - m_keypadRect.width()/2));
-    m_keypadRect.moveBottom(stickyY);
+    m_keypadRect.moveBottom(stickyY - s_keypadBottomMargin);
     layoutKeypad();
+    
+    QRectF filterRect(rect());
+    filterRect.setTop(filterRect.top() + s_popupMargin);
+    filterRect.setHeight(rect().height() - m_keypadRect.height() - 2*s_popupMargin);
+    m_urlfilterPopup->setPos(filterRect.topLeft());
+    m_urlfilterPopup->resize(filterRect.size());
+    m_urlfilterPopup->appear();
 }
 
 void KeypadWidget::keypadItemPressed(KeypadItem& item)
@@ -294,7 +330,7 @@ void KeypadWidget::keypadItemSelected(KeypadItem& item)
     } else if (character == s_space) {
         emit charEntered(32);
     } else if (character == s_dotcom) {
-        emit dotcom();
+        emit textEntered(s_dotcomStr);
     } else {
         emit charEntered(character);
     }
@@ -306,12 +342,22 @@ void KeypadWidget::cancelBubble()
     m_prevButton = 0;
 }
 
+void KeypadWidget::popupItemSelected(const QUrl& url)
+{
+    emit pageSelected(url);
+}
+
+void KeypadWidget::popupDismissed()
+{
+    emit dismissed();
+}
+
 void KeypadWidget::layoutKeypad()
 {
-    int x = m_keypadRect.left() + s_keypadMargin;
-    int y = m_keypadRect.top() + s_keypadMargin;
+    int x = m_keypadRect.left() + s_keypadXMargin;
+    int y = m_keypadRect.top() + s_keypadYMargin;
     QSizeF keySize;
-    keySize.setWidth((m_keypadRect.width() - 2 * s_keypadMargin) / s_keypadCols);
+    keySize.setWidth((m_keypadRect.width() - 2 * s_keypadXMargin) / s_keypadCols);
     keySize.setHeight(keySize.width() * s_keySizePropotion);
     for (int i = 0; i < s_keypadRows; ++i) {
         for (int j = 0; j < s_keypadCols; ++j) {
@@ -321,7 +367,7 @@ void KeypadWidget::layoutKeypad()
             m_buttons.append(item);
             x+= keySize.width();
         }
-        x = m_keypadRect.left() + s_keypadMargin;
+        x = m_keypadRect.left() + s_keypadXMargin;
         y+= keySize.height();
     }
 
@@ -330,7 +376,7 @@ void KeypadWidget::layoutKeypad()
         // special handling for space, it takes over the leftover place, in the middle
         QSizeF itemSize(specialKeyWidth, keySize.height());
         if (s_specialKeypadLine[i] == s_space) {
-            int lo = m_keypadRect.right() - x - s_keypadMargin - ((s_keypadSpecialCols - i - 1)*specialKeyWidth);
+            int lo = m_keypadRect.right() - x - s_keypadXMargin - ((s_keypadSpecialCols - i - 1)*specialKeyWidth);
             itemSize.setWidth(lo);
         }
         KeypadItem* item = new KeypadItem(s_specialKeypadLine[i], QRectF(QPointF(x, y), itemSize), this);

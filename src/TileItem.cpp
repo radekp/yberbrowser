@@ -303,7 +303,6 @@ void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*op
 
     // QGraphicsDropShadowEffect doesnt perform well on n900.
     painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-    addDropShadow(*painter, r);
  
     painter->setBrush(Qt::white);
     painter->setPen(Qt::black);

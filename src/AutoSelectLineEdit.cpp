@@ -74,11 +74,6 @@ AutoSelectLineEdit::~AutoSelectLineEdit()
     delete d;
 }
 
-QRectF AutoSelectLineEdit::boundingRect() const
-{
-    return clientRect();
-}
-
 QString AutoSelectLineEdit::text()
 {
     return d->url;
@@ -109,14 +104,13 @@ void AutoSelectLineEdit::setSelection(int start, int length)
     d->setSelection(start, length);
 }
 
-void AutoSelectLineEdit::togglePopup()
+void AutoSelectLineEdit::toggleKeypad()
 {
     if (!m_virtualKeypad) {
         popupDismissed();
         createVirtualKeypad();
     } else {
         keypadDismissed();
-        createUrlFilterPopup();
     }
 }
 
@@ -149,7 +143,7 @@ void AutoSelectLineEdit::popupDismissed()
     update();
 }
 
-void AutoSelectLineEdit::keyPadCharEntered(char key)
+void AutoSelectLineEdit::keypadCharEntered(char key)
 {
     // FIXME: there must be a less hackish way to do it
     if (d->hasSelectedText())
@@ -158,7 +152,7 @@ void AutoSelectLineEdit::keyPadCharEntered(char key)
     emit textEdited(text());
 }
 
-void AutoSelectLineEdit::keyPadBackspace()
+void AutoSelectLineEdit::keypadBackspace()
 {
     // cant do d->backspace() as that goes through the typing codepath (apparently a programmatically change), 
     // removing the keypad
@@ -171,16 +165,16 @@ void AutoSelectLineEdit::keyPadBackspace()
     emit textEdited(text());
 }
 
-void AutoSelectLineEdit::keyPadEnter()
+void AutoSelectLineEdit::keypadEnter()
 {
     cleanupAndSendFinished(text());
 }
 
-void AutoSelectLineEdit::keyPadDotcom()
+void AutoSelectLineEdit::keypadTextEntered(const QString& newText)
 {
     if (d->hasSelectedText())
         d->url.remove(d->selectionStart(), d->selectedText().size()); 
-    setText(d->url + ".com");
+    setText(d->url + newText);
     emit textEdited(text());
 }
 
@@ -204,15 +198,22 @@ bool AutoSelectLineEdit::realFocusEvent()
 
 void AutoSelectLineEdit::createVirtualKeypad()
 {
-    QRectF r(clientRect());
-    m_virtualKeypad = new KeypadWidget(r, this);
+    QRectF r(parentWidget()->rect());
+    m_virtualKeypad = new KeypadWidget(parentWidget());
+    m_virtualKeypad->setPos(r.topLeft());
+    m_virtualKeypad->resize(r.size());
     m_virtualKeypad->appear(r.bottom());
-    
-    connect(m_virtualKeypad, SIGNAL(charEntered(char)), SLOT(keyPadCharEntered(char)));
-    connect(m_virtualKeypad, SIGNAL(enter()), SLOT(keyPadEnter()));
-    connect(m_virtualKeypad, SIGNAL(backspace()), SLOT(keyPadBackspace()));
-    connect(m_virtualKeypad, SIGNAL(dotcom()), SLOT(keyPadDotcom()));
+    // FIXME: text() includes the suggested part too, so only a subset comes up initially
+    m_virtualKeypad->updatePopup(text());
+
+    connect(m_virtualKeypad, SIGNAL(charEntered(char)), SLOT(keypadCharEntered(char)));
+    connect(m_virtualKeypad, SIGNAL(enter()), SLOT(keypadEnter()));
+    connect(m_virtualKeypad, SIGNAL(backspace()), SLOT(keypadBackspace()));
+    connect(m_virtualKeypad, SIGNAL(textEntered(const QString&)), SLOT(keypadTextEntered(const QString&)));
     connect(m_virtualKeypad, SIGNAL(dismissed()), SLOT(keypadDismissed()));
+    connect(m_virtualKeypad, SIGNAL(pageSelected(const QUrl&)), this, SLOT(popupItemSelected(const QUrl&)));
+    connect(this, SIGNAL(textEdited(const QString&)), m_virtualKeypad, SLOT(updatePopup(const QString&)));
+
 }
 
 void AutoSelectLineEdit::createUrlFilterPopup()

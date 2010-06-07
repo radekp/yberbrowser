@@ -21,40 +21,53 @@
 #ifndef KeypadWidget_h_
 #define KeypadWidget_h_
 
-#include <QGraphicsRectItem>
+#include <QGraphicsWidget>
 #include <QLinearGradient>
 #include <QImage>
 #include <QTimer>
 
+class PopupView;
 class KeypadItem;
 
-class KeypadWidget : public QObject, public QGraphicsRectItem {
+class KeypadWidget : public QGraphicsWidget {
     Q_OBJECT
 public:
-    KeypadWidget(const QRectF& rect, QGraphicsItem* parent);
+    KeypadWidget(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~KeypadWidget();
 
     void appear(int stickyY);
 
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
-    void mousePressEvent(QGraphicsSceneMouseEvent* event);
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
-
 Q_SIGNALS:
+    void textEntered(const QString& text);
     void charEntered(char key);
     void backspace();
     void enter();
-    void dotcom();
     void dismissed();
+    void pageSelected(const QUrl&);
+
+public Q_SLOTS:
+    // FIXME: keypad should really know what's been entered to update popup
+    void updatePopup(const QString&);
+
+protected:
+    void resizeEvent(QGraphicsSceneResizeEvent* event);
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
+    void mousePressEvent(QGraphicsSceneMouseEvent* event);
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
 
 protected Q_SLOTS:
     void keypadItemPressed(KeypadItem& item);
     void keypadItemSelected(KeypadItem& item);
     void cancelBubble();
 
+    void popupItemSelected(const QUrl&);
+    void popupDismissed();
+
 private:
     void layoutKeypad();
 
+private:
+    PopupView* m_urlfilterPopup;
     QList<KeypadItem*> m_buttons;
     KeypadItem* m_prevButton;
     QTimer m_bubbleTimer;

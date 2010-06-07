@@ -46,11 +46,7 @@ public:
     void setCursorPosition(int pos);
     void setSelection(int start, int length);
 
-    void togglePopup();
-    bool popupOn() const { return m_virtualKeypad || m_urlfilterPopup; }
-    bool virtualKeypadOn() const { return m_virtualKeypad; }
-    bool urlFilterPopupOn() const { return m_urlfilterPopup; }
-    QRectF boundingRect () const;
+    void toggleKeypad();
 
 public Q_SLOTS:
     void setText(const QString& text);
@@ -64,10 +60,10 @@ protected Q_SLOTS:
     void popupItemSelected(const QUrl&);
     void popupDismissed();
 
-    void keyPadCharEntered(char key);
-    void keyPadBackspace();
-    void keyPadEnter();
-    void keyPadDotcom();
+    void keypadCharEntered(char key);
+    void keypadBackspace();
+    void keypadEnter();
+    void keypadTextEntered(const QString&);
     void keypadDismissed();
 
     void returnPressed();

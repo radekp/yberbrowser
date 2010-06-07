@@ -61,9 +61,10 @@ protected Q_SLOTS:
     void editorFocusChanged(bool);
 
 private:
-    QImage* m_bookmarksIcon;
-    QImage* m_backIcon;
-    QImage* m_cancelIcon;
+    QImage m_bookmarksIcon;
+    QImage m_backIcon;
+    QImage m_cancelIcon;
+    QImage m_keypadIcon;
     QString m_text;
     uint m_progress;
     bool m_editMode;

@@ -25,7 +25,6 @@
 #include "HistoryStore.h"
 #include "BookmarkStore.h"
 #include "WebView.h"
-#include "ToolbarWidget.h"
 
 #include <QGraphicsSceneMouseEvent>
 #include <QPropertyAnimation>
@@ -41,6 +40,11 @@ const int s_containerYBottomMargin = 10;
 const int s_maxHistoryTileNum = 19;
 const int s_horizontalFlickLockThreshold = 20;
 const int s_flickTimeoutThreshold = 700;
+#ifdef Q_OS_SYMBIAN
+const int s_slideTimeout = 300;
+#else
+const int s_slideTimeout = 500;
+#endif
 
 HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(TileSelectionViewBase::Home, bckg, parent, wFlags)
@@ -210,8 +214,8 @@ void HomeView::moveViews()
     slideAnim->setStartValue(geometry().topLeft());
     slideAnim->setEndValue(to.topLeft());
 
-    slideAnim->setDuration(300);
-    slideAnim->setEasingCurve(QEasingCurve::OutExpo);
+    slideAnim->setDuration(s_slideTimeout);
+    slideAnim->setEasingCurve(QEasingCurve::OutQuart);
     slideAnim->start();
 }
 

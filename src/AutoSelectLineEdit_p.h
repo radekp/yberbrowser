@@ -25,6 +25,7 @@
 
 // timeout between clicking url bar and marking the url selected
 static const int s_urlTapSelectAllTimeout = 200;
+static const int m_keyboardIconPlaceholderSize = 48; // 48px for a 32px image, better finger click
 
 class AutoSelectLineEditPrivate : public QLineEdit
 {
@@ -35,9 +36,8 @@ public:
         , q(qq)
         , selectURLTimer(this)
         , m_keyboardIcon(QImage(":/data/icon/32x32/keyboard_32.png"))
-        , m_popupIcon(QImage(":/data/icon/32x32/popup_32.png"))
         , m_focusedEditor(false)
-        
+        , m_focusChanged(false)
     {
         selectURLTimer.setSingleShot(true);
         selectURLTimer.setInterval(s_urlTapSelectAllTimeout);
@@ -46,7 +46,7 @@ public:
         connect(this, SIGNAL(textEdited(QString)), this, SLOT(onTextEdited(QString)));
         connect(this, SIGNAL(returnPressed()), q, SLOT(returnPressed()));
         // margin for the icon
-        setTextMargins(0, 0, m_keyboardIcon.size().width(), 0);
+        setTextMargins(0, 0, m_keyboardIconPlaceholderSize, 0);
     }
 
     void adjustText()
@@ -70,18 +70,16 @@ protected:
     virtual void paintEvent(QPaintEvent* event) 
     {
         QLineEdit::paintEvent(event);
-        if (hasFocus() || q->popupOn()) {
-            QPainter painter(this);
-            
-            QPointF p(rect().right() - m_keyboardIcon.size().width(), rect().height()/2 - m_keyboardIcon.size().height()/2);
-            painter.drawImage(p, q->virtualKeypadOn() ? m_popupIcon : m_keyboardIcon);
-        }
+
+        QPainter painter(this);
+        QPointF p(rect().right() - m_keyboardIconPlaceholderSize + (m_keyboardIconPlaceholderSize/2 - m_keyboardIcon.size().width()/2), rect().height()/2 - m_keyboardIcon.size().height()/2);
+        painter.drawImage(p, m_keyboardIcon);
     }
 
     virtual void mousePressEvent(QMouseEvent* e)
     {
         QRectF r(rect());
-        r.setLeft(r.right() - m_keyboardIcon.size().width());
+        r.setLeft(r.right() - m_keyboardIconPlaceholderSize);
         if (!r.contains(e->pos())) {
             QLineEdit::mousePressEvent(e);
         }
@@ -90,29 +88,37 @@ protected:
     virtual void mouseReleaseEvent(QMouseEvent* e)
     {
         QRectF r(rect());
-        r.setLeft(r.right() - m_keyboardIcon.size().width());
+        r.setLeft(r.right() - m_keyboardIconPlaceholderSize);
         if (r.contains(e->pos())) {
-            q->togglePopup();
+            q->toggleKeypad();
             update();
+            return;
         } else {
             QLineEdit::mouseReleaseEvent(e);
+        }
+        // dont send it when the actual focus event is trigerring
+        // as keyboard rect should be checked first
+        if (m_focusedEditor && m_focusChanged) {
+            emit q->focusChanged(true); 
+            m_focusChanged = false;
         }
     }
 
     virtual void focusInEvent(QFocusEvent* e)
     {
         if (q->realFocusEvent() && !m_focusedEditor) {
+            m_focusChanged = true;
             m_focusedEditor = true;
             QLineEdit::focusInEvent(e);
             adjustText();
             selectURLTimer.start();
-            emit q->focusChanged(true); 
         }
     }
 
     virtual void focusOutEvent(QFocusEvent* e)
     {
         if (q->realFocusEvent() && m_focusedEditor) {
+            m_focusChanged = true;
             m_focusedEditor = false;
             QLineEdit::focusOutEvent(e);
             adjustText();
@@ -127,9 +133,9 @@ protected:
     QTimer selectURLTimer;
     QString url;
     QImage m_keyboardIcon;
-    QImage m_popupIcon;
     // need manual book-keeping because of the hackish focus handling
     bool m_focusedEditor;
+    bool m_focusChanged;
 };
 
 

@@ -120,6 +120,7 @@ PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     connect(m_popupWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
     connect(m_suggestTimer, SIGNAL(timeout()), this, SLOT(startSuggest()));
     connect(m_suggest, SIGNAL(suggestionsAvailable()), this, SLOT(populateSuggestion()));
+    m_bckg->setPen(Qt::NoPen);
     m_bckg->setBrush(QColor(60, 60, 60, 220));
 }
 

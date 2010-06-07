@@ -186,7 +186,7 @@ void TabWidget::layoutTiles()
     // 6 tabs max atm
     // FIXME: this is landscape oriented. check aspect ratio
     QRectF r(rect());
-    r.setTop(tileTopVMargin() - s_tileMargin);
+    r.setTop(r.top() + tileTopVMargin() - s_tileMargin);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
@@ -225,7 +225,7 @@ void HistoryWidget::layoutTiles()
 {
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
-    r.setTop(tileTopVMargin() - s_tileMargin);
+    r.setTop(r.top() + tileTopVMargin() - s_tileMargin);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
@@ -249,7 +249,7 @@ void BookmarkWidget::layoutTiles()
 {
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
-    r.setTop(tileTopVMargin());
+    r.setTop(r.top() + tileTopVMargin());
     // add toolbarheight to make sure tiles are always visible
     setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, 0).height() + tileTopVMargin());
 }
@@ -271,6 +271,8 @@ void PopupWidget::removeTile(const TileItem& removed)
 
 void PopupWidget::layoutTiles()
 {
-    setMinimumHeight(doLayoutTiles(rect(), 1, rect().height()/s_searchItemTileHeight, s_tileMargin, -1).height());
+    QRectF r(rect());
+    r.setTop(r.top() + ToolbarWidget::height());
+    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height());
 }
 

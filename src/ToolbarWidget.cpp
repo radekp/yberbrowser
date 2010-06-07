@@ -22,6 +22,7 @@
 #include "AutoSelectLineEdit.h"
 #include "Settings.h"
 #include "HistoryStore.h"
+#include "KeypadWidget.h"
 
 #include <QUrl>
 #include <QImage>
@@ -33,9 +34,9 @@ const int s_iconXMargin = 10;
 
 ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     : QGraphicsRectItem(parent)
-    , m_bookmarksIcon(new QImage(":/data/icon/48x48/bookmarks_48.png"))
-    , m_backIcon(new QImage(":/data/icon/48x48/back_48.png"))
-    , m_cancelIcon(new QImage(":/data/icon/48x48/stop_48.png"))
+    , m_bookmarksIcon(QImage(":/data/icon/48x48/bookmarks_48.png"))
+    , m_backIcon(QImage(":/data/icon/48x48/back_48.png"))
+    , m_cancelIcon(QImage(":/data/icon/48x48/stop_48.png"))
     , m_progress(0)
     , m_urlEdit(new AutoSelectLineEdit(this))
 {
@@ -97,12 +98,12 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     // bookmark icon and bckg
     r.setRight(editorX);
     painter->drawRect(r);
-    painter->drawImage(r.topLeft(), *m_bookmarksIcon);
+    painter->drawImage(r.topLeft(), m_bookmarksIcon);
 
     // stop/cancel icon and bckg
     r.moveLeft(rect().right() - s_toolbarSize);
     painter->drawRect(r);
-    painter->drawImage(QPointF(rect().right() - s_toolbarSize, rect().top()), m_progress > 0 ? *m_cancelIcon : *m_backIcon);
+    painter->drawImage(r.topLeft(), m_progress > 0 ? m_cancelIcon : m_backIcon);
 }
 
 void ToolbarWidget::setTextIfUnfocused(const QString& text)
@@ -140,7 +141,8 @@ void ToolbarWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
             emit backPressed();
         else
             emit cancelPressed();
-    }
+        return;
+    } 
 }
 
 void ToolbarWidget::textEdited(const QString& newText)
