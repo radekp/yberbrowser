@@ -23,8 +23,6 @@
 #include "CommonGestureRecognizer.h"
 #include "EventHelpers.h"
 
-static const int s_waitForClickTimeoutMS = 200;
-
 // time between mouse release that was part of pan and
 // double tap that can happen
 static const int s_doubleClickFilterDurationMS = 300;

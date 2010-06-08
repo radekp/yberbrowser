@@ -101,7 +101,8 @@ protected Q_SLOTS:
     void deleteHomeView();
 
 private:
-    Q_DISABLE_COPY(BrowsingView);
+    Q_DISABLE_COPY(BrowsingView)
+    
     void connectWebViewSignals(WebView* currentView, WebView* oldView);
     void updateHistoryStore(bool successLoad);
     QPixmap* webviewSnapshot();

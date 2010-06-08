@@ -53,7 +53,7 @@ public:
     { return static_cast<YberApplication*>(QCoreApplication::instance()); }
 
 private:
-    Q_DISABLE_COPY(YberApplication);
+    Q_DISABLE_COPY(YberApplication)
 
     bool m_isFullscreen;
     bool m_isTileCacheEnabled;

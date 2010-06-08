@@ -73,7 +73,7 @@ public:
     void toggleCaps();
     void flip();
     void setBubble(QImage* bubble);
-    char getChar();
+    int getChar();
 
 Q_SIGNALS:
     void itemSelected(KeypadItem& item);
@@ -219,7 +219,7 @@ QRectF KeypadItem::boundingRect() const
     return r;
 }
 
-char KeypadItem::getChar()
+int KeypadItem::getChar()
 {
     if (m_index < 0)
         return m_index;
@@ -316,7 +316,7 @@ void KeypadWidget::keypadItemPressed(KeypadItem& item)
 
 void KeypadWidget::keypadItemSelected(KeypadItem& item)
 {
-    char character = item.getChar();
+    int character = item.getChar();
     if (character == s_numpad) {
         for (int i = 0; i < m_buttons.size(); ++i)
             m_buttons.at(i)->flip();

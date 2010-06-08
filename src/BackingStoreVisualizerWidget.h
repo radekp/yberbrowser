@@ -44,7 +44,7 @@ protected Q_SLOTS:
     void resetCacheTiles();
 
 private:
-    Q_DISABLE_COPY(BackingStoreVisualizerWidget);
+    Q_DISABLE_COPY(BackingStoreVisualizerWidget)
 
     void connectSignals();
     void disconnectSignals();

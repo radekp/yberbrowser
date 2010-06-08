@@ -84,7 +84,8 @@ protected Q_SLOTS:
 
 
 private:
-    Q_DISABLE_COPY(WebViewportItem);
+    Q_DISABLE_COPY(WebViewportItem)
+    
     void updatePreferredSize();
 
     QGraphicsWebView* m_webView;

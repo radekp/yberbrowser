@@ -51,7 +51,6 @@ bool PannableTileContainer::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneMouseRelease:
     case QEvent::GraphicsSceneMouseDoubleClick:
         return (static_cast<TileSelectionViewBase *>(parentWidget()))->filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
-        break;
     default:
         break;
     }

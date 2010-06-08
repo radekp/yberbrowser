@@ -32,7 +32,6 @@
 
 const int s_toolbarSize = 48; // fixed 48 pixel
 const int s_iconSize = 48; // fixed 48 pixel
-const int s_iconXMargin = 10;
 const int s_thinToolbarHeight = 32;
 #ifdef Q_OS_SYMBIAN
 const int s_shrinkAnimTimeout = 200;

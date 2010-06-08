@@ -36,7 +36,7 @@ public:
 
 
 private:
-    Q_DISABLE_COPY(WebView);
+    Q_DISABLE_COPY(WebView)
 
     unsigned int m_fpsTicks;
 };

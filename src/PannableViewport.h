@@ -44,7 +44,7 @@ class QGraphicsItem;
 class PannableViewport : public QGraphicsWidget, public YberHack_Qt::QAbstractKineticScroller
 {
     Q_OBJECT
-    Q_PROPERTY(QPointF panPos READ panPos WRITE setPanPos);
+    Q_PROPERTY(QPointF panPos READ panPos WRITE setPanPos)
 public:
 
     PannableViewport(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);

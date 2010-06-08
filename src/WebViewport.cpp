@@ -33,10 +33,7 @@
 //#define ENABLE_LINK_SELECTION_DEBUG
 
 namespace {
-const int s_zoomAnimDurationMS = 300;
-
 const float s_zoomScaleWheelStep = .2;
-const int s_doubleClickWaitTimeout = 100;
 const int s_edgeMarginForLinkSelectionRetry = 50;
 const int s_minSearchRectSize = 8;
 const int s_maxSearchRectSize = 25;
