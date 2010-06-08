@@ -47,6 +47,7 @@ const int s_titleVMargin = 10;
 const int s_bookmarksTileHeight = 70;
 const int s_searchItemTileHeight = 60;
 #endif
+const int s_containerYBottomMargin = 10;
 
 TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
@@ -58,16 +59,62 @@ TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::
 
 TileBaseWidget::~TileBaseWidget()
 {
-    removeAll();
     delete m_slideAnimationGroup;
+    removeAll();
 }
 
-void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
+void TileBaseWidget::addTile(TileItem& newItem)
 {
-    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-    painter->setFont(FontFactory::instance()->big());
-    painter->setPen(QColor(Qt::white));
-    painter->drawText(m_titleRect, Qt::AlignLeft|Qt::AlignVCenter, m_title);
+    m_tileList.append(&newItem);
+}
+
+void TileBaseWidget::removeTile(const TileItem& removed)
+{
+    if (!m_slideAnimationGroup)
+        m_slideAnimationGroup = new QParallelAnimationGroup();
+    m_slideAnimationGroup->clear();
+
+    int hiddenIndex = -1;
+    for (int i = 0; i < m_tileList.size(); ++i) {
+        if (m_tileList.at(i) == &removed) {
+            for (int j = m_tileList.size() - 1; j > i; --j) {
+                if (!m_tileList.at(j)->isVisible())
+                    hiddenIndex = j;
+                if (!m_tileList.at(j)->fixed())
+                    addMoveAnimation(*m_tileList.at(j), (j - i) * 50, m_tileList[j]->rect().topLeft(), m_tileList[j-1]->rect().topLeft());
+            }
+            delete m_tileList.takeAt(i);
+            break;
+        }
+    }
+    // hidden item to appear?
+    if (hiddenIndex > -1)    
+        m_tileList.at(hiddenIndex - 1)->show();
+    connect(m_slideAnimationGroup, SIGNAL(finished()), SLOT(adjustContainerHeight()));
+    m_slideAnimationGroup->start();
+}
+
+void TileBaseWidget::removeAll()
+{
+    for (int i = m_tileList.size() - 1; i >= 0; --i)
+        delete m_tileList.takeAt(i);
+}
+
+void TileBaseWidget::setEditMode(bool on) 
+{ 
+    m_editMode = on;
+    for (int i = 0; i < m_tileList.size(); ++i)
+        m_tileList.at(i)->setEditMode(on);
+}
+
+int TileBaseWidget::titleVMargin() 
+{
+    return s_titleVMargin + ToolbarWidget::height();
+}
+
+int TileBaseWidget::tileTopVMargin() 
+{
+    return titleVMargin() + QFontMetrics(FontFactory::instance()->big()).height() + s_tileTopMargin;
 }
 
 QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed)
@@ -110,48 +157,12 @@ QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTile
     return QSize(tileWidth * hTileNum, y + tileHeight);
 }
 
-void TileBaseWidget::addTile(TileItem& newItem)
+void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
-    m_tileList.append(&newItem);
-}
-
-void TileBaseWidget::removeTile(const TileItem& removed)
-{
-    if (!m_slideAnimationGroup)
-        m_slideAnimationGroup = new QParallelAnimationGroup();
-
-    int hiddenIndex = -1;
-    m_slideAnimationGroup->clear();
-    for (int i = 0; i < m_tileList.size(); ++i) {
-        if (m_tileList.at(i) == &removed) {
-            for (int j = m_tileList.size() - 1; j > i; --j) {
-                if (!m_tileList.at(j)->isVisible())
-                    hiddenIndex = j;
-                if (!m_tileList.at(j)->fixed())
-                    addMoveAnimation(*m_tileList.at(j), (j - i) * 50, m_tileList[j]->rect().topLeft(), m_tileList[j-1]->rect().topLeft());
-            }
-            delete m_tileList.takeAt(i);
-            break;
-        }
-    }
-    // hidden item to appear?
-    if (hiddenIndex > -1)    
-        m_tileList.at(hiddenIndex - 1)->show();
-    m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
-    // FIXME check if container needs to be resized
-}
-
-void TileBaseWidget::removeAll()
-{
-    for (int i = m_tileList.size() - 1; i >= 0; --i)
-        delete m_tileList.takeAt(i);
-}
-
-void TileBaseWidget::setEditMode(bool on) 
-{ 
-    m_editMode = on;
-    for (int i = 0; i < m_tileList.size(); ++i)
-        m_tileList.at(i)->setEditMode(on);
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+    painter->setFont(FontFactory::instance()->big());
+    painter->setPen(QColor(Qt::white));
+    painter->drawText(m_titleRect, Qt::AlignLeft|Qt::AlignVCenter, m_title);
 }
 
 void TileBaseWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent*)
@@ -176,14 +187,16 @@ void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QPointF& 
     m_slideAnimationGroup->addAnimation(moveAnim);
 }
 
-int TileBaseWidget::titleVMargin() 
+void TileBaseWidget::adjustContainerHeight()
 {
-    return s_titleVMargin + ToolbarWidget::height();
-}
-
-int TileBaseWidget::tileTopVMargin() 
-{
-    return titleVMargin() + QFontMetrics(FontFactory::instance()->big()).height() + s_tileTopMargin;
+    if (m_tileList.size() == 0)
+        return;
+    // check if container needs to be resized
+    int lastRectBottom = m_tileList.at(m_tileList.size()-1)->rect().bottom() + s_containerYBottomMargin;
+    if (rect().height() > lastRectBottom) {
+        setMinimumHeight(lastRectBottom);
+        resize(QSizeF(size().width(), lastRectBottom));
+    }
 }
 
 // subclasses
@@ -244,7 +257,7 @@ void HistoryWidget::layoutTiles()
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
     // add toolbarheight to make sure tiles are always visible
-    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin).height() + titleVMargin()); 
+    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin).height() + s_containerYBottomMargin); 
 }
 
 // bookmarks
@@ -265,7 +278,7 @@ void BookmarkWidget::layoutTiles()
     QRectF r(rect());
     r.setTop(r.top() + tileTopVMargin());
     // add toolbarheight to make sure tiles are always visible
-    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, -1).height() + tileTopVMargin());
+    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, -1).height() + s_containerYBottomMargin);
 }
 
 // url filter popup

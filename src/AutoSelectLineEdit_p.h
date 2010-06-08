@@ -24,6 +24,7 @@
 #include <QDebug>
 
 // timeout between clicking url bar and marking the url selected
+static const int s_editorMarginX = 5;
 static const int s_urlTapSelectAllTimeout = 200;
 static const int m_keyboardIconPlaceholderSize = 48; // 48px for a 32px image, better finger click
 
@@ -46,7 +47,7 @@ public:
         connect(this, SIGNAL(textEdited(QString)), this, SLOT(onTextEdited(QString)));
         connect(this, SIGNAL(returnPressed()), q, SLOT(returnPressed()));
         // margin for the icon
-        setTextMargins(0, 0, m_keyboardIconPlaceholderSize, 0);
+        setTextMargins(s_editorMarginX, 0, m_keyboardIconPlaceholderSize, 0);
     }
 
     void adjustText()

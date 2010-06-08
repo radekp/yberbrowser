@@ -93,7 +93,7 @@ void TileItem::paintExtra(QPainter* painter)
 
     if (m_selected) {
         painter->setBrush(QColor(80, 80, 80, 160));
-        painter->drawRoundedRect(rect(), s_tilesRound, s_tilesRound);
+        painter->drawRoundedRect(rect(), 1, 1);
     }
 }
 

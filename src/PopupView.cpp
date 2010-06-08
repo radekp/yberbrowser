@@ -145,8 +145,7 @@ void PopupView::setFilterText(const QString& text)
 #endif
 
     m_filterText = text;
-    destroyViewItems();
-    createViewItems();
+    updateContent();
 }
 
 void PopupView::startSuggest()
@@ -157,8 +156,7 @@ void PopupView::startSuggest()
 
 void PopupView::populateSuggestion()
 {
-    destroyViewItems();
-    createViewItems();
+    updateContent();
 }
 
 void PopupView::tileItemActivated(TileItem* item)
@@ -189,6 +187,7 @@ void PopupView::tileItemEditingMode(TileItem* item)
 void PopupView::resetContainerSize()
 {
     m_popupWidget->setMinimumHeight(0);
+    m_popupWidget->setGeometry(QRectF(rect().topLeft(), m_pannableContainer->geometry().size()));
 }
 
 void PopupView::destroyViewItems()

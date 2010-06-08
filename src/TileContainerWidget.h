@@ -46,15 +46,18 @@ Q_SIGNALS:
 protected:
     TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
 
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
-    QSize doLayoutTiles(const QRectF& rect, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed = false);
     int titleVMargin();
     int tileTopVMargin();
+    QSize doLayoutTiles(const QRectF& rect, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed = false);
 
 private:
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
     void mousePressEvent(QGraphicsSceneMouseEvent*);
     void addMoveAnimation(TileItem& item, int delay, const QPointF& oldPos, const QPointF& newPos);
+
+private Q_SLOTS:
+    void adjustContainerHeight();
 
 protected:
     TileList m_tileList;

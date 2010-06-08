@@ -134,8 +134,10 @@ void ToolbarWidget::setTextIfUnfocused(const QString& text)
 {
     // If the url edit is focused, it means that the user it in edit mode
     // and we, thus, do not want to change the text ie. on loadFinished().
-    if (!m_urlEdit->hasFocus())
+    if (!m_urlEdit->hasFocus()) {
         m_urlEdit->setText(text);
+        m_urlEdit->setCursorPosition(0);
+    }
 }
 
 void ToolbarWidget::setProgress(uint progress)
