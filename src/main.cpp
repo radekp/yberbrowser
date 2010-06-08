@@ -94,13 +94,17 @@ int main(int argc, char** argv)
 #endif
 
 
-    QString url; //QString("file://%1/%2").arg(QDir::homePath()).arg(QLatin1String("index.html"));
-    //QDir::toNativeSeparators(
-    QString privPath = QString("%1/.%2/").arg(QDir::homePath()).arg(QCoreApplication::applicationName());
+    QString url;
+    QString privPath;
+#ifdef Q_OS_SYMBIAN
+    privPath = QDir::toNativeSeparators(QApplication::applicationDirPath()) + QString("\\");
+#else
+    privPath = QString("%1/.%2/").arg(QDir::homePath()).arg(QCoreApplication::applicationName());
     QDir privDir(privPath);
     if (!privDir.exists()) {
         privDir.mkpath(privPath);
     }
+#endif
     Settings* settings = Settings::instance();
 
     settings->setPrivatePath(privPath);
