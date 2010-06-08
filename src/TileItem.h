@@ -98,7 +98,8 @@ private:
     QString m_title;
     QRectF m_thumbnailRect;
     QRectF m_textRect;
-    QImage* m_defaultIcon;
+    QImage m_defaultIcon;
+    QImage m_scaledThumbnail;
 };
 
 class NewWindowTileItem : public ThumbnailTileItem {

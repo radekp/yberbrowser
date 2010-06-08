@@ -158,15 +158,13 @@ void TileItem::closeItem()
 ////////////////////////////////////////////////////////////////////////////////
 ThumbnailTileItem::ThumbnailTileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
     : TileItem(parent, urlItem, editable)
-    , m_defaultIcon(0)
 {
     if (!urlItem.thumbnail())
-        m_defaultIcon = new QImage(":/data/icon/48x48/defaulticon_48.png");
+        m_defaultIcon = QImage(":/data/icon/48x48/defaulticon_48.png");
 }
 
 ThumbnailTileItem::~ThumbnailTileItem()
 {
-    delete m_defaultIcon;
 }
 
 void ThumbnailTileItem::doLayoutTile()
@@ -178,8 +176,8 @@ void ThumbnailTileItem::doLayoutTile()
     m_textRect = r;
     m_thumbnailRect = r;
 
-    if (m_defaultIcon) {
-        m_thumbnailRect.setSize(m_defaultIcon->rect().size());
+    if (!m_defaultIcon.isNull()) {
+        m_thumbnailRect.setSize(m_defaultIcon.rect().size());
         m_thumbnailRect.moveCenter(r.center());
     } else {
         // stretch thumbnail
@@ -200,8 +198,10 @@ void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     painter->setBrush(Qt::white);
     painter->setPen(Qt::gray);
     painter->drawRoundedRect(r, s_tilesRound, s_tilesRound);
-    painter->drawImage(m_thumbnailRect, *(m_defaultIcon ? m_defaultIcon : m_urlItem.thumbnail()));
-
+    // scale on the fly
+    if (m_defaultIcon.isNull() && m_scaledThumbnail.isNull())
+        m_scaledThumbnail = m_urlItem.thumbnail()->scaled(m_thumbnailRect.size().toSize(),  Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    painter->drawImage(m_thumbnailRect.topLeft(), m_defaultIcon.isNull() ? m_scaledThumbnail : m_defaultIcon);
     painter->setFont(FontFactory::instance()->small());
     painter->setPen(Qt::black);
     painter->drawText(m_textRect, Qt::AlignHCenter|Qt::AlignBottom, m_title);

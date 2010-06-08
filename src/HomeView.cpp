@@ -39,12 +39,11 @@ const int s_containerYBottomMargin = 10;
 const int s_maxHistoryTileNum = 19;
 const int s_horizontalFlickLockThreshold = 20;
 const int s_flickTimeoutThreshold = 700;
+const int s_slideTimeout = 400;
 #ifdef Q_OS_SYMBIAN
-const int s_containerXMargin = 10;
-const int s_slideTimeout = 300;
+const int s_containerXMargin = 30;
 #else
 const int s_containerXMargin = 40;
-const int s_slideTimeout = 500;
 #endif
 
 HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
@@ -216,7 +215,7 @@ void HomeView::moveViews()
     slideAnim->setEndValue(to.topLeft());
 
     slideAnim->setDuration(s_slideTimeout);
-    slideAnim->setEasingCurve(QEasingCurve::OutQuart);
+    slideAnim->setEasingCurve(QEasingCurve::OutQuad);
     slideAnim->start();
 }
 

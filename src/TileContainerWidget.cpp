@@ -54,9 +54,6 @@ TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::
     , m_slideAnimationGroup(0)
     , m_editMode(false)
 {
-#ifndef Q_OS_SYMBIAN
-    setCacheMode(QGraphicsItem::DeviceCoordinateCache);
-#endif    
 }
 
 TileBaseWidget::~TileBaseWidget()
