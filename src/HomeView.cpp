@@ -46,9 +46,6 @@ const int s_containerXMargin = 30;
 const int s_containerXMargin = 40;
 #endif
 
-const int s_newWindowContext = -1;
-const int s_emptyWindowMarkerContext = -2;
-
 HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(TileSelectionViewBase::Home, bckg, parent, wFlags)
     , m_activeWidget(initialWidget)
