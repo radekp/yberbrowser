@@ -79,9 +79,9 @@ private:
 private:
     bool m_editable;
     void* m_context; 
-    bool m_dirty;
     bool m_fixed;
     QTime m_longpressTime;
+    QRectF m_oldRect;
 };
 
 class ThumbnailTileItem : public TileItem {

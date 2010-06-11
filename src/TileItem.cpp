@@ -43,8 +43,8 @@ TileItem::TileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editabl
     , m_closeIcon(0)
     , m_editable(editable)
     , m_context(0)
-    , m_dirty(true)
     , m_fixed(false)
+    , m_oldRect(-1, -1, -1, -1)
 {
 #ifndef Q_OS_SYMBIAN
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
@@ -58,7 +58,6 @@ TileItem::~TileItem()
 
 void TileItem::setTilePos(const QPointF& pos) 
 { 
-    m_dirty = true; 
     setRect(QRectF(pos, rect().size())); 
     update(boundingRect()); 
 }
@@ -115,11 +114,11 @@ QRectF TileItem::boundingRect() const
 
 void TileItem::layoutTile()
 {
-    if (!m_dirty)
+    if (rect().size() == m_oldRect.size())
         return;
+    m_oldRect = rect();
     doLayoutTile();
     setEditIconRect();
-    m_dirty = false;
 }
 
 void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
@@ -170,7 +169,7 @@ ThumbnailTileItem::~ThumbnailTileItem()
 void ThumbnailTileItem::doLayoutTile()
 {
     const QFont& f = FontFactory::instance()->small();
-    QRectF r(rect()); 
+    QRectF r(QPointF(0, 0), rect().size()); 
     r.adjust(s_tilesRound/2, s_tilesRound/2, -(s_tilesRound/2), 0);
 
     m_textRect = r;
@@ -184,6 +183,9 @@ void ThumbnailTileItem::doLayoutTile()
         m_thumbnailRect.adjust(0, 0, 0, -(QFontMetrics(f).height() + 3));
     }
     m_title = QFontMetrics(f).elidedText(m_urlItem.title(), Qt::ElideRight, m_textRect.width() - s_tilesRound);
+    // scale on the fly, only when default icon is not present
+    if (m_defaultIcon.isNull())
+        m_scaledThumbnail = m_urlItem.thumbnail()->scaled(m_thumbnailRect.size().toSize(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
 }
 
 void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
@@ -198,13 +200,14 @@ void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     painter->setBrush(Qt::white);
     painter->setPen(Qt::gray);
     painter->drawRoundedRect(r, s_tilesRound, s_tilesRound);
-    // scale on the fly
-    if (m_defaultIcon.isNull() && m_scaledThumbnail.isNull())
-        m_scaledThumbnail = m_urlItem.thumbnail()->scaled(m_thumbnailRect.size().toSize(),  Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    painter->drawImage(m_thumbnailRect.topLeft(), m_defaultIcon.isNull() ? m_scaledThumbnail : m_defaultIcon);
+    // thumbnail
+    painter->drawImage(r.topLeft() + m_thumbnailRect.topLeft(), m_defaultIcon.isNull() ? m_scaledThumbnail : m_defaultIcon, m_thumbnailRect);
     painter->setFont(FontFactory::instance()->small());
     painter->setPen(Qt::black);
-    painter->drawText(m_textRect, Qt::AlignHCenter|Qt::AlignBottom, m_title);
+    // title
+    QRectF textRect(m_textRect);
+    textRect.moveTopLeft(r.topLeft() + textRect.topLeft());
+    painter->drawText(textRect, Qt::AlignHCenter|Qt::AlignBottom, m_title);
     paintExtra(painter);
 }
 
@@ -277,7 +280,7 @@ ListTileItem::ListTileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool
 
 void ListTileItem::doLayoutTile()
 {
-    QRectF r(rect()); 
+    QRectF r(QPointF(0, 0), rect().size()); 
     r.adjust(s_hTextMargin, 0, -s_hTextMargin, 0);
     m_titleRect = r;
     m_urlRect = r;
@@ -308,13 +311,17 @@ void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*op
     painter->setPen(Qt::gray);
     painter->drawRoundedRect(r, 2, 2);
 
+    QRectF textRect(m_titleRect);
+    textRect.moveTopLeft(textRect.topLeft() + r.topLeft());
     painter->setPen(Qt::black);
     painter->setFont(FontFactory::instance()->medium());
-    painter->drawText(m_titleRect, Qt::AlignLeft|Qt::AlignVCenter, m_title);
+    painter->drawText(textRect, Qt::AlignLeft|Qt::AlignVCenter, m_title);
 
+    textRect = m_urlRect;
+    textRect.moveTopLeft(textRect.topLeft() + r.topLeft());
     painter->setPen(QColor(110, 110, 110));
     painter->setFont(FontFactory::instance()->small());
-    painter->drawText(m_urlRect, Qt::AlignLeft|Qt::AlignVCenter, m_url);
+    painter->drawText(textRect, Qt::AlignLeft|Qt::AlignVCenter, m_url);
 
     paintExtra(painter);
 }
