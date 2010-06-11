@@ -72,6 +72,13 @@ void AutoSelectLineEdit::setGeometry(const QRectF& rect)
 {
     QGraphicsWidget::setGeometry(rect);
     m_proxyWidget->resize(rect.size());
+
+#ifdef Q_OS_SYMBIAN
+    // FIXME why does the text color change on orientation
+    QPalette palette = d->palette();
+    palette.setColor(QPalette::Text, Qt::white);
+    d->setPalette(palette);
+#endif
 }
 
 QString AutoSelectLineEdit::text()

@@ -141,8 +141,10 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     m_webInteractionProxy->resize(size());
     m_browsingViewport->resize(size());
 
-    if (m_homeView)
+    if (m_homeView) {
         m_homeView->resize(QSize(3*m_browsingViewport->size().width(), m_browsingViewport->size().height()));
+        m_homeView->updateBackground(webviewSnapshot());
+    }
 
     QRectF r(rect());
     r.setHeight(ToolbarWidget::height());
