@@ -49,7 +49,7 @@ const int backingStoreUpdateEnableDelay = 700;
    * forwards some of the events to the viewport item
    * Resizes (zooms) the viewport
 
-  Not used in DUI atm. Maybe needed someday
+  Not used in Meego atm. Maybe needed someday
 */
 WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
     : PannableViewport(parent)

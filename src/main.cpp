@@ -52,11 +52,10 @@
 #include <qwebpage.h>
 #include <qwebsettings.h>
 #include <qwebview.h>
-#if USE_DUI
-#include <DuiApplication>
-#include <DuiApplicationPage>
-#include <DuiApplicationWindow>
-#include <DuiTheme>
+#if USE_MEEGOTOUCH
+#include <MApplication>
+#include <MApplicationPage>
+#include <MApplicationWindow>
 #endif
 
 void usage(const char* name);
@@ -89,7 +88,7 @@ int main(int argc, char** argv)
     YberApplication app(argc, argv);
     app.setApplicationName("yberbrowser");
 
-#if USE_DUI
+#if USE_MEEGOTOUCH
     qInstallMsgHandler(debugMessageOutput);
 #endif
 

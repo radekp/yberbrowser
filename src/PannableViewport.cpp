@@ -38,10 +38,10 @@ const int s_geomAnimDuration = 300;
   Responsibilities:
   * Implements panning interaction
 
-  Corresponds to DuiPannableViewport in DUI, but is implemented via
+  Corresponds to MPannableViewport in MeegoTouch, but is implemented via
   \QGraphicsItem::setFiltersChildEvents
 
-  Not used for DUI
+  Not used for MEEGOTOUCH
 */
 
 PannableViewport::PannableViewport(QGraphicsItem* parent, Qt::WindowFlags wFlags)

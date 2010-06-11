@@ -25,12 +25,12 @@
 #include "TileSelectionViewBase.h"
 #include "HomeView.h"
 
-#if USE_DUI
-#include <DuiApplicationPage>
+#if USE_MEEGOTOUCH
+#include <MApplicationPage>
 
-typedef DuiApplicationPage BrowsingViewBase;
-typedef DuiWidget YberWidget;
-class DuiTextEdit;
+typedef MApplicationPage BrowsingViewBase;
+typedef MWidget YberWidget;
+class MTextEdit;
 #else
 #include <QGraphicsWidget>
 #include <QUrl>
@@ -59,7 +59,7 @@ public:
     BrowsingView(YberApplication&, QGraphicsItem* parent = 0);
     ~BrowsingView();
 
-#if !USE_DUI
+#if !USE_MEEGOTOUCH
     void appear(ApplicationWindow* window);
 #endif
     void createHomeView(HomeView::HomeWidgetType type);
@@ -69,7 +69,7 @@ public Q_SLOTS:
     WebView* newWindow();
     void destroyWindow(WebView* webView);
     void setActiveWindow(WebView* webView);
-#if !USE_DUI
+#if !USE_MEEGOTOUCH
     void setTitle(const QString&);
 #endif
 
@@ -107,7 +107,7 @@ private:
     void updateHistoryStore(bool successLoad);
     QPixmap* webviewSnapshot();
 
-#if !USE_DUI
+#if !USE_MEEGOTOUCH
     QMenuBar* createMenu(QWidget* parent);
 #endif
 

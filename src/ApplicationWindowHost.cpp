@@ -42,13 +42,13 @@ static const int s_applicationWindowHostHeight = 480;
 
 /*!
   \class ApplicationWindowHost holds an \ApplicationWindow in
-  non-DUI environment
+  non-MeegoTouch environment
 
   This class is responsible for showing the \ApplicationWindow. This
   is an internal implementation detail of \ApplicationWindow
 
   This class is the \QMainWindow that holds the \ApplicationWindow.  A
-  concept corresponding to \QMainWindow is missing from DUI, and
+  concept corresponding to \QMainWindow is missing from MeegoTouch, and
   that's why we need this.
 
   \ApplicationWindowHost is created by \ApplicationWindow and "owned"

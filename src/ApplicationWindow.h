@@ -23,10 +23,10 @@
 
 #include "yberconfig.h"
 
-#if USE_DUI
+#if USE_MEEGOTOUCH
 
-#include <DuiApplicationWindow>
-class ApplicationWindow :  public DuiApplicationWindow 
+#include <MApplicationWindow>
+class ApplicationWindow :  public MApplicationWindow 
 {
 public:
     void showFullScreen() { show(); }

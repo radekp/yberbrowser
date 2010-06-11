@@ -26,9 +26,9 @@
 #include "ApplicationWindow.h"
 #include "CookieJar.h"
 
-#if USE_DUI
-#include <DuiApplication>
-typedef DuiApplication YberApplicationBase;
+#if USE_MEEGOTOUCH
+#include <MApplication>
+typedef MApplication YberApplicationBase;
 #else
 #include <QApplication>
 typedef QApplication YberApplicationBase;

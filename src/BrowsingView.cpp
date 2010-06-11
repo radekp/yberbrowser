@@ -44,17 +44,17 @@
 #include <QGLWidget>
 #endif
 
-#if USE_DUI
-#include <DuiTextEdit>
-#include <DuiToolBar>
-#include <DuiToolBarView>
-#include <DuiAction>
-#include <DuiButton>
+#if USE_MEEGOTOUCH
+#include <MTextEdit>
+#include <MToolBar>
+#include <MToolBarView>
+#include <MAction>
+#include <MButton>
 #include <QToolBar>
 #else
 #include <QMenuBar>
-#include "WebViewport.h"
 #endif
+#include "WebViewport.h"
 
 const int s_maxWindows = 6;
 
@@ -71,13 +71,8 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_toolbarWidget(new ToolbarWidget(this))
     , m_appWin(0)
 {
-#if USE_DUI
-    setPannableAreaInteractive(false);
-    m_browsingViewport = new PannableViewport();
-    m_browsingViewport->setWidget(m_webInteractionProxy);
-#else
     m_browsingViewport = new WebViewport(m_webInteractionProxy, this);
-#endif
+
     m_browsingViewport->setAutoRange(false);
     m_browsingViewport->attachWidget(m_toolbarWidget);
 
@@ -105,7 +100,7 @@ void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
         disconnect(oldView, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
         disconnect(oldView, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
         disconnect(oldView, SIGNAL(titleChanged(const QString&)), this, SLOT(setTitle(const QString&)));
-    #if !USE_DUI
+    #if !USE_MEEGOTOUCH
         disconnect(oldView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
     #endif
     }
@@ -115,7 +110,7 @@ void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
     connect(currentView, SIGNAL(loadStarted()), SLOT(loadStarted()));
     connect(currentView, SIGNAL(urlChanged(const QUrl&)), SLOT(urlChanged(const QUrl&)));
     connect(currentView, SIGNAL(titleChanged(const QString&)), SLOT(setTitle(const QString&)));
-#if !USE_DUI
+#if !USE_MEEGOTOUCH
     connect(currentView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
 #endif
 }
@@ -144,8 +139,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     QRectF r(rect());
     r.setHeight(ToolbarWidget::height());
     m_toolbarWidget->setRect(r);
-
-#if !USE_DUI
+#if !USE_MEEGOTOUCH
     if (!m_appWin->updatesEnabled()) {
         QSizeF dsz = m_browsingViewport->size() - m_sizeBeforeResize;
         QPointF d(dsz.width(), dsz.height());
@@ -153,7 +147,6 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
         m_appWin->setUpdatesEnabled(true);
     }
 #endif
-
 }
 
 void BrowsingView::load(const QUrl& url)
@@ -174,7 +167,7 @@ void BrowsingView::pageBack()
     m_activeWebView->triggerPageAction(QWebPage::Back);
 }
 
-#if !USE_DUI
+#if !USE_MEEGOTOUCH
 void BrowsingView::appear(ApplicationWindow* window)
 {
     m_appWin = window;
@@ -364,7 +357,7 @@ void BrowsingView::urlChanged(const QUrl& url)
     m_toolbarWidget->setTextIfUnfocused(url.toString());
 }
 
-#if !USE_DUI
+#if !USE_MEEGOTOUCH
 void BrowsingView::setTitle(const QString& title)
 {
     QString t(title.trimmed());
@@ -379,11 +372,11 @@ void BrowsingView::setTitle(const QString& title)
 
 void BrowsingView::toggleFullScreen()
 {
-#if USE_DUI
-    if (componentDisplayMode(DuiApplicationPage::AllComponents) == DuiApplicationPageModel::Show)
-        setComponentsDisplayMode(DuiApplicationPage::AllComponents, DuiApplicationPageModel::Hide);
+#if USE_MEEGOTOUCH
+    if (componentDisplayMode(MApplicationPage::AllComponents) == MApplicationPageModel::Show)
+        setComponentsDisplayMode(MApplicationPage::AllComponents, MApplicationPageModel::Hide);
     else
-        setComponentsDisplayMode(DuiApplicationPage::AllComponents, DuiApplicationPageModel::Show);
+        setComponentsDisplayMode(MApplicationPage::AllComponents, MApplicationPageModel::Show);
 #else
     prepareForResize();
 
@@ -396,7 +389,7 @@ void BrowsingView::toggleFullScreen()
 
 void BrowsingView::prepareForResize()
 {
-#if !USE_DUI
+#if !USE_MEEGOTOUCH
     m_appWin->setUpdatesEnabled(false);
     m_sizeBeforeResize = m_browsingViewport->size();
 #endif
@@ -422,7 +415,7 @@ void BrowsingView::finishedAutoScrollTest()
 QPixmap* BrowsingView::webviewSnapshot()
 {
     QSizeF thumbnailSize(m_browsingViewport->size());
-    QImage thumbnail(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
+    QImage thumbnail(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);
 
     QPainter p(&thumbnail);
 

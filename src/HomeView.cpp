@@ -30,8 +30,8 @@
 #include <QPropertyAnimation>
 #include <QDebug>
 
-#if USE_DUI
-#include <DuiScene>
+#if USE_MEEGOTOUCH
+#include <MScene>
 #endif
 
 const int s_maxWindows = 6;

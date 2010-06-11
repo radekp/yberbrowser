@@ -73,8 +73,13 @@ void YberApplication::createMainView(const QUrl& url)
 {
     BrowsingView* page = new BrowsingView(*this);
 
-#if USE_DUI
-    page->appear(appwin, DuiSceneWindow::DestroyWhenDone);
+#if USE_MEEGOTOUCH
+    page->setAutoMarginsForComponentsEnabled(true);
+    if (Settings::instance()->isFullScreen()) {
+        page->setComponentsDisplayMode(MApplicationPage::AllComponents, MApplicationPageModel::Hide);
+    }
+    page->appear(appwin, MSceneWindow::DestroyWhenDone);
+    page->setPos(0,30);
 #else
     page->appear(appwin);
 #endif

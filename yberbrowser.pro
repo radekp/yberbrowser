@@ -17,11 +17,10 @@ BINDIR = $$PREFIX/bin
 	RCC_DIR     = $$PWD/.rcc
 }
 
-dui {
-    CONFIG+=dui
-    DEFINES+=USE_DUI=1
+meegotouch {
+    DEFINES+=USE_MEEGOTOUCH=1
 } else {
-    DEFINES+=USE_DUI=0
+    DEFINES+=USE_MEEGOTOUCH=0
 }
 
 *-g++*: QMAKE_CXXFLAGS += -Werror
@@ -228,20 +227,21 @@ SOURCES = \
   src/YberApplication.cpp \
   src/main.cpp
 
-!dui {
 HEADERS += \
   3rdparty/qabstractkineticscroller.h \
   3rdparty/qabstractkineticscroller_p.h \
   src/WebViewport.h
 
 SOURCES += \
-  src/ApplicationWindowHost.cpp \
   src/PannableTileContainer.cpp \
   src/PannableViewport.cpp \
   src/WebViewport.cpp \
   3rdparty/qabstractkineticscroller.cpp \
-  src/ApplicationWindow.cpp
 
+!meegotouch {
+SOURCES += \
+  src/ApplicationWindowHost.cpp \
+  src/ApplicationWindow.cpp
 }
 
 

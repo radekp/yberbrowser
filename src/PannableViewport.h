@@ -23,15 +23,6 @@
 
 #include "yberconfig.h"
 
-#if USE_DUI
-
-#include <DuiPannableViewport>
-class PannableViewport : public DuiPannableViewport
-{
-    Q_OBJECT
-};
-
-#else
 
 #include <QGraphicsWidget>
 #include <QPropertyAnimation>
@@ -104,5 +95,4 @@ private:
     int m_scrollbarYOffset;
 };
 
-#endif
 #endif
