@@ -80,19 +80,20 @@ void TileItem::setEditIconRect()
 {
     if (!m_closeIcon)
         return;
-    m_closeIconRect = QRectF(rect().topRight(), QSizeF(s_closeIconSize, s_closeIconSize));
-    m_closeIconRect.moveRight(m_closeIconRect.right() - m_closeIconRect.width()/2 - 5);
+    m_closeIconRect = QRectF(QPointF(rect().width(), 0), QSizeF(s_closeIconSize, s_closeIconSize));
+    m_closeIconRect.moveLeft(m_closeIconRect.left() - m_closeIconRect.width()/2 - 5);
     m_closeIconRect.moveTop(m_closeIconRect.top() - m_closeIconRect.height()/2 + 5);
 }
 
 void TileItem::paintExtra(QPainter* painter)
 {
+    QRectF r(rect());
     if (m_closeIcon)
-        painter->drawImage(m_closeIconRect, *m_closeIcon);
+        painter->drawImage(r.topLeft() + m_closeIconRect.topLeft(), *m_closeIcon);
 
     if (m_selected) {
         painter->setBrush(QColor(80, 80, 80, 160));
-        painter->drawRoundedRect(rect(), 1, 1);
+        painter->drawRoundedRect(r, 1, 1);
     }
 }
 
@@ -125,6 +126,7 @@ void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
     // expand it to fit thumbs
     QRectF r(m_closeIconRect);
+    r.moveTopLeft(r.topLeft() + rect().topLeft());
     r.adjust(-s_closeIconClickAreaMargin, -s_closeIconClickAreaMargin, s_closeIconClickAreaMargin, s_closeIconClickAreaMargin);
 
     if (m_longpressTime.elapsed() > s_longpressTimeoutThreshold) {
@@ -177,7 +179,7 @@ void ThumbnailTileItem::doLayoutTile()
 
     if (!m_defaultIcon.isNull()) {
         m_thumbnailRect.setSize(m_defaultIcon.rect().size());
-        m_thumbnailRect.moveCenter(r.center());
+        m_thumbnailRect.moveCenter(rect().center() - rect().topLeft());
     } else {
         // stretch thumbnail
         m_thumbnailRect.adjust(0, 0, 0, -(QFontMetrics(f).height() + 3));
@@ -201,7 +203,10 @@ void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*
     painter->setPen(Qt::gray);
     painter->drawRoundedRect(r, s_tilesRound, s_tilesRound);
     // thumbnail
-    painter->drawImage(r.topLeft() + m_thumbnailRect.topLeft(), m_defaultIcon.isNull() ? m_scaledThumbnail : m_defaultIcon, m_thumbnailRect);
+    if (m_defaultIcon.isNull())
+        painter->drawImage(r.topLeft() + m_thumbnailRect.topLeft(), m_scaledThumbnail, m_thumbnailRect);
+    else
+        painter->drawImage(r.topLeft() + m_thumbnailRect.topLeft(), m_defaultIcon);
     painter->setFont(FontFactory::instance()->small());
     painter->setPen(Qt::black);
     // title
