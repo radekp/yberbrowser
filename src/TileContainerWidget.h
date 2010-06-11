@@ -48,7 +48,7 @@ protected:
 
     int titleVMargin();
     int tileTopVMargin();
-    QSize doLayoutTiles(const QRectF& rect, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed = false);
+    QSize doLayoutTiles(const QRectF& rect, int hTileNum, int vTileNum, int marginX, int marginY, int fixedItemWidth = -1, int fixedItemHeight = -1);
 
 private:
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
