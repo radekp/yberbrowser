@@ -35,6 +35,15 @@ class TileItem : public QObject, public QGraphicsRectItem {
     Q_PROPERTY(QPointF tilePos READ tilePos WRITE setTilePos)
     Q_PROPERTY(QRectF rect READ rect WRITE setRect)
 public:
+
+    // FIXME: type should really be representing the functionality
+    enum TileType {
+        ThumbnailTile,
+        NewWindowTile,
+        EmptyWindowMarkerTile,
+        ListTile
+    };
+    
     virtual ~TileItem();
     
     const UrlItem* urlItem() const { return &m_urlItem; }
@@ -46,6 +55,7 @@ public:
     bool fixed() const { return m_fixed; }
     void setContext(void* context) { m_context = context; }
     void* context() const { return m_context; }
+    TileType tileType() const { return m_type; }
 
 Q_SIGNALS:
     void itemActivated(TileItem*);
@@ -53,13 +63,14 @@ Q_SIGNALS:
     void itemEditingMode(TileItem*);
 
 protected:
-    TileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable = true);
+    TileItem(QGraphicsWidget* parent, TileType type, const UrlItem& urlItem, bool editable = true);
     void paintExtra(QPainter* painter);
     void addDropShadow(QPainter& painter, const QRectF rect);
     void layoutTile();
     QRectF boundingRect () const;
 
     virtual void doLayoutTile() = 0;
+    void setTileType(TileType t) { m_type = t; }
 
 protected Q_SLOTS:
     virtual void activateItem();
@@ -77,6 +88,7 @@ private:
     void setEditIconRect();
 
 private:
+    TileType m_type;
     bool m_editable;
     void* m_context; 
     bool m_fixed;

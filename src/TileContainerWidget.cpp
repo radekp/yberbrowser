@@ -100,6 +100,11 @@ void TileBaseWidget::removeAll()
         delete m_tileList.takeAt(i);
 }
 
+bool TileBaseWidget::contains(TileItem& item)
+{
+    return m_tileList.contains(&item);
+}
+
 void TileBaseWidget::setEditMode(bool on) 
 { 
     m_editMode = on;
@@ -203,7 +208,7 @@ void TabWidget::layoutTiles()
     QRectF r(rect());
     // FIXME work out some proportional thing here as this 2xmargin works 
     // only on specific resolutions
-    int marginY = landscape ? 2*s_tileMargin : s_tileMargin;
+    int marginY = landscape ? s_tileMargin : 2*s_tileMargin;
     r.setTop(r.top() + tileTopVMargin() - marginY);
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;

@@ -35,6 +35,7 @@ public:
     virtual void addTile(TileItem& newItem);
     virtual void removeTile(const TileItem& removed);
     virtual void removeAll();
+    virtual bool contains(TileItem& item);
     virtual void layoutTiles() = 0;
 
     void setEditMode(bool on);

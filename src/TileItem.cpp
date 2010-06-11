@@ -36,11 +36,12 @@ const int s_closeIconSize = 48;
 const int s_closeIconClickAreaMargin = 24;
 const int s_tilesRound = 10;
 
-TileItem::TileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
+TileItem::TileItem(QGraphicsWidget* parent, TileType type, const UrlItem& urlItem, bool editable)
     : QGraphicsRectItem(parent)
     , m_urlItem(urlItem)
     , m_selected(false)
     , m_closeIcon(0)
+    , m_type(type)
     , m_editable(editable)
     , m_context(0)
     , m_fixed(false)
@@ -158,7 +159,7 @@ void TileItem::closeItem()
 
 ////////////////////////////////////////////////////////////////////////////////
 ThumbnailTileItem::ThumbnailTileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
-    : TileItem(parent, urlItem, editable)
+    : TileItem(parent, ThumbnailTile, urlItem, editable)
 {
     if (!urlItem.thumbnail())
         m_defaultIcon = QImage(":/data/icon/48x48/defaulticon_48.png");
@@ -220,6 +221,8 @@ NewWindowTileItem::NewWindowTileItem(QGraphicsWidget* parent, const UrlItem& ite
     : ThumbnailTileItem(parent, item, false)
 
 {
+    // FIXME clean this mess up
+    setTileType(NewWindowTile);
 }
 
 void NewWindowTileItem::activateItem()
@@ -263,6 +266,8 @@ NewWindowMarkerTileItem::NewWindowMarkerTileItem(QGraphicsWidget* parent, const 
 
 {
     setFixed(true);
+    // FIXME clean this mess up
+    setTileType(EmptyWindowMarkerTile);
 }
 
 void NewWindowMarkerTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
@@ -279,7 +284,7 @@ void NewWindowMarkerTileItem::paint(QPainter* painter, const QStyleOptionGraphic
 
 //
 ListTileItem::ListTileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
-    : TileItem(parent, urlItem, editable)
+    : TileItem(parent, ListTile, urlItem, editable)
 {
 }
 

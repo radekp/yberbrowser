@@ -46,6 +46,9 @@ const int s_containerXMargin = 30;
 const int s_containerXMargin = 40;
 #endif
 
+const int s_newWindowContext = -1;
+const int s_emptyWindowMarkerContext = -2;
+
 HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(TileSelectionViewBase::Home, bckg, parent, wFlags)
     , m_activeWidget(initialWidget)
@@ -63,9 +66,9 @@ HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* p
     
     m_tabWidget->setEditMode(true);
 
-    connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
-    connect(m_bookmarkWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
-    connect(m_historyWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
+    connect(m_tabWidget, SIGNAL(closeWidget(void)), SLOT(closeViewSoon()));
+    connect(m_bookmarkWidget, SIGNAL(closeWidget(void)), SLOT(closeViewSoon()));
+    connect(m_historyWidget, SIGNAL(closeWidget(void)), SLOT(closeViewSoon()));
 }
 
 HomeView::~HomeView()
@@ -131,24 +134,28 @@ bool HomeView::filterMouseEvent(QGraphicsSceneMouseEvent* e)
 
 void HomeView::tileItemActivated(TileItem* item)
 {
+    if (closeInstead(*item))
+        return;
+
     TileSelectionViewBase::tileItemActivated(item);
-    if (m_activeWidget == WindowSelect) {
-        if (item->context())
-            emit windowSelected((WebView*)item->context());
-        else {
-            emit windowCreated();
-        }
-    } else {
+    // FIXME: type should really be representing the functionality
+    if (m_activeWidget == WindowSelect && item->tileType() == TileItem::ThumbnailTile)
+        emit windowSelected((WebView*)item->context());
+    else if (item->tileType() == TileItem::NewWindowTile)
+        emit windowCreated();
+    else if (item->tileType() == TileItem::ThumbnailTile || item->tileType() == TileItem::ListTile)
         emit pageSelected(item->urlItem()->url());
-    }
 }
 
 void HomeView::tileItemClosed(TileItem* item)
 {
+    if (closeInstead(*item))
+        return;
+
     TileSelectionViewBase::tileItemClosed(item);
     widgetByType(m_activeWidget)->removeTile(*item);
 
-    if (m_activeWidget == WindowSelect)
+    if (m_activeWidget == WindowSelect && item->tileType() == TileItem::ThumbnailTile)
         emit windowClosed((WebView*)item->context());
 }
 
@@ -284,21 +291,24 @@ void HomeView::createTabSelectContent()
             }
         }
         // create a tile item with the window context set
-        ThumbnailTileItem* newTileItem = new ThumbnailTileItem(m_tabWidget, UrlItem(view->url(), pageAvailable ? view->title() : "Page not loded yet", thumbnail));
-        newTileItem->setEditMode(m_tabWidget->editMode());
-        newTileItem->setContext(view);
+        ThumbnailTileItem* tabItem = new ThumbnailTileItem(m_tabWidget, UrlItem(view->url(), pageAvailable ? view->title() : "Page not loded yet", thumbnail));
+        tabItem->setEditMode(m_tabWidget->editMode());
+        tabItem->setContext(view);
 
-        m_tabWidget->addTile(*newTileItem);
-        connectItem(*newTileItem);
+        m_tabWidget->addTile(*tabItem);
+        connectItem(*tabItem);
     }
     
-    NewWindowTileItem* newTileItem = new NewWindowTileItem(m_tabWidget, UrlItem(QUrl(), "", 0));
-    m_tabWidget->addTile(*newTileItem);
-    connectItem(*newTileItem);
+    NewWindowTileItem* createTabItem = new NewWindowTileItem(m_tabWidget, UrlItem(QUrl(), "", 0));
+    m_tabWidget->addTile(*createTabItem);
+    connectItem(*createTabItem);
     i++;
     
-    for (; i < s_maxWindows; i++)
-        m_tabWidget->addTile(*(new NewWindowMarkerTileItem(m_tabWidget, UrlItem(QUrl(), "", 0))));
+    for (; i < s_maxWindows; i++) {
+        NewWindowMarkerTileItem* emptyMarkerItem = new NewWindowMarkerTileItem(m_tabWidget, UrlItem(QUrl(), "", 0));
+        m_tabWidget->addTile(*emptyMarkerItem);
+        connectItem(*emptyMarkerItem);
+    }
 
     m_tabWidget->layoutTiles();
 }
@@ -352,4 +362,15 @@ void HomeView::resetContainerSize()
         setPos(QPointF(-(r.x() - s_containerXMargin), 0));
 }
 
+bool HomeView::closeInstead(TileItem& item)
+{
+    // close the view if an item in the non-active view 
+    // accidentaly gets activated/closed
+    // it helps on small screen to dismiss the homeview
+    // by tapping to next to the tiles
+    bool activeHasIt = widgetByType(m_activeWidget)->contains(item);
+    if (!activeHasIt)
+        closeViewSoon();
+    return !activeHasIt;
+}
 

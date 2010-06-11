@@ -74,6 +74,7 @@ private:
 
     TileBaseWidget* widgetByType(HomeWidgetType type);
     void resetContainerSize();
+    bool closeInstead(TileItem& item);
 
 private:
     HomeWidgetType m_activeWidget;
