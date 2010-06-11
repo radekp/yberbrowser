@@ -39,8 +39,8 @@ YberApplication::YberApplication(int & argc, char ** argv)
     QList<QNetworkProxy> proxylist = QNetworkProxyFactory::systemProxyForQuery();
 
     if (proxylist.count() == 1) {
-        QNetworkProxy proxy = proxylist.first();if (proxy == QNetworkProxy::NoProxy
-            || proxy == QNetworkProxy::DefaultProxy) {
+        QNetworkProxy proxy = proxylist.first();
+        if (proxy == QNetworkProxy::NoProxy || proxy == QNetworkProxy::DefaultProxy) {
             EnvHttpProxyFactory* pf = new EnvHttpProxyFactory();
             if (pf->initFromEnvironment()) {
                 QNetworkProxyFactory::setApplicationProxyFactory(pf);
