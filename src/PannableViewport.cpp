@@ -50,6 +50,7 @@ PannableViewport::PannableViewport(QGraphicsItem* parent, Qt::WindowFlags wFlags
     , m_vScrollbar(new ScrollbarItem(Qt::Vertical, this))
     , m_hScrollbar(new ScrollbarItem(Qt::Horizontal, this))
     , m_attachedItem(0)
+    , m_offsetItem(0)
     , m_scrollbarXOffset(0)
     , m_scrollbarYOffset(0)
 {
@@ -68,12 +69,12 @@ PannableViewport::~PannableViewport()
 
 void PannableViewport::setPanPos(const QPointF& pos)
 {
-    setPannedWidgetGeometry(QRectF(pos, m_pannedWidget->size() + (QSize(0, m_attachedItem ? m_attachedItem->boundingRect().height() : 0))));
+    setPannedWidgetGeometry(QRectF(pos, m_pannedWidget->size() + QSize(0, scrolloffsetY())));
 }
 
 QPointF PannableViewport::panPos() const
 {
-    return m_pannedWidget->pos() - m_extraPos - m_overShootDelta - (QPointF(0, m_attachedItem ? m_attachedItem->boundingRect().height() : 0));
+    return m_pannedWidget->pos() - m_extraPos - m_overShootDelta - (QPointF(0, scrolloffsetY()));
 }
 
 void PannableViewport::setRange(const QRectF& )
@@ -101,25 +102,27 @@ void PannableViewport::setPannedWidget(QGraphicsWidget* view)
 
 }
 
-void PannableViewport::attachWidget(QGraphicsItem* item)
+void PannableViewport::setAttachedWidget(QGraphicsItem* item)
 {
     // FIXME only one attached widget atm
     // it should also define where to attach (top, bottom, left, right)
+    // attached widget also offsets the view content but it scrolls together unlike the offset item
     m_attachedItem = item;
-    // assume this widget is attached to the top
-    m_vScrollbar->setMargins(item->boundingRect().height() + 5, -1);
+    updateScrollbars();
 }
 
-void PannableViewport::detachWidget(QGraphicsItem*)
+void PannableViewport::setOffsetWidget(QGraphicsItem* item)
 {
-    // FIXME only one attached widget atm
-    m_attachedItem = 0;
-    m_vScrollbar->setMargins(0, -1);
+    // FIXME only one offset widget atm
+    // it should also define where to offset (top, bottom, left, right)
+    // offset widget is not attached so it wont move together with the view
+    m_offsetItem = item;
+    updateScrollbars();
 }
 
 QPoint PannableViewport::maximumScrollPosition() const
 {
-    QSizeF contentsSize = m_pannedWidget->size() + (QSize(0, m_attachedItem ? m_attachedItem->boundingRect().height() : 0));
+    QSizeF contentsSize = m_pannedWidget->size() + (QSize(0, scrolloffsetY()));
     QSizeF sz = size();
     QSize maxSize = (contentsSize - sz).toSize();
 
@@ -139,8 +142,7 @@ QPoint PannableViewport::scrollPosition() const
 void PannableViewport::updateScrollbars()
 {
     // FIXME: find out how to update marging based on the attached widget when the widget boundingrect is changed
-    if (m_attachedItem)
-        m_vScrollbar->setMargins(m_attachedItem->boundingRect().height() + 5, -1);
+    m_vScrollbar->setMargins(scrolloffsetY() + 5, -1);
 
     QPointF contentPos = panPos();
     QSizeF contentSize = m_pannedWidget->size();
@@ -260,10 +262,9 @@ QRectF PannableViewport::adjustRectForPannedWidgetGeometry(const QRectF& g)
 void PannableViewport::setPannedWidgetGeometry(const QRectF& g)
 {
     QRectF r(adjustRectForPannedWidgetGeometry(g));
-    if (m_attachedItem) {
+    if (m_attachedItem)
         m_attachedItem->setPos(r.topLeft());
-        r.setTop(r.top() + m_attachedItem->boundingRect().height());
-    }
+    r.setTop(r.top() + scrolloffsetY());
     m_pannedWidget->setGeometry(r);
     updateScrollbars();
 }
@@ -306,3 +307,14 @@ void PannableViewport::geomAnimStateChanged(QAbstractAnimation::State newState,Q
         break;
     }
 }
+
+int PannableViewport::scrolloffsetY() const
+{
+    int offset = 0;
+    if (m_offsetItem)
+        offset+=m_offsetItem->boundingRect().height();
+    if (m_attachedItem)
+        offset+=m_attachedItem->boundingRect().height();
+    return offset;
+}
+

@@ -79,7 +79,10 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     m_browsingViewport = new WebViewport(m_webInteractionProxy, this);
 #endif
     m_browsingViewport->setAutoRange(false);
-    m_browsingViewport->attachWidget(m_toolbarWidget);
+#ifdef PERFECT_ATTACHED_TOOLBAR
+    m_browsingViewport->setAttachedWidget(m_toolbarWidget);
+#endif
+    m_browsingViewport->setOffsetWidget(m_toolbarWidget);
 
     connect(m_toolbarWidget, SIGNAL(bookmarkPressed()), SLOT(addBookmark()));
     connect(m_toolbarWidget, SIGNAL(backPressed()), SLOT(pageBack()));
