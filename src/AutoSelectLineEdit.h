@@ -49,7 +49,8 @@ public:
     void setCursorPosition(int pos);
     void setSelection(int start, int length);
 
-    void toggleKeypad();
+    void setKeypadVisible(bool on);
+    bool isKeypadVisible() const { return m_virtualKeypad; };
 
 public Q_SLOTS:
     void setText(const QString& text);

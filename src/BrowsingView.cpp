@@ -322,8 +322,12 @@ void BrowsingView::urlEditingFinished(const QString& url)
 
 void BrowsingView::urlEditfocusChanged(bool focused)
 {
-    if (focused)
+    if (focused) {
+        // bring keypad on when the homeview is already on and the user taps on the editor
+        if (m_homeView)
+            m_toolbarWidget->showKeypad();
         createHomeView(m_homeView ? m_homeView->activeWidget() : m_initialHomeWidget);
+    }
 }
 
 void BrowsingView::updateHistoryStore(bool successLoad)

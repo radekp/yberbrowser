@@ -82,6 +82,64 @@ int ToolbarWidget::toolbarHeight()
     return rect().height();
 }
 
+void ToolbarWidget::setTextIfUnfocused(const QString& text)
+{
+    // If the url edit is focused, it means that the user it in edit mode
+    // and we, thus, do not want to change the text ie. on loadFinished().
+    if (!m_urlEdit->hasFocus()) {
+        m_urlEdit->setText(text);
+        m_urlEdit->setCursorPosition(0);
+    }
+}
+
+void ToolbarWidget::setProgress(uint progress)
+{
+    m_progress = progress;
+    update();
+}
+
+void ToolbarWidget::showKeypad()
+{
+    m_urlEdit->setKeypadVisible(true);
+}
+
+void ToolbarWidget::textEdited(const QString& newText)
+{
+    if (!m_urlEdit->isVisible() || !Settings::instance()->autoCompleteEnabled())
+        return;
+
+    QString text = newText;
+    if (m_urlEdit->selectionStart() > -1)
+        text = newText.left(m_urlEdit->selectionStart());
+    // autocomplete only when adding text, not when deleting or backspacing
+    if (text.size() > m_lastEnteredText.size()) {
+        // todo: make it async
+        QString match = HistoryStore::instance()->match(text);
+        if (!match.isEmpty()) {
+            m_urlEdit->setText(match);
+            m_urlEdit->setCursorPosition(text.size());
+            m_urlEdit->setSelection(text.size(), match.size() - text.size());
+        }
+    }
+    m_lastEnteredText = newText;
+}
+
+void ToolbarWidget::textEditingFinished(const QString& text)
+{
+    m_lastEnteredText = QString();
+    emit urlEditingFinished(text);
+}
+
+void ToolbarWidget::editorFocusChanged(bool focused)
+{
+    emit urlEditorFocusChanged(focused);
+}
+
+void ToolbarWidget::keypadVisible(bool on)
+{
+    animateToolbarMove(on);
+}
+
 void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
 {
     painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
@@ -130,22 +188,6 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     }
 }
 
-void ToolbarWidget::setTextIfUnfocused(const QString& text)
-{
-    // If the url edit is focused, it means that the user it in edit mode
-    // and we, thus, do not want to change the text ie. on loadFinished().
-    if (!m_urlEdit->hasFocus()) {
-        m_urlEdit->setText(text);
-        m_urlEdit->setCursorPosition(0);
-    }
-}
-
-void ToolbarWidget::setProgress(uint progress)
-{
-    m_progress = progress;
-    update();
-}
-
 void ToolbarWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
 {
 }
@@ -169,43 +211,6 @@ void ToolbarWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
             emit cancelPressed();
         return;
     } 
-}
-
-void ToolbarWidget::textEdited(const QString& newText)
-{
-    if (!m_urlEdit->isVisible() || !Settings::instance()->autoCompleteEnabled())
-        return;
-
-    QString text = newText;
-    if (m_urlEdit->selectionStart() > -1)
-        text = newText.left(m_urlEdit->selectionStart());
-    // autocomplete only when adding text, not when deleting or backspacing
-    if (text.size() > m_lastEnteredText.size()) {
-        // todo: make it async
-        QString match = HistoryStore::instance()->match(text);
-        if (!match.isEmpty()) {
-            m_urlEdit->setText(match);
-            m_urlEdit->setCursorPosition(text.size());
-            m_urlEdit->setSelection(text.size(), match.size() - text.size());
-        }
-    }
-    m_lastEnteredText = newText;
-}
-
-void ToolbarWidget::textEditingFinished(const QString& text)
-{
-    m_lastEnteredText = QString();
-    emit urlEditingFinished(text);
-}
-
-void ToolbarWidget::editorFocusChanged(bool focused)
-{
-    emit urlEditorFocusChanged(focused);
-}
-
-void ToolbarWidget::keypadVisible(bool on)
-{
-    animateToolbarMove(on);
 }
 
 void ToolbarWidget::animateToolbarMove(bool on)

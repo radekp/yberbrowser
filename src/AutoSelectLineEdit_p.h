@@ -94,7 +94,7 @@ protected:
         QRectF r(rect());
         r.setLeft(r.right() - m_keyboardIconPlaceholderSize);
         if (r.contains(e->pos())) {
-            q->toggleKeypad();
+            q->setKeypadVisible(!q->isKeypadVisible());
             update();
             return;
         } else {

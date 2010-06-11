@@ -111,9 +111,12 @@ void AutoSelectLineEdit::setSelection(int start, int length)
     d->setSelection(start, length);
 }
 
-void AutoSelectLineEdit::toggleKeypad()
+void AutoSelectLineEdit::setKeypadVisible(bool on)
 {
-    if (!m_virtualKeypad) {
+    if ((on && m_virtualKeypad) || (!on && !m_virtualKeypad))
+        return;
+
+    if (on) {
         popupDismissed();
         createVirtualKeypad();
     } else {
