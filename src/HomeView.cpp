@@ -1,25 +1,53 @@
-#include "HomeView.h"
-#include <QGraphicsSceneMouseEvent>
-#include <QPropertyAnimation>
+/*
+ * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public License
+ * along with this program; see the file COPYING.LIB.  If not, write to
+ * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ *
+ */
 
+#include "HomeView.h"
 #include "PannableTileContainer.h"
 #include "TileContainerWidget.h"
 #include "TileItem.h"
 #include "HistoryStore.h"
 #include "BookmarkStore.h"
 #include "WebView.h"
+
+#include <QGraphicsSceneMouseEvent>
+#include <QPropertyAnimation>
+#include <QDebug>
+
 #if USE_DUI
 #include <DuiScene>
 #endif
 
-#include <QDebug>
-
 const int s_maxWindows = 6;
-const int s_containerMargin = 35;
-const int s_maxHistoryTileNum = 20;
+const int s_containerYBottomMargin = 10;
+const int s_maxHistoryTileNum = 19;
+const int s_horizontalFlickLockThreshold = 20;
+const int s_flickTimeoutThreshold = 700;
+const int s_slideTimeout = 400;
+#ifdef Q_OS_SYMBIAN
+const int s_containerXMargin = 30;
+#else
+const int s_containerXMargin = 40;
+#endif
 
-HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileSelectionViewBase(TileSelectionViewBase::Home, parent, wFlags)
+HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+    : TileSelectionViewBase(TileSelectionViewBase::Home, bckg, parent, wFlags)
     , m_activeWidget(initialWidget)
     , m_bookmarkWidget(new BookmarkWidget(this, wFlags))
     , m_historyWidget(new HistoryWidget(this, wFlags))
@@ -29,19 +57,15 @@ HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsItem* parent, Qt::Wind
     , m_pannableWindowSelectContainer(new PannableTileContainer(this, wFlags))
     , m_windowList(0) 
 {
-    setFiltersChildEvents(true);
-    m_pannableHistoryContainer->setHomeView(this);
-    m_pannableHistoryContainer->setWidget(m_historyWidget);
-    m_pannableBookmarkContainer->setHomeView(this);
-    m_pannableBookmarkContainer->setWidget(m_bookmarkWidget);
-    m_pannableWindowSelectContainer->setHomeView(this);
-    m_pannableWindowSelectContainer->setWidget(m_tabWidget);
+    m_pannableHistoryContainer->setPannedWidget(m_historyWidget);
+    m_pannableBookmarkContainer->setPannedWidget(m_bookmarkWidget);
+    m_pannableWindowSelectContainer->setPannedWidget(m_tabWidget);
     
     m_tabWidget->setEditMode(true);
 
-    connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
-    connect(m_bookmarkWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
-    connect(m_historyWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
+    connect(m_tabWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
+    connect(m_bookmarkWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
+    connect(m_historyWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
 }
 
 HomeView::~HomeView()
@@ -58,97 +82,51 @@ void HomeView::setActiveWidget(HomeWidgetType widget)
         return;
 
     m_activeWidget = widget;
-    int containerWidth = rect().width() / 3 - s_containerMargin;
+    int containerWidth = rect().width() / 3 - s_containerXMargin;
 
     // repositon view
     if (m_activeWidget == WindowSelect)
         setPos(0, 0);
     else if (m_activeWidget == VisitedPages)
-        setPos(QPointF(-(containerWidth - s_containerMargin), 0));
+        setPos(QPointF(-(containerWidth - s_containerXMargin), 0));
     else if (m_activeWidget == Bookmarks)
-        setPos(QPointF(-(2*containerWidth - 2*s_containerMargin), 0));
+        setPos(QPointF(-(2*containerWidth - 2*s_containerXMargin), 0));
 }
 
-bool HomeView::sceneEventFilter(QGraphicsItem* /*i*/, QEvent* e)
-{
-    bool doFilter = false;
-
-    if (!isVisible())
-        return doFilter;
-
-    switch (e->type()) {
-    case QEvent::GraphicsSceneMousePress:
-    case QEvent::GraphicsSceneMouseMove:
-    case QEvent::GraphicsSceneMouseRelease:
-    case QEvent::GraphicsSceneMouseDoubleClick:
-        doFilter = recognizeFlick(static_cast<QGraphicsSceneMouseEvent *>(e));
-        break;
-    default:
-        break;
-    }
-    return doFilter;
-}
-
-bool HomeView::recognizeFlick(QGraphicsSceneMouseEvent* e)
+bool HomeView::filterMouseEvent(QGraphicsSceneMouseEvent* e)
 {
     if (e->type() == QEvent::GraphicsSceneMousePress) {
+        m_flickTime.start();        
         m_mouseDown = true;
-        m_mousePos = e->scenePos();
+        m_horizontalFlickLocked = false;
         m_hDelta = 0;
+        m_mousePos = e->scenePos();
     } else if (e->type() == QEvent::GraphicsSceneMouseRelease) {
         m_mouseDown = false;
-        // swap, move back, or no move at all?
-        if (abs(m_hDelta) > 0) {
-            moveViews();
-            return true;
-        }
-    } if (e->type() == QEvent::GraphicsSceneMouseMove && m_mouseDown) {
+        if (!m_horizontalFlickLocked)
+            return false;
+        moveViews();
+        return true;
+    } else if (e->type() == QEvent::GraphicsSceneMouseMove && m_mouseDown) {
         // panning
         QPointF delta(m_mousePos - e->scenePos());
-        if (abs(delta.x()) >= abs(delta.y())) {
+        m_mousePos = e->scenePos();
+        
+        if (m_horizontalFlickLocked) {
             QPointF p(pos());
             p.setX(p.x() - delta.x());
             if (p.x() > 0)
                 p.setX(0);
             else if (abs(p.x()) > size().width()/3*2)
                 p.setX(-(size().width()/3*2));            
-
-            m_mousePos = e->scenePos();
-            m_hDelta+=delta.x();
             setPos(p);
             return true;
+        } else if (abs(delta.x()) >= abs(delta.y())) {
+            m_hDelta+=delta.x();
+            m_horizontalFlickLocked = abs(m_hDelta) > s_horizontalFlickLockThreshold;
         }
     }
     return false;
-}
-
-void HomeView::resizeEvent(QGraphicsSceneResizeEvent* event)
-{
-    QRectF r(rect()); 
-    int containerWidth = r.width() / 3 - s_containerMargin;
-
-    // tab to the leftmost pos
-    r.setWidth(containerWidth);
-    m_pannableWindowSelectContainer->setGeometry(r);
-    m_tabWidget->setGeometry(r);
-    if (m_activeWidget == WindowSelect)
-        setPos(-r.topLeft());
-
-    // move history to the middle
-    r.moveLeft(containerWidth); 
-    r.setWidth(containerWidth - s_containerMargin);
-    m_pannableHistoryContainer->setGeometry(r);
-    m_historyWidget->setGeometry(QRectF(QPointF(0, 0), r.size()));
-    if (m_activeWidget == VisitedPages)
-        setPos(QPointF(-(r.x() - s_containerMargin), 0));
-
-    // rigthmost
-    r.moveLeft(2*containerWidth - s_containerMargin); 
-    m_pannableBookmarkContainer->setGeometry(r);
-    m_bookmarkWidget->setGeometry(QRectF(QPointF(0, 0), r.size()));
-    if (m_activeWidget == Bookmarks)
-        setPos(QPointF(-(r.x() - s_containerMargin), 0));
-    TileSelectionViewBase::resizeEvent(event);
 }
 
 void HomeView::tileItemActivated(TileItem* item)
@@ -158,10 +136,10 @@ void HomeView::tileItemActivated(TileItem* item)
         if (item->context())
             emit windowSelected((WebView*)item->context());
         else {
-            emit windowCreated(true);
+            emit windowCreated();
         }
     } else {
-        emit pageSelected(item->urlItem()->m_url);
+        emit pageSelected(item->urlItem()->url());
     }
 }
 
@@ -185,35 +163,59 @@ void HomeView::tileItemEditingMode(TileItem* item)
 
 void HomeView::moveViews()
 {
+    // swap(flick), move back, or no move at all?
+
+    // a definite flick
+    bool flick = m_flickTime.elapsed() < s_flickTimeoutThreshold;
+
     // check which container wins
-    int viewWidth = size().width();
-    int containerWidth = viewWidth / 3 - s_containerMargin;
-    // at what pos it should jump to the next container
-    int goOverWidth = containerWidth / 2;
-    // since go over is happening at the half of the container ->
-    // newContainer = 0 first, left container, 1,2 ->middle 3->last, right
-    int newContainer = abs(pos().x() / goOverWidth);
+    int containerWidth = size().width() / 3 - s_containerXMargin;
+    HomeWidgetType oldActiveWidget = m_activeWidget;
+
+    if (flick) {
+        if ((m_activeWidget == WindowSelect && m_hDelta > 0) || (m_activeWidget == Bookmarks && m_hDelta < 0))
+            m_activeWidget = VisitedPages;
+        else if (m_activeWidget == VisitedPages)
+            m_activeWidget = m_hDelta > 0 ? Bookmarks : WindowSelect;
+    } else {    
+        // at what pos it should jump to the next container
+        int goOverWidth = containerWidth / 2;
+        int position = abs(pos().x() / goOverWidth);
+        switch (position) {
+            default:
+            case 0:
+                m_activeWidget = WindowSelect;
+                break;
+            case 1:
+            case 2:
+                m_activeWidget = VisitedPages;
+                break;
+            case 3:
+                m_activeWidget = Bookmarks;
+                break;
+        }
+    }
+    
+    // cancel edit mode on view switch, unless it is the window select view
+    if (oldActiveWidget != m_activeWidget && oldActiveWidget != WindowSelect && widgetByType(oldActiveWidget)->editMode()) 
+        widgetByType(oldActiveWidget)->setEditMode(false);
+
     int newPos = 0;
     // rightmost >> middle >> leftmost
-    if (newContainer >= 3) {
-        newPos = 2 * containerWidth - 2*s_containerMargin;
-        m_activeWidget = Bookmarks;
-    } else if (newContainer > 0) {
-        newPos = containerWidth - s_containerMargin;
-        m_activeWidget = VisitedPages;
-    } else {
-        m_activeWidget = WindowSelect;
-    }
+    if (m_activeWidget == Bookmarks)
+        newPos = 2 * containerWidth - 2*s_containerXMargin;
+    else if (m_activeWidget == VisitedPages)
+        newPos = containerWidth - s_containerXMargin;
 
     QRectF to(geometry());
     to.moveLeft(-newPos);
 
-    QPropertyAnimation* slideAnim = new QPropertyAnimation(this, "geometry");
-    slideAnim->setStartValue(geometry());
-    slideAnim->setEndValue(to);
+    QPropertyAnimation* slideAnim = new QPropertyAnimation(this, "pos");
+    slideAnim->setStartValue(geometry().topLeft());
+    slideAnim->setEndValue(to.topLeft());
 
-    slideAnim->setDuration(500);
-    slideAnim->setEasingCurve(QEasingCurve::OutExpo);
+    slideAnim->setDuration(s_slideTimeout);
+    slideAnim->setEasingCurve(QEasingCurve::OutQuad);
     slideAnim->start();
 }
 
@@ -236,9 +238,10 @@ void HomeView::createViewItems()
 
 void HomeView::createBookmarkContent()
 {
-    UrlList* list = BookmarkStore::instance()->list();
-    for (int i = 0; i < list->size(); ++i) {
-        ListTileItem* newTileItem = new ListTileItem(m_bookmarkWidget, *list->at(i));
+    const UrlList& list = BookmarkStore::instance()->list();
+    for (int i = 0; i < list.size(); ++i) {
+        ListTileItem* newTileItem = new ListTileItem(m_bookmarkWidget, list.at(i));
+        newTileItem->setEditMode(m_bookmarkWidget->editMode());
         m_bookmarkWidget->addTile(*newTileItem);
         connectItem(*newTileItem);
     }
@@ -248,17 +251,13 @@ void HomeView::createBookmarkContent()
 void HomeView::createHistoryContent()
 {
     ThumbnailTileItem* newTileItem = 0;
-    UrlList* list = HistoryStore::instance()->list();
-    for (int i = 0; i < (s_maxHistoryTileNum - 1) && i < list->size(); ++i) {
-        newTileItem = new ThumbnailTileItem(m_historyWidget, *list->at(i));
+    const UrlList& list = HistoryStore::instance()->list();
+    for (int i = 0; i < (s_maxHistoryTileNum - 1) && i < list.size(); ++i) {
+        newTileItem = new ThumbnailTileItem(m_historyWidget, list.at(i));
+        newTileItem->setEditMode(m_historyWidget->editMode());
         m_historyWidget->addTile(*newTileItem);
         connectItem(*newTileItem);
     }
-    // FIXME: this 'All history'  is being leaked
-    newTileItem = new ThumbnailTileItem(m_historyWidget, *(new UrlItem(QUrl(), "All history", 0)), false);
-    m_historyWidget->addTile(*newTileItem);
-    connectItem(*newTileItem);
-
     m_historyWidget->layoutTiles();
 }
 
@@ -276,26 +275,30 @@ void HomeView::createTabSelectContent()
     
         if (pageAvailable) {
             // get the thumbnail from history store, it'd better be there
-            if (UrlItem* item = HistoryStore::instance()->get(view->url().toString()))
-                thumbnail = new QImage(*item->thumbnail());
+            const UrlList& l = HistoryStore::instance()->list();
+            for (int i = 0; i < l.size(); ++i) {
+                if (l.at(i).url() == view->url()) {
+                    thumbnail = new QImage(*(l.at(i).thumbnail()));
+                    break;
+                }
+            }
         }
         // create a tile item with the window context set
-        ThumbnailTileItem* newTileItem = new ThumbnailTileItem(m_tabWidget, *(new UrlItem(view->url(), pageAvailable ? view->title() : "no page loded yet", thumbnail)));
+        ThumbnailTileItem* newTileItem = new ThumbnailTileItem(m_tabWidget, UrlItem(view->url(), pageAvailable ? view->title() : "Page not loded yet", thumbnail));
+        newTileItem->setEditMode(m_tabWidget->editMode());
         newTileItem->setContext(view);
 
         m_tabWidget->addTile(*newTileItem);
         connectItem(*newTileItem);
     }
     
-    NewWindowTileItem* newTileItem = new NewWindowTileItem(m_tabWidget, *(new UrlItem(QUrl(), "", 0)));
+    NewWindowTileItem* newTileItem = new NewWindowTileItem(m_tabWidget, UrlItem(QUrl(), "", 0));
     m_tabWidget->addTile(*newTileItem);
-    i++;
     connectItem(*newTileItem);
+    i++;
     
-    for (; i < s_maxWindows; i++) {
-        NewWindowMarkerTileItem* emptyItem = new NewWindowMarkerTileItem(m_tabWidget, *(new UrlItem(QUrl(), "", 0)));
-        m_tabWidget->addTile(*emptyItem);
-    }
+    for (; i < s_maxWindows; i++)
+        m_tabWidget->addTile(*(new NewWindowMarkerTileItem(m_tabWidget, UrlItem(QUrl(), "", 0))));
 
     m_tabWidget->layoutTiles();
 }
@@ -310,4 +313,43 @@ TileBaseWidget* HomeView::widgetByType(HomeWidgetType type)
         return m_bookmarkWidget;
     return 0;    
 }
+
+void HomeView::resetContainerSize()
+{
+    m_tabWidget->setMinimumHeight(0);
+    m_historyWidget->setMinimumHeight(0);
+    m_bookmarkWidget->setMinimumHeight(0);
+
+    QRectF r(rect()); 
+    int containerWidth = r.width() / 3 - s_containerXMargin;
+
+    // tab to the leftmost pos
+    r.setWidth(containerWidth);
+    m_pannableWindowSelectContainer->setGeometry(r);
+
+    // tile containers have the offset of the toolbar
+    QRectF containerRect(r);
+    containerRect.setBottom(containerRect.bottom() - s_containerYBottomMargin);
+    m_tabWidget->setGeometry(containerRect);
+    if (m_activeWidget == WindowSelect)
+        setPos(-r.topLeft());
+
+    // move history to the middle
+    r.moveLeft(containerWidth); 
+    r.setWidth(containerWidth - s_containerXMargin);
+    m_pannableHistoryContainer->setGeometry(r);
+
+    containerRect.setWidth(r.width());
+    m_historyWidget->setGeometry(containerRect);
+    if (m_activeWidget == VisitedPages)
+        setPos(QPointF(-(r.x() - s_containerXMargin), 0));
+
+    // rigthmost
+    r.moveLeft(2*containerWidth - s_containerXMargin); 
+    m_pannableBookmarkContainer->setGeometry(r);
+    m_bookmarkWidget->setGeometry(containerRect);
+    if (m_activeWidget == Bookmarks)
+        setPos(QPointF(-(r.x() - s_containerXMargin), 0));
+}
+
 

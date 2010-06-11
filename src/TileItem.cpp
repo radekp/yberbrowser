@@ -1,24 +1,54 @@
+/*
+ * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public License
+ * along with this program; see the file COPYING.LIB.  If not, write to
+ * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ *
+ */
+
+#include "TileItem.h"
+#include "FontFactory.h"
+
 #include <QGraphicsWidget>
 #include <QPainter>
 #include <QtGlobal>
 #include <QTimer>
 #include <QGraphicsSceneMouseEvent>
-
-#include "TileItem.h"
+#include <QPropertyAnimation>
+#include <QGraphicsScene>
+#include <QDebug>
 
 const int s_hTextMargin = 10;
+const int s_longpressTimeoutThreshold = 400;
+const int s_closeIconSize = 48;
+const int s_closeIconClickAreaMargin = 24;
+const int s_tilesRound = 10;
 
-TileItem::TileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable)
+TileItem::TileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
     : QGraphicsRectItem(parent)
-    , m_urlItem(&urlItem)
+    , m_urlItem(urlItem)
     , m_selected(false)
     , m_closeIcon(0)
-    , m_dclick(false)
     , m_editable(editable)
     , m_context(0)
     , m_dirty(true)
     , m_fixed(false)
 {
+#ifndef Q_OS_SYMBIAN
+    setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+#endif    
 }
 
 TileItem::~TileItem()
@@ -26,9 +56,11 @@ TileItem::~TileItem()
     delete m_closeIcon;
 }
 
-void TileItem::resizeEvent(QGraphicsSceneResizeEvent* /*event*/)
-{
-    m_dirty = true;
+void TileItem::setTilePos(const QPointF& pos) 
+{ 
+    m_dirty = true; 
+    setRect(QRectF(pos, rect().size())); 
+    update(boundingRect()); 
 }
 
 void TileItem::setEditMode(bool on) 
@@ -42,15 +74,16 @@ void TileItem::setEditMode(bool on)
         delete m_closeIcon;
         m_closeIcon = 0;
     }
+    update(boundingRect());
 }
 
 void TileItem::setEditIconRect()
 {
     if (!m_closeIcon)
         return;
-    m_closeIconRect = QRectF(rect().topRight(), m_closeIcon->rect().size());
-    m_closeIconRect.moveRight(m_closeIconRect.right() - m_closeIconRect.width() + 10);
-    m_closeIconRect.moveTop(m_closeIconRect.top() - 5);
+    m_closeIconRect = QRectF(rect().topRight(), QSizeF(s_closeIconSize, s_closeIconSize));
+    m_closeIconRect.moveRight(m_closeIconRect.right() - m_closeIconRect.width()/2 - 5);
+    m_closeIconRect.moveTop(m_closeIconRect.top() - m_closeIconRect.height()/2 + 5);
 }
 
 void TileItem::paintExtra(QPainter* painter)
@@ -60,7 +93,7 @@ void TileItem::paintExtra(QPainter* painter)
 
     if (m_selected) {
         painter->setBrush(QColor(80, 80, 80, 160));
-        painter->drawRoundRect(rect(), 5, 5);
+        painter->drawRoundedRect(rect(), 1, 1);
     }
 }
 
@@ -69,8 +102,15 @@ void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
     // FIXME: dropshadow shouldnt be a rect
     painter.setPen(QColor(40, 40, 40));
     painter.setBrush(QColor(20, 20, 20));
-    QRectF r(rect); r.moveTopLeft(r.topLeft() + QPointF(2,2));
-    painter.drawRoundedRect(r, 5, 5);
+    QRectF r(rect); r.moveTopLeft(r.topLeft() + QPointF(3, 3));
+    painter.drawRoundedRect(r, s_tilesRound, s_tilesRound);
+}
+
+QRectF TileItem::boundingRect() const
+{
+    QRectF r(rect());
+    r.adjust(0, -s_closeIconSize, s_closeIconSize, 0);
+    return r;
 }
 
 void TileItem::layoutTile()
@@ -82,129 +122,135 @@ void TileItem::layoutTile()
     m_dirty = false;
 }
 
-void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* /*event*/)
+void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
-}
-
-void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
-{
-    if (m_dclick)
-        return;
-
     // expand it to fit thumbs
     QRectF r(m_closeIconRect);
-    r.adjust(-20, -20, 20, 20);
-    if (m_closeIcon && r.contains(event->pos())) {
-        emit itemClosed(this);
+    r.adjust(-s_closeIconClickAreaMargin, -s_closeIconClickAreaMargin, s_closeIconClickAreaMargin, s_closeIconClickAreaMargin);
+
+    if (m_longpressTime.elapsed() > s_longpressTimeoutThreshold) {
+        emit itemEditingMode(this);
+    } else if (m_closeIcon && r.contains(event->pos())) {
+        // async item selection, give chance to render the item selected/closed.
+        QTimer::singleShot(200, this, SLOT(closeItem()));
     } else {    
         m_selected = true;
-        update();
-        emit itemActivated(this);
+        update(boundingRect());
+        QTimer::singleShot(200, this, SLOT(activateItem()));
     }
 }
 
-void TileItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* /*event*/)
+void TileItem::mousePressEvent(QGraphicsSceneMouseEvent*)
 {
-    // half second timeout to distingush double click from click.
-    // FIXME: this should be managed very differently. need to look at the gesture consumer
-    m_dclick = true;
-    QTimer::singleShot(500, this, SLOT(invalidateClick()));
-    emit itemEditingMode(this);
+    m_longpressTime.start();        
 }
 
-void TileItem::invalidateClick()
+void TileItem::activateItem()
 {
-    m_dclick = false;
+    emit itemActivated(this);
+}
+
+void TileItem::closeItem()
+{
+    emit itemClosed(this);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-ThumbnailTileItem::ThumbnailTileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable)
+ThumbnailTileItem::ThumbnailTileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
     : TileItem(parent, urlItem, editable)
-    , m_defaultIcon(0)
 {
-    connect(m_urlItem, SIGNAL(thumbnailChanged()), this, SLOT(thumbnailChanged()));
     if (!urlItem.thumbnail())
-        m_defaultIcon = new QImage(":/data/icon/48x48/defaulticon_48.png");
+        m_defaultIcon = QImage(":/data/icon/48x48/defaulticon_48.png");
 }
 
 ThumbnailTileItem::~ThumbnailTileItem()
 {
-    delete m_defaultIcon;
-}
-
-void ThumbnailTileItem::thumbnailChanged() 
-{ 
-    // new thumbnail? 
-    if (m_defaultIcon && m_urlItem->thumbnailAvailable()) {
-        delete m_defaultIcon;
-        m_defaultIcon = 0;
-    }
-    update(); 
 }
 
 void ThumbnailTileItem::doLayoutTile()
 {
-    QFont f("Times", 10);
+    const QFont& f = FontFactory::instance()->small();
     QRectF r(rect()); 
+    r.adjust(s_tilesRound/2, s_tilesRound/2, -(s_tilesRound/2), 0);
 
     m_textRect = r;
     m_thumbnailRect = r;
 
-    if (m_defaultIcon) {
-        m_thumbnailRect.setSize(m_defaultIcon->rect().size());
+    if (!m_defaultIcon.isNull()) {
+        m_thumbnailRect.setSize(m_defaultIcon.rect().size());
         m_thumbnailRect.moveCenter(r.center());
     } else {
         // stretch thumbnail
-        m_thumbnailRect.adjust(2, 2, -2, -(QFontMetrics(f).height() + 3));
+        m_thumbnailRect.adjust(0, 0, 0, -(QFontMetrics(f).height() + 3));
     }
-    m_title = QFontMetrics(f).elidedText(m_urlItem->m_title, Qt::ElideRight, m_textRect.width());
+    m_title = QFontMetrics(f).elidedText(m_urlItem.title(), Qt::ElideRight, m_textRect.width() - s_tilesRound);
 }
 
 void ThumbnailTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     layoutTile();
 
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
-
     QRectF r(rect()); 
-
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     // QGraphicsDropShadowEffect doesnt perform well on n900.
     addDropShadow(*painter, r);
  
     painter->setBrush(Qt::white);
-    painter->setPen(Qt::black);
-    painter->drawRoundedRect(r, 5, 5);
-    QRectF thumbnailRect(r);
-    painter->drawImage(m_thumbnailRect, *(m_defaultIcon ? m_defaultIcon : m_urlItem->thumbnail()));
-
-    painter->setFont(QFont("Times", 10));
+    painter->setPen(Qt::gray);
+    painter->drawRoundedRect(r, s_tilesRound, s_tilesRound);
+    // scale on the fly
+    if (m_defaultIcon.isNull() && m_scaledThumbnail.isNull())
+        m_scaledThumbnail = m_urlItem.thumbnail()->scaled(m_thumbnailRect.size().toSize(),  Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    painter->drawImage(m_thumbnailRect.topLeft(), m_defaultIcon.isNull() ? m_scaledThumbnail : m_defaultIcon);
+    painter->setFont(FontFactory::instance()->small());
     painter->setPen(Qt::black);
     painter->drawText(m_textRect, Qt::AlignHCenter|Qt::AlignBottom, m_title);
     paintExtra(painter);
 }
 
-NewWindowTileItem::NewWindowTileItem(QGraphicsWidget* parent, UrlItem& item)
+NewWindowTileItem::NewWindowTileItem(QGraphicsWidget* parent, const UrlItem& item)
     : ThumbnailTileItem(parent, item, false)
 
 {
+}
+
+void NewWindowTileItem::activateItem()
+{
+    // start growing anim
+    setZValue(100);
+    QPropertyAnimation* moveAnim = new QPropertyAnimation(this, "rect");
+    moveAnim->setDuration(500);
+    moveAnim->setStartValue(rect());
+    // FIXME find out how to make it full view, for now just hack it
+    QRectF r(parentWidget()->geometry());
+    r.adjust(scene()->sceneRect().right() - r.right(), 0, 0, 0);
+    moveAnim->setEndValue(r);
+
+    moveAnim->setEasingCurve(QEasingCurve::OutQuad);
+    moveAnim->start();
+    connect(moveAnim, SIGNAL(finished()), this, SLOT(newWindowAnimFinished()));
+}
+
+void NewWindowTileItem::newWindowAnimFinished()
+{
+    emit itemActivated(this);
 }
 
 void NewWindowTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     layoutTile();
 
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
-
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     painter->setPen(Qt::white);
-    painter->setBrush(Qt::black);
-    painter->drawRoundedRect(rect(), 5, 5);
+    painter->setBrush(m_selected ? Qt::white : Qt::black);
+    painter->drawRoundedRect(rect(), s_tilesRound, s_tilesRound);
 
-    painter->setFont(QFont("Times", 12));
+    painter->setFont(FontFactory::instance()->small());
     painter->setPen(Qt::white);
-    painter->drawText(rect(), Qt::AlignCenter, "Open new window");
+    painter->drawText(rect(), Qt::AlignCenter, "Open new tab");
 }
 
-NewWindowMarkerTileItem::NewWindowMarkerTileItem(QGraphicsWidget* parent, UrlItem& item)
+NewWindowMarkerTileItem::NewWindowMarkerTileItem(QGraphicsWidget* parent, const UrlItem& item)
     : ThumbnailTileItem(parent, item, false)
 
 {
@@ -215,17 +261,16 @@ void NewWindowMarkerTileItem::paint(QPainter* painter, const QStyleOptionGraphic
 {
     layoutTile();
 
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
-
     QPen p(Qt::DashLine);
     p.setColor(QColor(100, 100, 100));
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     painter->setPen(p);
     painter->setBrush(Qt::NoBrush);
-    painter->drawRoundedRect(rect(), 5, 5);
+    painter->drawRoundedRect(rect(), s_tilesRound, s_tilesRound);
 }
 
 //
-ListTileItem::ListTileItem(QGraphicsWidget* parent, UrlItem& urlItem, bool editable)
+ListTileItem::ListTileItem(QGraphicsWidget* parent, const UrlItem& urlItem, bool editable)
     : TileItem(parent, urlItem, editable)
 {
 }
@@ -237,40 +282,38 @@ void ListTileItem::doLayoutTile()
     m_titleRect = r;
     m_urlRect = r;
 
-    QFont fbig("Times", 18);
-    QFont fsmall("Times", 12);
-    QFontMetrics fmfbig(fbig);
+    const QFont& fmedium = FontFactory::instance()->medium();
+    const QFont& fsmall = FontFactory::instance()->small();
+    QFontMetrics fmfmedium(fmedium);
     QFontMetrics fmfsmall(fsmall);
 
-    int fontHeightRatio = r.height() / (fmfbig.height() + fmfsmall.height() + 5);
-    m_titleRect.setHeight(fmfbig.height() * fontHeightRatio);
+    int fontHeightRatio = r.height() / (fmfmedium.height() + fmfsmall.height() + 5);
+    m_titleRect.setHeight(fmfmedium.height() * fontHeightRatio);
     m_urlRect.setTop(m_titleRect.bottom() + 5); 
 
-    m_title = fmfbig.elidedText(m_urlItem->m_title, Qt::ElideRight, r.width());
-    m_url = fmfsmall.elidedText(m_urlItem->m_url.toString(), Qt::ElideRight, r.width());
+    m_title = fmfmedium.elidedText(m_urlItem.title(), Qt::ElideRight, r.width());
+    m_url = fmfsmall.elidedText(m_urlItem.url().toString(), Qt::ElideRight, r.width());
 }
 
 void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
     layoutTile();
 
-    painter->setRenderHints(QPainter::Antialiasing|QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
-
     QRectF r(rect()); 
 
     // QGraphicsDropShadowEffect doesnt perform well on n900.
-    addDropShadow(*painter, r);
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
  
     painter->setBrush(Qt::white);
-    painter->setPen(Qt::black);
-    painter->drawRoundedRect(r, 3, 3);
+    painter->setPen(Qt::gray);
+    painter->drawRoundedRect(r, 2, 2);
 
     painter->setPen(Qt::black);
-    painter->setFont(QFont("Times", 18));
+    painter->setFont(FontFactory::instance()->medium());
     painter->drawText(m_titleRect, Qt::AlignLeft|Qt::AlignVCenter, m_title);
 
     painter->setPen(QColor(110, 110, 110));
-    painter->setFont(QFont("Times", 12));
+    painter->setFont(FontFactory::instance()->small());
     painter->drawText(m_urlRect, Qt::AlignLeft|Qt::AlignVCenter, m_url);
 
     paintExtra(painter);

@@ -1,21 +1,37 @@
-#include "TileSelectionViewBase.h"
-#include <QGraphicsRectItem>
-#include <QTimer>
+/*
+ * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public License
+ * along with this program; see the file COPYING.LIB.  If not, write to
+ * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ *
+ */
 
+#include "TileSelectionViewBase.h"
 #include "ApplicationWindow.h"
 #include "TileItem.h"
 
-TileSelectionViewBase::TileSelectionViewBase(ViewType type, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+#include <QGraphicsPixmapItem>
+#include <QTimer>
+
+TileSelectionViewBase::TileSelectionViewBase(ViewType type, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_bckg(new QGraphicsRectItem(this))
+    , m_bckg(bckg ? new QGraphicsPixmapItem(*bckg, this) : 0)
     , m_type(type)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
-
-    m_bckg->setBrush(QColor(20, 20, 20));
-    m_bckg->setZValue(0);
-//    m_bckg->setOpacity(0.8);
 }
 
 TileSelectionViewBase::~TileSelectionViewBase()
@@ -23,41 +39,62 @@ TileSelectionViewBase::~TileSelectionViewBase()
     delete m_bckg;
 }
 
-void TileSelectionViewBase::resizeEvent(QGraphicsSceneResizeEvent* event)
+void TileSelectionViewBase::setGeometry( const QRectF &r)
 {
-    m_bckg->setRect(rect());
-    createViewItems();
-    QGraphicsWidget::resizeEvent(event);
+    QGraphicsWidget::setGeometry(r);
+    if (m_bckg)
+        m_bckg->setPos(-geometry().topLeft());
 }
 
-void TileSelectionViewBase::appear(ApplicationWindow* window)
+void TileSelectionViewBase::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
-    // FIXME: how to test if view is already in correct view?
-    if (!scene()) {
-        window->scene()->addItem(this);
-        setZValue(100);
-    }
-    scene()->setActiveWindow(this);
+    QGraphicsWidget::resizeEvent(event);
+    if (m_bckg)
+        m_bckg->setPos(-pos());
+    updateContent();
+}
 
+void TileSelectionViewBase::updateBackground(QPixmap* bckg)
+{
+    if (bckg) {
+        if (!m_bckg)
+            m_bckg = new QGraphicsPixmapItem(this);
+        m_bckg->setPixmap(*bckg);
+    } else {
+        delete m_bckg;
+        m_bckg = 0;
+    }
+    update();
+}
+
+void TileSelectionViewBase::updateContent()
+{
+    resetContainerSize();
+    destroyViewItems();
     createViewItems();
-    emit appeared();
+}
+
+void TileSelectionViewBase::appear()
+{
+    // bckg pos is misbehaving on device (n900), need to do an extra setPos here
+    if (m_bckg)
+        m_bckg->setPos(-pos());
 }
 
 void TileSelectionViewBase::disappear()
 {
     destroyViewItems();
-    // FIXME: what's wrong with sync emit disappeared
-    QTimer::singleShot(0, this, SLOT(deleteView()));
 }
 
-void TileSelectionViewBase::tileItemActivated(TileItem* /*item*/)
+void TileSelectionViewBase::closeView()
 {
-    disappear();
+    emit viewDismissed();
 }
 
-void TileSelectionViewBase::deleteView()
+void TileSelectionViewBase::closeViewSoon()
 {
-    emit disappeared(this);
+    // FIXME find out why sync view close crashes
+    QTimer::singleShot(0, this, SLOT(closeView()));
 }
 
 void TileSelectionViewBase::connectItem(TileItem& item)

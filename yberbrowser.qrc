@@ -1,5 +1,6 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
+    <file>data/icon/64x64/bubble_64.png</file>
     <file>data/icon/48x48/back_48.png</file>
     <file>data/icon/48x48/close_item_48.png</file>
     <file>data/icon/48x48/history_48.png</file>
@@ -7,12 +8,11 @@
     <file>data/icon/48x48/stop_48.png</file>
     <file>data/icon/48x48/bookmarks_48.png</file>
     <file>data/icon/48x48/defaulticon_48.png</file>
-    <file>data/icon/16x16/defaulticon_16.png</file>
-    <file>data/_yberbrowser/facebook.ico</file>
-    <file>data/_yberbrowser/yahoo.ico</file>
-    <file>data/_yberbrowser/wikipedia.ico</file>
-    <file>data/_yberbrowser/google.ico</file>
-    <file>data/_yberbrowser/twitter.ico</file>
-    <file>data/_yberbrowser/msn.ico</file>
+    <file>data/icon/48x48/capslock_48.png</file>
+    <file>data/icon/48x48/backspace_48.png</file>
+    <file>data/icon/48x48/bubble_48.png</file>
+    <file>data/icon/48x48/enter_48.png</file>
+    <file>data/icon/32x32/keyboard_32.png</file>
+    <file>data/icon/32x32/popup_32.png</file>
 </qresource>
 </RCC>

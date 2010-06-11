@@ -1,28 +1,120 @@
+/*
+ * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public License
+ * along with this program; see the file COPYING.LIB.  If not, write to
+ * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ *
+ */
+
 #include "TileContainerWidget.h"
+#include "BookmarkStore.h"
+#include "HistoryStore.h"
+#include "FontFactory.h"
+#include "ToolbarWidget.h"
+
 #include <QGraphicsItem>
 #include <QGraphicsSceneMouseEvent>
 #include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
+#include <QGraphicsSimpleTextItem>
 #include <QPainter>
+#include <QPen>
+#include <QFontMetrics>
+#include <QDebug>
 
-const int s_viewMargin = 40;
-const int s_tileMargin = 20;
-const int s_historyTileMargin = 30;
+#ifdef Q_OS_SYMBIAN
+const int s_tileMargin = 25;
+const int s_tileTopMargin = 5;
+const int s_titleVMargin = 5;
+const int s_bookmarksTileHeight = 60;
+const int s_searchItemTileHeight = 60;
+#else
+const int s_tileMargin = 25;
+const int s_tileTopMargin = 10;
+const int s_titleVMargin = 10;
 const int s_bookmarksTileHeight = 70;
 const int s_searchItemTileHeight = 60;
+#endif
+const int s_containerYBottomMargin = 10;
 
 TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_slideAnimationGroup(0)
     , m_title(title)
+    , m_slideAnimationGroup(0)
     , m_editMode(false)
 {
 }
 
 TileBaseWidget::~TileBaseWidget()
 {
-    removeAll();
     delete m_slideAnimationGroup;
+    removeAll();
+}
+
+void TileBaseWidget::addTile(TileItem& newItem)
+{
+    m_tileList.append(&newItem);
+}
+
+void TileBaseWidget::removeTile(const TileItem& removed)
+{
+    if (!m_slideAnimationGroup)
+        m_slideAnimationGroup = new QParallelAnimationGroup();
+    m_slideAnimationGroup->clear();
+
+    int hiddenIndex = -1;
+    for (int i = 0; i < m_tileList.size(); ++i) {
+        if (m_tileList.at(i) == &removed) {
+            for (int j = m_tileList.size() - 1; j > i; --j) {
+                if (!m_tileList.at(j)->isVisible())
+                    hiddenIndex = j;
+                if (!m_tileList.at(j)->fixed())
+                    addMoveAnimation(*m_tileList.at(j), (j - i) * 50, m_tileList[j]->rect().topLeft(), m_tileList[j-1]->rect().topLeft());
+            }
+            delete m_tileList.takeAt(i);
+            break;
+        }
+    }
+    // hidden item to appear?
+    if (hiddenIndex > -1)    
+        m_tileList.at(hiddenIndex - 1)->show();
+    connect(m_slideAnimationGroup, SIGNAL(finished()), SLOT(adjustContainerHeight()));
+    m_slideAnimationGroup->start();
+}
+
+void TileBaseWidget::removeAll()
+{
+    for (int i = m_tileList.size() - 1; i >= 0; --i)
+        delete m_tileList.takeAt(i);
+}
+
+void TileBaseWidget::setEditMode(bool on) 
+{ 
+    m_editMode = on;
+    for (int i = 0; i < m_tileList.size(); ++i)
+        m_tileList.at(i)->setEditMode(on);
+}
+
+int TileBaseWidget::titleVMargin() 
+{
+    return s_titleVMargin + ToolbarWidget::height();
+}
+
+int TileBaseWidget::tileTopVMargin() 
+{
+    return titleVMargin() + QFontMetrics(FontFactory::instance()->big()).height() + s_tileTopMargin;
 }
 
 QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed)
@@ -30,18 +122,23 @@ QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTile
     if (!m_tileList.size())
         return QSize(0, 0) ;
 
+    m_titleRect.setLeft(rect().left() + marginX);
+    m_titleRect.setTop(titleVMargin());
+    m_titleRect.setHeight(QFontMetrics(FontFactory::instance()->big()).height());
+    m_titleRect.setWidth(rect_.width());    
+
+    int y = rect_.top() + marginY;
+    int x = rect_.left() + marginX;
+
     int width = rect_.width() - (hTileNum + 1)*marginX;
-    int height = rect_.height() - (vTileNum + 1)*marginY;
+    int height = rect_.height() - (vTileNum)*marginY;
 
     int tileWidth = width / hTileNum;
     int tileHeight = height / vTileNum; 
-
     int tileCount = fixed ? qMin(hTileNum * vTileNum, m_tileList.size()) : m_tileList.size();
-    int y = rect_.top() + s_viewMargin - tileHeight;
-    int x = rect_.left() + marginX;
     int i = 0;
     for (; i < tileCount; ++i) {
-        if (i%hTileNum == 0) {
+        if (i >= hTileNum && i%hTileNum == 0) {
             y+=(tileHeight + marginY);
             x = rect_.left() + marginX;
         }
@@ -60,63 +157,21 @@ QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTile
     return QSize(tileWidth * hTileNum, y + tileHeight);
 }
 
-void TileBaseWidget::addTile(TileItem& newItem)
+void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/, QWidget* /*widget*/)
 {
-    m_tileList.append(&newItem);
-    newItem.setEditMode(m_editMode);
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+    painter->setFont(FontFactory::instance()->big());
+    painter->setPen(QColor(Qt::white));
+    painter->drawText(m_titleRect, Qt::AlignLeft|Qt::AlignVCenter, m_title);
 }
 
-void TileBaseWidget::removeTile(TileItem& removed)
+void TileBaseWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent*)
 {
-    if (!m_slideAnimationGroup)
-        m_slideAnimationGroup = new QParallelAnimationGroup();
-
-    int hiddenIndex = -1;
-    m_slideAnimationGroup->clear();
-    for (int i = 0; i < m_tileList.size(); ++i) {
-        if (m_tileList.at(i) == &removed) {
-            for (int j = m_tileList.size() - 1; j > i; --j) {
-                if (!m_tileList.at(j)->isVisible())
-                    hiddenIndex = j;
-                if (!m_tileList.at(j)->fixed())
-                    addMoveAnimation(*m_tileList.at(j), (j - i) * 50, m_tileList[j]->rect().topLeft(), m_tileList[j-1]->rect().topLeft());
-            }
-            delete m_tileList.takeAt(i);
-            break;
-        }
-    }
-    // hidden item to appear?
-    if (hiddenIndex > -1)    
-        m_tileList.at(hiddenIndex - 1)->show();
-    m_slideAnimationGroup->start(QAbstractAnimation::KeepWhenStopped);
-}
-
-void TileBaseWidget::removeAll()
-{
-    for (int i = m_tileList.size() - 1; i >= 0; --i)
-        delete m_tileList.takeAt(i);
-}
-
-void TileBaseWidget::setEditMode(bool on) 
-{ 
-    m_editMode = on;
-    for (int i = 0; i < m_tileList.size(); ++i)
-        m_tileList.at(i)->setEditMode(on);
-}
-
-void TileBaseWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
-{
-    QGraphicsWidget::paint(painter, option, widget);
-    painter->setFont(QFont("Times", 14));
-    painter->setPen(Qt::white);
-    QRectF r(rect());
-    r.setHeight(s_viewMargin);
-    painter->drawText(r, Qt::AlignCenter, m_title);
+    emit closeWidget();
 }
 
 void TileBaseWidget::mousePressEvent(QGraphicsSceneMouseEvent*)
 {
-    emit closeWidget();
 }
 
 void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QPointF& oldPos, const QPointF& newPos)
@@ -132,12 +187,24 @@ void TileBaseWidget::addMoveAnimation(TileItem& item, int delay, const QPointF& 
     m_slideAnimationGroup->addAnimation(moveAnim);
 }
 
+void TileBaseWidget::adjustContainerHeight()
+{
+    if (m_tileList.size() == 0)
+        return;
+    // check if container needs to be resized
+    int lastRectBottom = m_tileList.at(m_tileList.size()-1)->rect().bottom() + s_containerYBottomMargin;
+    if (rect().height() > lastRectBottom) {
+        setMinimumHeight(lastRectBottom);
+        resize(QSizeF(size().width(), lastRectBottom));
+    }
+}
+
 // subclasses
 // ##########
 
 // window select
 TabWidget::TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
-    : TileBaseWidget("Window selection", parent, wFlags) 
+    : TileBaseWidget("Tabs", parent, wFlags) 
 {
 }
 
@@ -146,14 +213,14 @@ void TabWidget::layoutTiles()
     // 6 tabs max atm
     // FIXME: this is landscape oriented. check aspect ratio
     QRectF r(rect());
-    r.setHeight(r.height() - s_viewMargin);
+    r.setTop(r.top() + tileTopVMargin() - s_tileMargin);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
     doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin, true);
 }
 
-void TabWidget::removeTile(TileItem& removed)
+void TabWidget::removeTile(const TileItem& removed)
 {
     // FIXME: when tab is full, fake items dont work
     // insert a fake marker item in place
@@ -166,33 +233,31 @@ void TabWidget::removeTile(TileItem& removed)
         }            
     }
     // url list is created here (out of window list) unlike in other views, like history items.
-    delete removed.urlItem();
     TileBaseWidget::removeTile(removed);
-}
-
-void TabWidget::removeAll()
-{
-    // url list is created here (out of window list) unlike in other views, like history items.
-    for (int i = m_tileList.size() - 1; i >= 0; --i)
-        delete m_tileList.at(i)->urlItem();
-    TileBaseWidget::removeAll();
 }
 
 // history
 HistoryWidget::HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
-    : TileBaseWidget("Visited pages", parent, wFlags) 
+    : TileBaseWidget("Top Sites", parent, wFlags) 
 {
+}
+
+void HistoryWidget::removeTile(const TileItem& removed)
+{
+    HistoryStore::instance()->remove(removed.urlItem()->url());
+    TileBaseWidget::removeTile(removed);
 }
 
 void HistoryWidget::layoutTiles()
 {
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
-    r.setHeight(parentWidget()->size().height() - s_viewMargin);
+    r.setTop(r.top() + tileTopVMargin() - s_tileMargin);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
-    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_historyTileMargin, s_historyTileMargin).height()); 
+    // add toolbarheight to make sure tiles are always visible
+    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin).height() + s_containerYBottomMargin); 
 }
 
 // bookmarks
@@ -201,30 +266,41 @@ BookmarkWidget::BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 {
 }
 
+void BookmarkWidget::removeTile(const TileItem& removed)
+{
+    BookmarkStore::instance()->remove(removed.urlItem()->url());
+    TileBaseWidget::removeTile(removed);
+}
+
 void BookmarkWidget::layoutTiles()
 {
     // the height of the view is unknow until we layout the tiles
     QRectF r(rect());
-    r.setHeight(parentWidget()->size().height() - s_viewMargin);
-    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, 0).height());
+    r.setTop(r.top() + tileTopVMargin());
+    // add toolbarheight to make sure tiles are always visible
+    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, -1).height() + s_containerYBottomMargin);
 }
 
 // url filter popup
 PopupWidget::PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags) 
-    : TileBaseWidget("Search result", parent, wFlags) 
+    : TileBaseWidget(QString(), parent, wFlags) 
 {
+}
+
+void PopupWidget::removeTile(const TileItem& removed)
+{
+    // FIXME should be able to know where the urlitem belongs to
+    // instead of blindly trying to delete it from both stores
+    BookmarkStore::instance()->remove(removed.urlItem()->url());
+    HistoryStore::instance()->remove(removed.urlItem()->url());
+    TileBaseWidget::removeTile(removed);
 }
 
 void PopupWidget::layoutTiles()
 {
     QRectF r(rect());
-    r.setHeight(parentWidget()->size().height() - s_viewMargin);
-    int popupHeight = doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height();
-    // position to the bottom of the container, when there are too few items
-    if (popupHeight < r.height()) 
-        setGeometry(QRectF(QPointF(0, parentWidget()->size().height() - popupHeight), QSizeF(rect().width(), popupHeight)));
-    else
-        setGeometry(QRect(0, 0, r.width(), popupHeight));
+    r.setTop(r.top() + ToolbarWidget::height());
+    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height());
 }
 
 

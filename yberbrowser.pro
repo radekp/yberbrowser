@@ -11,9 +11,11 @@ isEmpty(PREFIX) {
 DATADIR = $$PREFIX/share
 BINDIR = $$PREFIX/bin
 
-MOC_DIR     = $$PWD/.moc
-OBJECTS_DIR = $$PWD/.obj
-RCC_DIR     = $$PWD/.rcc
+!symbian {
+	MOC_DIR     = $$PWD/.moc
+	OBJECTS_DIR = $$PWD/.obj
+	RCC_DIR     = $$PWD/.rcc
+}
 
 dui {
     CONFIG+=dui
@@ -45,6 +47,7 @@ enable_engine_thread {
     DEFINES+=ENABLE_ENGINE_THREAD=0
 }
 
+!symbian {
 
 contains(WEBKIT, system) {
     QT += webkit
@@ -105,12 +108,45 @@ contains(WEBKIT, system) {
 } else {
   error(Specify WEBKIT build mode: WEBKIT=[system|custom|local])
 }
-
+}
 
 
 symbian {
-    TARGET.UID3 = 0xA000E544
-    TARGET.CAPABILITY = ReadUserData WriteUserData NetworkServices
+	TARGET.UID3 = 0xA000E544
+	TARGET.CAPABILITY = All -Tcb
+	TARGET.EPOCHEAPSIZE = 0x20000 0x2000000
+	QT += webkit
+
+    preloadedItems.sources = ./data/_yberbrowser/*.*
+    preloadedItems.path = /private/A000E544
+
+    DEPLOYMENT += preloadedItems 
+    
+    BLD_INF_RULES.prj_exports += \
+        "./data/_yberbrowser/1433288371.png      /epoc32/winscw/c/private/A000E544/1433288371.png" \
+        "./data/_yberbrowser/1629879429.png      /epoc32/winscw/c/private/A000E544/1629879429.png" \
+        "./data/_yberbrowser/1648991282.png      /epoc32/winscw/c/private/A000E544/1648991282.png" \
+        "./data/_yberbrowser/1709185409.png      /epoc32/winscw/c/private/A000E544/1709185409.png" \
+        "./data/_yberbrowser/1752222667.png      /epoc32/winscw/c/private/A000E544/1752222667.png" \
+        "./data/_yberbrowser/1949898887.png      /epoc32/winscw/c/private/A000E544/1949898887.png" \
+        "./data/_yberbrowser/1956761810.png      /epoc32/winscw/c/private/A000E544/1956761810.png" \
+        "./data/_yberbrowser/2101853025.png      /epoc32/winscw/c/private/A000E544/2101853025.png" \
+        "./data/_yberbrowser/2228149477.png      /epoc32/winscw/c/private/A000E544/2228149477.png" \
+        "./data/_yberbrowser/2381847146.png      /epoc32/winscw/c/private/A000E544/2381847146.png" \
+        "./data/_yberbrowser/2461283667.png      /epoc32/winscw/c/private/A000E544/2461283667.png" \
+        "./data/_yberbrowser/2562298915.png      /epoc32/winscw/c/private/A000E544/2562298915.png" \
+        "./data/_yberbrowser/2600348047.png      /epoc32/winscw/c/private/A000E544/2600348047.png" \
+        "./data/_yberbrowser/2681767302.png      /epoc32/winscw/c/private/A000E544/2681767302.png" \
+        "./data/_yberbrowser/2690441205.png      /epoc32/winscw/c/private/A000E544/2690441205.png" \
+        "./data/_yberbrowser/2733289833.png      /epoc32/winscw/c/private/A000E544/2733289833.png" \
+        "./data/_yberbrowser/2742934577.png      /epoc32/winscw/c/private/A000E544/2742934577.png" \
+        "./data/_yberbrowser/2934683436.png      /epoc32/winscw/c/private/A000E544/2934683436.png" \
+        "./data/_yberbrowser/2979298446.png      /epoc32/winscw/c/private/A000E544/2979298446.png" \
+        "./data/_yberbrowser/3195535666.png      /epoc32/winscw/c/private/A000E544/3195535666.png" \
+        "./data/_yberbrowser/3362099564.png      /epoc32/winscw/c/private/A000E544/3362099564.png" \
+        "./data/_yberbrowser/3365415225.png      /epoc32/winscw/c/private/A000E544/3365415225.png" \
+        "./data/_yberbrowser/bookmarkstore.txt      /epoc32/winscw/c/private/A000E544/bookmarkstore.txt" \
+        "./data/_yberbrowser/historystore.txt      /epoc32/winscw/c/private/A000E544/historystore.txt" \
 }
 
 target.path = $$BINDIR
@@ -131,6 +167,7 @@ HEADERS = \
   src/ApplicationWindow.h \
   src/ApplicationWindowHost.h \
   src/AutoSelectLineEdit.h \
+  src/AutoSelectLineEdit_p.h \
   src/AutoScrollTest.h \
   src/BackingStoreVisualizerWidget.h \
   src/BookmarkStore.h \
@@ -139,9 +176,11 @@ HEADERS = \
   src/CookieJar.h \
   src/EnvHttpProxyFactory.h \
   src/EventHelpers.h \
+  src/FontFactory.h \
   src/Helpers.h \
   src/HistoryStore.h \
   src/HomeView.h \
+  src/KeypadWidget.h \
   src/LinkSelectionItem.h \
   src/PannableTileContainer.h \
   src/PannableViewport.h \
@@ -152,6 +191,7 @@ HEADERS = \
   src/TileContainerWidget.h \
   src/TileItem.h \
   src/TileSelectionViewBase.h \
+  src/ToolbarWidget.h \
   src/UrlItem.h \
   src/WebPage.h \
   src/WebView.h \
@@ -168,9 +208,11 @@ SOURCES = \
   src/CookieJar.cpp \
   src/EnvHttpProxyFactory.cpp\
   src/EventHelpers.cpp \
+  src/FontFactory.cpp \
   src/Helpers.cpp \
   src/HistoryStore.cpp \
   src/HomeView.cpp \
+  src/KeypadWidget.cpp \
   src/LinkSelectionItem.cpp \
   src/PopupView.cpp \
   src/ProgressWidget.cpp \
@@ -178,6 +220,7 @@ SOURCES = \
   src/TileContainerWidget.cpp \
   src/TileItem.cpp \
   src/TileSelectionViewBase.cpp \
+  src/ToolbarWidget.cpp \
   src/UrlItem.cpp \
   src/WebPage.cpp \
   src/WebView.cpp \

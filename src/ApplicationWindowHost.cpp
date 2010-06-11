@@ -1,12 +1,32 @@
+/*
+ * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public License
+ * along with this program; see the file COPYING.LIB.  If not, write to
+ * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ *
+ */
+
+#include "ApplicationWindowHost.h"
+#include "ApplicationWindow.h"
+#include "Settings.h"
+
 #include <qglobal.h>
 #if !defined(QT_NO_OPENGL)
 #include <QGLWidget>
 #endif
 #include <QGraphicsItem>
-
-#include "ApplicationWindowHost.h"
-#include "Settings.h"
-#include "ApplicationWindow.h"
 #if defined(Q_WS_MAEMO_5)
 #include <QtDBus>
 #include <QtMaemo5>
@@ -96,8 +116,6 @@ ApplicationWindowHost::~ApplicationWindowHost()
 #if QT_VERSION < QT_VERSION_CHECK(4, 6, 2)
 bool ApplicationWindowHost::event(QEvent *ev)
 {
-    qDebug() << ev;
-
     switch (ev->type()) {
     case QEvent::WindowActivate:
         QDBusConnection::systemBus().call(

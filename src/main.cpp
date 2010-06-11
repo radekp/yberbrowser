@@ -32,6 +32,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "YberApplication.h"
+#include "Settings.h"
+#include "Helpers.h"
+
 #include <QDebug>
 #include <QFile>
 #include <QGraphicsScene>
@@ -54,13 +58,6 @@
 #include <DuiApplicationWindow>
 #include <DuiTheme>
 #endif
-
-//#include <QGLWidget>
-//#include <Qt/QtOpenGL>
-
-#include "YberApplication.h"
-#include "Settings.h"
-#include "Helpers.h"
 
 void usage(const char* name);
 void debugMessageOutput(QtMsgType type, const char *msg)
@@ -97,13 +94,17 @@ int main(int argc, char** argv)
 #endif
 
 
-    QString url; //QString("file://%1/%2").arg(QDir::homePath()).arg(QLatin1String("index.html"));
-    //QDir::toNativeSeparators(
-    QString privPath = QString("%1/.%2/").arg(QDir::homePath()).arg(QCoreApplication::applicationName());
+    QString url;
+    QString privPath;
+#ifdef Q_OS_SYMBIAN
+    privPath = QDir::toNativeSeparators(QApplication::applicationDirPath()) + QString("\\");
+#else
+    privPath = QString("%1/.%2/").arg(QDir::homePath()).arg(QCoreApplication::applicationName());
     QDir privDir(privPath);
     if (!privDir.exists()) {
         privDir.mkpath(privPath);
     }
+#endif
     Settings* settings = Settings::instance();
 
     settings->setPrivatePath(privPath);
@@ -117,11 +118,12 @@ int main(int argc, char** argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::ZoomTextOnly, false);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, true);
     QWebSettings::enablePersistentStorage(settings->privatePath());
-    
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::FrameFlatteningEnabled, true);
+
     QStringList args = app.arguments();
 
     settings->enableTileCache(true);
-    
+
 #if ENABLE(ENGINE_THREAD)
     settings->enableEngineThread(true);
 #else
@@ -174,7 +176,7 @@ int main(int argc, char** argv)
     if (settings->engineThreadEnabled())
         QWebSettings::enableEngineThread();
 #endif
-    
+
     QWebSettings::globalSettings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, settings->tileCacheEnabled());
 
     app.start();
@@ -191,7 +193,7 @@ int main(int argc, char** argv)
 }
 
 
-void usage(const char* name) 
+void usage(const char* name)
 {
     QTextStream s(stderr);
     s << "usage: " << name << " [options] url" << endl;

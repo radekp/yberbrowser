@@ -1,15 +1,37 @@
+/*
+ * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public License
+ * along with this program; see the file COPYING.LIB.  If not, write to
+ * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ *
+ */
+
 #include "PopupView.h"
+#include "UrlItem.h"
+#include "HistoryStore.h"
+#include "TileContainerWidget.h"
+#include "PannableViewport.h"
+
 #include <QTimer>
 #include <qgraphicswebview.h>
 #include <qwebpage.h>
 #include <qwebframe.h>
+#ifndef Q_OS_SYMBIAN
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValueIterator>
-
-#include "UrlItem.h"
-#include "HistoryStore.h"
-#include "TileContainerWidget.h"
-#include "PannableTileContainer.h"
+#endif
 
 class Suggest : public QObject {
     Q_OBJECT
@@ -60,6 +82,7 @@ void Suggest::loadFinished(bool success)
 
     if (!success)
         return;
+#ifndef Q_OS_SYMBIAN
     QString json = m_view.page()->mainFrame()->toPlainText();
     int start = json.indexOf("(");
     if (start != -1) {
@@ -82,19 +105,23 @@ void Suggest::loadFinished(bool success)
         }
     }
     emit suggestionsAvailable();
+#endif
 }
 
 PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : TileSelectionViewBase(TileSelectionViewBase::UrlPopup, parent, wFlags)
+    : TileSelectionViewBase(TileSelectionViewBase::UrlPopup, 0, parent, wFlags)
     , m_suggest(new Suggest())
     , m_suggestTimer(new QTimer(this))
+    , m_bckg(new QGraphicsRectItem(rect(), this))
     , m_popupWidget(new PopupWidget(this, wFlags))
-    , m_pannableContainer(new PannableTileContainer(this, wFlags))
+    , m_pannableContainer(new PannableViewport(this, wFlags))
 {
-    m_pannableContainer->setWidget(m_popupWidget);
-    connect(m_popupWidget, SIGNAL(closeWidget(void)), this, SLOT(disappear()));
+    m_pannableContainer->setPannedWidget(m_popupWidget);
+    connect(m_popupWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
     connect(m_suggestTimer, SIGNAL(timeout()), this, SLOT(startSuggest()));
     connect(m_suggest, SIGNAL(suggestionsAvailable()), this, SLOT(populateSuggestion()));
+    m_bckg->setPen(Qt::NoPen);
+    m_bckg->setBrush(QColor(60, 60, 60, 220));
 }
 
 PopupView::~PopupView()
@@ -106,18 +133,19 @@ void PopupView::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
     m_pannableContainer->setGeometry(rect());
     m_popupWidget->resize(rect().size());
-
+    m_bckg->setRect(rect());
     TileSelectionViewBase::resizeEvent(event);
 }
 
 void PopupView::setFilterText(const QString& text)
 {
+#ifdef QTSCRIPT_FIX_AVAILABLE
     m_suggestTimer->start(500);
     m_suggest->stop();
+#endif
 
     m_filterText = text;
-    destroyViewItems();
-    createViewItems();
+    updateContent();
 }
 
 void PopupView::startSuggest()
@@ -128,19 +156,38 @@ void PopupView::startSuggest()
 
 void PopupView::populateSuggestion()
 {
-    destroyViewItems();
-    createViewItems();
+    updateContent();
 }
 
 void PopupView::tileItemActivated(TileItem* item)
 {
     TileSelectionViewBase::tileItemActivated(item);
 
-    QUrl url = item->urlItem()->m_url;
+    QUrl url = item->urlItem()->url();
     // FIXME this is ugly but ok as temp
-    if (item->urlItem()->m_url.toString() == "google suggest")
-        url = "http://www.google.com/search?q=" + item->urlItem()->m_title;      
+    if (url.toString() == "google suggest")
+        url = "http://www.google.com/search?q=" + item->urlItem()->title();      
     emit pageSelected(url);
+}
+
+void PopupView::tileItemClosed(TileItem* item)
+{
+    TileSelectionViewBase::tileItemClosed(item);
+    m_popupWidget->removeTile(*item);
+}
+
+void PopupView::tileItemEditingMode(TileItem* item)
+{
+    TileSelectionViewBase::tileItemEditingMode(item);
+
+    m_popupWidget->setEditMode(!m_popupWidget->editMode());
+    update();
+}
+
+void PopupView::resetContainerSize()
+{
+    m_popupWidget->setMinimumHeight(0);
+    m_popupWidget->setGeometry(QRectF(rect().topLeft(), m_pannableContainer->geometry().size()));
 }
 
 void PopupView::destroyViewItems()
@@ -167,7 +214,7 @@ void PopupView::createViewItems()
             m_popupWidget->addTile(*(new ListTileItem(m_popupWidget, *(new UrlItem(QUrl(), "no match", 0)))));
     } else {
         for (int i = 0; i < matchedItems.size(); ++i) {
-            ListTileItem* newTileItem = new ListTileItem(m_popupWidget, *matchedItems.at(i));
+            ListTileItem* newTileItem = new ListTileItem(m_popupWidget, matchedItems.at(i));
             m_popupWidget->addTile(*newTileItem);
             connectItem(*newTileItem);
         }

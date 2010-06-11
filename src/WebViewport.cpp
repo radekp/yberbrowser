@@ -1,24 +1,43 @@
+/*
+ * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public License
+ * along with this program; see the file COPYING.LIB.  If not, write to
+ * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ *
+ */
+
 #include <QApplication>
-#include <QGraphicsScene>
+#include "EventHelpers.h"
+#include "LinkSelectionItem.h"
 #include "WebViewport.h"
 #include "WebViewportItem.h"
-#include "EventHelpers.h"
 #include "qwebframe.h"
 #include "qgraphicswebview.h"
 #include "qwebelement.h"
-#include "LinkSelectionItem.h"
+
+#include <QGraphicsScene>
+#include <QMetaMethod>
 
 //#define ENABLE_LINK_SELECTION_DEBUG
 
 namespace {
-const int s_zoomAnimDurationMS = 300;
-
 const float s_zoomScaleWheelStep = .2;
-const int s_doubleClickWaitTimeout = 100;
 const int s_edgeMarginForLinkSelectionRetry = 50;
 const int s_minSearchRectSize = 8;
 const int s_maxSearchRectSize = 25;
-const int backingStoreUpdateEnableDelay = 300;
+const int backingStoreUpdateEnableDelay = 700;
 }
 
 /*!
@@ -34,6 +53,7 @@ const int backingStoreUpdateEnableDelay = 300;
 */
 WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
     : PannableViewport(parent)
+    , m_viewportWidget(viewportWidget)
     , m_recognizer(this)
     , m_selfSentEvent(0)
     , m_linkSelectionItem(0)
@@ -45,7 +65,7 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
 {
     m_recognizer.reset();
 
-    setWidget(viewportWidget);
+    setPannedWidget(viewportWidget);
     connect(viewportWidget, SIGNAL(contentsSizeChangeCausedResize()), this, SLOT(contentsSizeChangeCausedResize()));
     m_backingStoreUpdateEnableTimer.setSingleShot(true);
     connect(&m_backingStoreUpdateEnableTimer, SIGNAL(timeout()), this, SLOT(enableBackingStoreUpdates()));
@@ -59,12 +79,6 @@ WebViewport::~WebViewport()
     delete m_searchRectItem;
     delete m_clickablePointItem;
 #endif
-}
-
-WebViewportItem* WebViewport::viewportWidget() const
-{
-    // fixme: dont use upcast
-    return qobject_cast<WebViewportItem*>(pannedWidget());
 }
 
 bool WebViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
@@ -104,7 +118,7 @@ bool WebViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneMouseRelease:
     case QEvent::GraphicsSceneMouseDoubleClick:
         // FIXME: detect interaction properly
-        viewportWidget()->setResizeMode(WebViewportItem::ResizeWidgetToContent);
+        m_viewportWidget->setResizeMode(WebViewportItem::ResizeWidgetToContent);
         m_recognizer.filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
         doFilter = true;
         break;
@@ -142,16 +156,14 @@ void WebViewport::cancelLeftMouseButtonPress(const QPoint &)
 void WebViewport::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
     QRectF target;
-    WebViewportItem* vi = viewportWidget();
-
     // viewport is center is the target hotspot
     QPointF viewTargetHotspot(size().width() / 2, size().height() / 2);
 
     if (isZoomedIn()) {
-        startZoomAnimToItemHotspot(QPointF(0, -vi->pos().y()), viewTargetHotspot, size().width() / vi->size().width());
+        startZoomAnimToItemHotspot(QPointF(0, -m_viewportWidget->pos().y()), viewTargetHotspot, size().width() / m_viewportWidget->size().width());
     } else {
-        QPointF p = vi->mapFromScene(event->scenePos());
-        target = vi->findZoomableRectForPoint(p);
+        QPointF p = m_viewportWidget->mapFromScene(event->scenePos());
+        target = m_viewportWidget->findZoomableRectForPoint(p);
         if (!target.isValid()) {
             // fixme
             return;
@@ -180,7 +192,7 @@ void WebViewport::mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * even
 void WebViewport::mousePressEventFromChild(QGraphicsSceneMouseEvent * event)
 {
     // FIXME: setpos for release event should be adjusted somewhere else
-    event->setPos(viewportWidget()->webView()->mapFromScene(event->scenePos()));
+    event->setPos(m_viewportWidget->webView()->mapFromScene(event->scenePos()));
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
     qDebug() << __FUNCTION__ << " mouse press pos:" << event->pos() << " scene pos: " << event->scenePos();
 #endif
@@ -204,38 +216,44 @@ QWebFrame* findFrame(const QPoint& pos, QWebFrame* frame)
     return 0;
 }
 
-#if defined(ENABLE_NEW_LINK_SELECTION) && ENABLE_NEW_LINK_SELECTION
 void WebViewport::adjustClickPosition(QPointF& pos)
 {
-    QPointF localPos = viewportWidget()->webView()->mapFromScene(pos);
+    QPointF localPos = m_viewportWidget->webView()->mapFromScene(pos);
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
     qDebug() << __FUNCTION__ << " click pos:" << localPos << " scene pos:" << pos;
 #endif
 	QPoint pp(localPos.x(), localPos.y());
-    QWebFrame* qframe = findFrame(pp, viewportWidget()->webView()->page()->mainFrame());
+    QWebFrame* qframe = findFrame(pp, m_viewportWidget->webView()->page()->mainFrame());
     if (!qframe)
         return;
 
+    static int methodOffset = qframe->metaObject()->indexOfMethod("findClickableNode(QRect,QPoint&)");
+    if (methodOffset < 0)
+        return;
+    static QMetaMethod findClickableNodeMethod = qframe->metaObject()->method(methodOffset);
+
     QPoint resultPoint;
     // zoom dependent search rect size
-    int searchDist = qMin(qMax(s_minSearchRectSize, (int)(10 / viewportWidget()->zoomScale())), s_maxSearchRectSize);
+    int searchDist = qMin(qMax(s_minSearchRectSize, (int)(10 / m_viewportWidget->zoomScale())), s_maxSearchRectSize);
     // non-square shape search rect
     QRect searchRect(pp.x() - searchDist, pp.y() - 2*searchDist, 2*searchDist, 4*searchDist);
 
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
-    qDebug() << "clicked frame found:"<< qframe << " zoomscale:" << viewportWidget()->zoomScale() << " search rect:" << searchRect;
+    qDebug() << "clicked frame found:"<< qframe << " zoomscale:" << m_viewportWidget->zoomScale() << " search rect:" << searchRect;
 #endif
 
 #if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
     delete m_searchRectItem;
-    m_searchRectItem = new QGraphicsRectItem(QRectF(viewportWidget()->webView()->mapToScene(searchRect).boundingRect()), this);
+    m_searchRectItem = new QGraphicsRectItem(QRectF(m_viewportWidget->webView()->mapToScene(searchRect).boundingRect()), this);
     delete m_clickablePointItem; m_clickablePointItem = 0;
 #endif
 
-    if (qframe->findClickableNode(searchRect, resultPoint)) {
-        pos = viewportWidget()->webView()->mapToScene(resultPoint);
+    bool found;
+    findClickableNodeMethod.invoke(qframe, Q_RETURN_ARG(bool, found), Q_ARG(QRect, searchRect), Q_RETURN_ARG(QPoint, resultPoint));
+    if (found) {
+        pos = m_viewportWidget->webView()->mapToScene(resultPoint);
 #if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
-        m_clickablePointItem = new QGraphicsEllipseItem(viewportWidget()->webView()->mapToScene(QRect(resultPoint.x() - 3, resultPoint.y() - 3, 6, 6)).boundingRect(), this);
+        m_clickablePointItem = new QGraphicsEllipseItem(m_viewportWidget->webView()->mapToScene(QRect(resultPoint.x() - 3, resultPoint.y() - 3, 6, 6)).boundingRect(), this);
 #endif
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
         qDebug() << "clickable node found at:" << resultPoint;
@@ -255,11 +273,14 @@ void WebViewport::adjustClickPosition(QPointF& pos)
         qDebug() << "search again:" << searchRect;
 #endif
         // search again
-        qframe = findFrame(searchRect.center(), viewportWidget()->webView()->page()->mainFrame());
-        if (qframe && qframe->findClickableNode(searchRect, resultPoint)) {
-            pos = viewportWidget()->webView()->mapToScene(resultPoint);
+        qframe = findFrame(searchRect.center(), m_viewportWidget->webView()->page()->mainFrame());
+        if (!qframe)
+            return;
+        findClickableNodeMethod.invoke(qframe, Q_RETURN_ARG(bool, found), Q_ARG(QRect, searchRect), Q_RETURN_ARG(QPoint, resultPoint));
+        if (found) {
+            pos = m_viewportWidget->webView()->mapToScene(resultPoint);
 #if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
-        m_clickablePointItem = new QGraphicsEllipseItem(viewportWidget()->webView()->mapToScene(QRect(resultPoint.x() - 3, resultPoint.y() - 3, 6, 6)).boundingRect(), this);
+        m_clickablePointItem = new QGraphicsEllipseItem(m_viewportWidget->webView()->mapToScene(QRect(resultPoint.x() - 3, resultPoint.y() - 3, 6, 6)).boundingRect(), this);
 #endif
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
             qDebug() << "clickable node found at :" << resultPoint;
@@ -267,11 +288,6 @@ void WebViewport::adjustClickPosition(QPointF& pos)
         }
     }
 }
-#else // ENABLE_NEW_LINK_SELECTION
-void WebViewport::adjustClickPosition(QPointF&)
-{
-}
-#endif // ENABLE_NEW_LINK_SELECTION
 
 void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
 {
@@ -281,10 +297,10 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
     m_delayedMouseReleaseEvent = 0;
 
     // FIXME: setpos for release event should be adjusted somewhere else
-    event->setPos(viewportWidget()->webView()->mapFromScene(event->scenePos()));
+    event->setPos(m_viewportWidget->webView()->mapFromScene(event->scenePos()));
     QPointF p = event->pos();
 
-    QWebHitTestResult result = viewportWidget()->webView()->page()->mainFrame()->hitTestContent(QPoint(p.x(), p.y()));
+    QWebHitTestResult result = m_viewportWidget->webView()->page()->mainFrame()->hitTestContent(QPoint(p.x(), p.y()));
     if (!result.linkElement().isNull()) {
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
         qDebug() << "hittest found" << p;
@@ -296,7 +312,7 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
             frame = frame->parentFrame();
         }
         m_linkSelectionItem = new LinkSelectionItem(this);
-        m_linkSelectionItem->appear(viewportWidget()->webView()->mapToScene(p), viewportWidget()->webView()->mapToScene(QRect(linkPoint, result.boundingRect().size())).boundingRect());   
+        m_linkSelectionItem->appear(m_viewportWidget->webView()->mapToScene(p), m_viewportWidget->webView()->mapToScene(QRect(linkPoint, result.boundingRect().size())).boundingRect());   
         // delayed click
         m_delayedMouseReleaseEvent = new QGraphicsSceneMouseEvent(event->type());
         copyMouseEvent(event, m_delayedMouseReleaseEvent);
@@ -336,10 +352,10 @@ void WebViewport::wheelEvent(QGraphicsSceneWheelEvent *event)
     }
 
     // zoom hotspot is the point where user had the mouse
-    QPointF hotspot(viewportWidget()->mapFromScene(event->scenePos()));
+    QPointF hotspot(m_viewportWidget->mapFromScene(event->scenePos()));
 
     // maintain that spot in the same point on the viewport
-    QPointF viewTargetHotspot(viewportWidget()->mapToParent(hotspot));
+    QPointF viewTargetHotspot(m_viewportWidget->mapToParent(hotspot));
 
     startZoomAnimToItemHotspot(hotspot, viewTargetHotspot, scale);
     event->accept();
@@ -365,12 +381,12 @@ bool WebViewport::mouseEventFromChild(QGraphicsSceneMouseEvent *event)
 
 void WebViewport::setPannedWidgetGeometry(const QRectF& r)
 {
-    QRectF current = viewportWidget()->geometry();
     PannableViewport::setPannedWidgetGeometry(r);
-    if (!m_linkSelectionItem)
-        return;
-    QPointF delta = viewportWidget()->geometry().topLeft() - current.topLeft();
-    m_linkSelectionItem->moveBy(delta.x(), delta.y());
+    if (m_linkSelectionItem) {
+        QRectF current = m_viewportWidget->geometry();
+        QPointF delta = m_viewportWidget->geometry().topLeft() - current.topLeft();
+        m_linkSelectionItem->moveBy(delta.x(), delta.y());
+    }
 }
 
 bool WebViewport::processMaemo5ZoomKeys(QKeyEvent* event)
@@ -391,7 +407,7 @@ bool WebViewport::processMaemo5ZoomKeys(QKeyEvent* event)
 
     // zoom to the center
     QPointF center = sceneBoundingRect().center();
-    QPointF viewTargetCenter(viewportWidget()->mapToParent(center));
+    QPointF viewTargetCenter(m_viewportWidget->mapToParent(center));
 
     startZoomAnimToItemHotspot(center, viewTargetCenter, scale);
     event->accept();
@@ -404,33 +420,28 @@ bool WebViewport::processMaemo5ZoomKeys(QKeyEvent* event)
 */
 void WebViewport::startZoomAnimToItemHotspot(const QPointF& hotspot, const QPointF& viewTargetHotspot, qreal scale)
 {
-    WebViewportItem* vi = viewportWidget();
-
     QPointF newHotspot = (hotspot * scale);
-
     QPointF newViewportOrigo = newHotspot - viewTargetHotspot;
-
-    QRectF r(- newViewportOrigo, vi->size() * scale);
+    QRectF r(- newViewportOrigo, m_viewportWidget->size() * scale);
 
     // mark that interaction has happened
-    viewportWidget()->setResizeMode(WebViewportItem::ResizeWidgetToContent);
+    m_viewportWidget->setResizeMode(WebViewportItem::ResizeWidgetToContent);
 
     startPannedWidgetGeomAnim(r);
-
 }
 
 bool WebViewport::isZoomedIn() const
 {
-    return size().width() < viewportWidget()->size().width();
+    return size().width() < m_viewportWidget->size().width();
 }
 
 void WebViewport::reset()
 {
     stopPannedWidgetGeomAnim();
     // mark that interaction has not happened
-    viewportWidget()->setResizeMode(WebViewportItem::ResizeWidgetHeightToContent);
-    setPannedWidgetGeometry(QRectF(QPointF(), viewportWidget()->contentsSize() * (size().width() / viewportWidget()->contentsSize().width())));
-    viewportWidget()->commitZoom();
+    m_viewportWidget->setResizeMode(WebViewportItem::ResizeWidgetHeightToContent);
+    setPannedWidgetGeometry(QRectF(QPointF(), m_viewportWidget->contentsSize() * (size().width() / m_viewportWidget->contentsSize().width())));
+    m_viewportWidget->commitZoom();
 }
 
 void WebViewport::contentsSizeChangeCausedResize()
@@ -444,13 +455,14 @@ void WebViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldS
     // turn on and off tile creating while autoscrolling
     if (newState == YberHack_Qt::QAbstractKineticScroller::Pushing) {
         m_backingStoreUpdateEnableTimer.stop();
-        viewportWidget()->disableContentUpdates();
+        m_viewportWidget->disableContentUpdates();
     } else if (newState == YberHack_Qt::QAbstractKineticScroller::Inactive)
+//        m_viewportWidget->enableContentUpdates();
         m_backingStoreUpdateEnableTimer.start(backingStoreUpdateEnableDelay);
 }
 
 void WebViewport::enableBackingStoreUpdates()
 {
-    viewportWidget()->enableContentUpdates();
+    m_viewportWidget->enableContentUpdates();
 }
 
