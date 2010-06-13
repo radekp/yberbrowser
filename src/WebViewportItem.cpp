@@ -139,7 +139,9 @@ void WebViewportItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* o
 
 QSize WebViewportItem::contentsSize() const
 {
-    return m_webView->page()->mainFrame()->contentsSize();
+    if (!m_webView->url().isEmpty())
+        return m_webView->page()->mainFrame()->contentsSize();
+    return parentWidget()->size().toSize();
 }
 
 void WebViewportItem::resizeEvent(QGraphicsSceneResizeEvent* event)
@@ -224,11 +226,6 @@ void WebViewportItem::setZoomScale(qreal value, bool commitInstantly)
         commitZoom();
     else
         m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
-}
-
-void WebViewportItem::setGeometry(const QRectF&r)
-{
-    QGraphicsWidget::setGeometry(r);
 }
 
 void WebViewportItem::setResizeMode(WebViewportItem::ResizeMode mode)

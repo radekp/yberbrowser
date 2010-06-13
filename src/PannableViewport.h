@@ -93,6 +93,7 @@ protected:
 private:
     void updateScrollbars();
     int scrolloffsetY() const;
+    void extendUpdate(const QRectF& updateRect);
 
 private:
     void transferAnimStateToView();

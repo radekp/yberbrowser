@@ -56,7 +56,6 @@ public:
 
     void setZoomScale(qreal, bool=false);
     qreal zoomScale() const;
-    void setGeometry(const QRectF&r);
 
     enum ResizeMode {
         ResizeWidgetToContent,

@@ -75,6 +75,7 @@ public Q_SLOTS:
 
 protected:
     void resizeEvent(QGraphicsSceneResizeEvent* event);
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*);
 
 protected Q_SLOTS:
     void addBookmark();

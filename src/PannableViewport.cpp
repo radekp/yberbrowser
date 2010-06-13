@@ -99,7 +99,6 @@ void PannableViewport::setPannedWidget(QGraphicsWidget* view)
     m_geomAnim.setDuration(s_geomAnimDuration);
     m_geomAnim.setPropertyName("geometry");
     connect(&m_geomAnim, SIGNAL(stateChanged(QAbstractAnimation::State,QAbstractAnimation::State)), this, SLOT(geomAnimStateChanged(QAbstractAnimation::State,QAbstractAnimation::State)));
-
 }
 
 void PannableViewport::setAttachedWidget(QGraphicsItem* item)
@@ -245,7 +244,10 @@ QRectF PannableViewport::adjustRectForPannedWidgetGeometry(const QRectF& g)
     }
 
     if ( h > 0 ) {
+// why are we moving webcontent to the middle?
+#if 0
         m_extraPos.setY(h/2);
+#endif
         gg.moveTop(0);
     } else {
         m_extraPos.setY(0);
@@ -267,6 +269,7 @@ void PannableViewport::setPannedWidgetGeometry(const QRectF& g)
     r.setTop(r.top() + scrolloffsetY());
     m_pannedWidget->setGeometry(r);
     updateScrollbars();
+    extendUpdate(r);
 }
 
 void PannableViewport::startPannedWidgetGeomAnim(const QRectF& geom)
@@ -316,5 +319,22 @@ int PannableViewport::scrolloffsetY() const
     if (m_attachedItem)
         offset+=m_attachedItem->boundingRect().height();
     return offset;
+}
+
+void PannableViewport::extendUpdate(const QRectF& updateRect)
+{
+    QRectF r(updateRect);
+    // extend update area when overshoting to avoid garbage (leftover) at
+    // the overshoot area
+    if (m_overShootDelta.x() > 0)
+        r.setLeft(r.left() - m_overShootDelta.x());
+    else
+        r.setRight(r.right() - m_overShootDelta.x());
+
+    if (m_overShootDelta.y() > 0)
+        r.setTop(r.top() - m_overShootDelta.y());
+    else
+        r.setBottom(r.bottom() - m_overShootDelta.y());
+    update(r);
 }
 

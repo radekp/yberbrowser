@@ -67,7 +67,7 @@ protected:
     void paintExtra(QPainter* painter);
     void addDropShadow(QPainter& painter, const QRectF rect);
     void layoutTile();
-    QRectF boundingRect () const;
+    QRectF boundingRect() const;
 
     virtual void doLayoutTile() = 0;
     void setTileType(TileType t) { m_type = t; }
