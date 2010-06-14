@@ -435,7 +435,7 @@ void BrowsingView::finishedAutoScrollTest()
     m_autoScrollTest = 0;
 }
 
-QPixmap* BrowsingView::webviewSnapshot()
+QGraphicsPixmapItem* BrowsingView::webviewSnapshot()
 {
     QSizeF thumbnailSize(size());
     QImage thumbnail(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
@@ -454,7 +454,7 @@ QPixmap* BrowsingView::webviewSnapshot()
     } else {
         p.fillRect(thumbnail.rect(), QColor(30, 30, 30));
     }
-    return new QPixmap(QPixmap::fromImage(thumbnail));
+    return new QGraphicsPixmapItem(QPixmap::fromImage(thumbnail));
 }
 
 

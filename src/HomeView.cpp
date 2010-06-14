@@ -46,7 +46,7 @@ const int s_containerXMargin = 30;
 const int s_containerXMargin = 40;
 #endif
 
-HomeView::HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsPixmapItem* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(TileSelectionViewBase::Home, bckg, parent, wFlags)
     , m_activeWidget(initialWidget)
     , m_bookmarkWidget(new BookmarkWidget(this, wFlags))

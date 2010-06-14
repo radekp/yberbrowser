@@ -48,7 +48,7 @@ class PannableViewport;
 class ApplicationWindow;
 class AutoScrollTest;
 class PopupView;
-class QPixmap;
+class QGraphicsPixmapItem;
 class ToolbarWidget;
 class QGraphicsProxyWidget;
 
@@ -106,7 +106,7 @@ private:
     
     void connectWebViewSignals(WebView* currentView, WebView* oldView);
     void updateHistoryStore(bool successLoad);
-    QPixmap* webviewSnapshot();
+    QGraphicsPixmapItem* webviewSnapshot();
 
 #if !USE_DUI
     QMenuBar* createMenu(QWidget* parent);
