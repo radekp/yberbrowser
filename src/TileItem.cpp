@@ -110,7 +110,12 @@ void TileItem::addDropShadow(QPainter& painter, const QRectF rect)
 QRectF TileItem::boundingRect() const
 {
     QRectF r(rect());
-    r.adjust(0, -s_closeIconSize, s_closeIconSize, 0);
+    // change bounding rect based on whether the close icon is on
+    if (!m_closeIcon)
+        return r;
+    // closeicon rect's top is minus as it is out of the rect()
+    r.setTop(r.top() + m_closeIconRect.top());
+    r.setRight(r.right() + (m_closeIconRect.left() - r.width() + m_closeIconRect.width()));
     return r;
 }
 
@@ -125,6 +130,8 @@ void TileItem::layoutTile()
 
 void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
+    if (!boundingRect().contains(event->pos()))
+        return;
     // expand it to fit thumbs
     QRectF r(m_closeIconRect);
     r.moveTopLeft(r.topLeft() + rect().topLeft());
@@ -142,8 +149,10 @@ void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     }
 }
 
-void TileItem::mousePressEvent(QGraphicsSceneMouseEvent*)
+void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
+    if (!boundingRect().contains(event->pos()))
+        return;
     m_longpressTime.start();        
 }
 
