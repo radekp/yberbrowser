@@ -60,8 +60,12 @@ void TileSelectionViewBase::updateBackground(QGraphicsPixmapItem* bckg)
 {
     delete m_bckg;
     m_bckg = bckg;
-    if (m_bckg)
+    if (m_bckg) {
         m_bckg->setParentItem(this);
+        // FIXME try to find a better way to make sure
+        // that bckg goes behind the tiles. stackbefore() somehow
+        m_bckg->setZValue(-1); 
+    }
     update();
 }
 

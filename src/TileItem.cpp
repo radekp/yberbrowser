@@ -228,7 +228,7 @@ NewWindowTileItem::NewWindowTileItem(QGraphicsWidget* parent, const UrlItem& ite
 void NewWindowTileItem::activateItem()
 {
     // start growing anim
-    setZValue(100);
+    setZValue(1);
     QPropertyAnimation* moveAnim = new QPropertyAnimation(this, "rect");
     moveAnim->setDuration(500);
     moveAnim->setStartValue(rect());
