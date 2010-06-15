@@ -20,6 +20,7 @@
 
 #include "TileItem.h"
 #include "FontFactory.h"
+#include "TileContainerWidget.h"
 
 #include <QGraphicsWidget>
 #include <QPainter>
@@ -31,10 +32,11 @@
 #include <QDebug>
 
 const int s_hTextMargin = 10;
-const int s_longpressTimeoutThreshold = 400;
+const int s_longpressTimeoutThreshold = 500;
 const int s_closeIconSize = 48;
 const int s_closeIconClickAreaMargin = 24;
 const int s_tilesRound = 10;
+const int s_longkeypressMoveThreshold = 10;
 
 TileItem::TileItem(QGraphicsWidget* parent, TileType type, const UrlItem& urlItem, bool editable)
     : QGraphicsRectItem(parent)
@@ -50,6 +52,8 @@ TileItem::TileItem(QGraphicsWidget* parent, TileType type, const UrlItem& urlIte
 #ifndef Q_OS_SYMBIAN
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
 #endif    
+    connect(&m_longpressTimer, SIGNAL(timeout()), this, SLOT(longpressTimeout()));
+    m_longpressTimer.setSingleShot(true);
 }
 
 TileItem::~TileItem()
@@ -128,18 +132,26 @@ void TileItem::layoutTile()
     setEditIconRect();
 }
 
+void TileItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
+{
+    // stop longkeypress timer only if the tiles actually got moved
+    QPointF delta = m_mousePressPos - event->pos();
+    if (((TileBaseWidget*)parentWidget())->moved() ||  abs(delta.x()) > s_longkeypressMoveThreshold || abs(delta.y()) > s_longkeypressMoveThreshold)
+        m_longpressTimer.stop();
+}
+
 void TileItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
     if (!boundingRect().contains(event->pos()))
+        return;
+    if (!m_longpressTimer.isActive())
         return;
     // expand it to fit thumbs
     QRectF r(m_closeIconRect);
     r.moveTopLeft(r.topLeft() + rect().topLeft());
     r.adjust(-s_closeIconClickAreaMargin, -s_closeIconClickAreaMargin, s_closeIconClickAreaMargin, s_closeIconClickAreaMargin);
 
-    if (m_longpressTime.elapsed() > s_longpressTimeoutThreshold) {
-        emit itemEditingMode(this);
-    } else if (m_closeIcon && r.contains(event->pos())) {
+    if (m_closeIcon && r.contains(event->pos())) {
         // async item selection, give chance to render the item selected/closed.
         QTimer::singleShot(200, this, SLOT(closeItem()));
     } else {    
@@ -153,7 +165,20 @@ void TileItem::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
     if (!boundingRect().contains(event->pos()))
         return;
-    m_longpressTime.start();        
+    // FIXME this is a hack to be able to check whether the content got moved and
+    // differentiate long keypress from move (mouseMoveEvent is not realible at all)
+    ((TileBaseWidget*)parentWidget())->checkMovedStart();
+    m_mousePressPos = event->pos();
+    m_longpressTimer.start(s_longpressTimeoutThreshold);
+}
+
+void TileItem::longpressTimeout()
+{
+    // FIXME mouseMoveEvent is not realible. need to do extra check
+    // whether this is a valid longpress
+    if (((TileBaseWidget*)parentWidget())->moved())
+        return;
+    emit itemLongPress(this);
 }
 
 void TileItem::activateItem()
@@ -344,5 +369,4 @@ void ListTileItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*op
 
     paintExtra(painter);
 }
-
 

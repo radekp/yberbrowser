@@ -279,6 +279,7 @@ WebView* BrowsingView::newWindow()
     WebView* webView = new WebView();
     m_windowList.append(webView);
     webView->setPage(new WebPage(webView, this));
+    applyPageSettings(webView->page());
     setActiveWindow(webView);
     return webView;
 }
@@ -456,5 +457,14 @@ QGraphicsPixmapItem* BrowsingView::webviewSnapshot()
     }
     return new QGraphicsPixmapItem(QPixmap::fromImage(thumbnail));
 }
+
+void BrowsingView::applyPageSettings(QWebPage* page)
+{
+    page->setProperty("_q_TiledBackingStoreTileSize", QSize(256, 256));
+    page->setProperty("_q_TiledBackingStoreTileCreationDelay", 25);
+    page->setProperty("_q_TiledBackingStoreCoverAreaMultiplier", QSizeF(1.5, 1.5));
+    page->setProperty("_q_TiledBackingStoreKeepAreaMultiplier", QSizeF(2., 2.5));
+}
+
 
 

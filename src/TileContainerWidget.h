@@ -41,6 +41,13 @@ public:
     void setEditMode(bool on);
     bool editMode() const { return m_editMode; }
 
+    // FIXME really really ugly way of checking whether 
+    // tiles got moved. can't trust mouse events on symbian
+    // hopefully, a better solution comes along soon
+    void setGeometry(const QRectF& rect) { QGraphicsWidget::setGeometry(rect); m_moved = true; }
+    void checkMovedStart() { m_moved = false; }
+    bool moved() { return m_moved; }
+    //
 Q_SIGNALS:
     void closeWidget();
 
@@ -68,6 +75,7 @@ protected:
 private:
     QParallelAnimationGroup* m_slideAnimationGroup;
     bool m_editMode;
+    bool m_moved;
 };
 
 // subclasses

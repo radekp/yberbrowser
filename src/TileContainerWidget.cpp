@@ -54,6 +54,7 @@ TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::
     , m_title(title)
     , m_slideAnimationGroup(0)
     , m_editMode(false)
+    , m_moved(false)
 {
 }
 
@@ -250,9 +251,12 @@ void HistoryWidget::layoutTiles()
     r.setTop(r.top() + tileTopVMargin() - s_tileMargin);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
     int hTileNum = landscape ? 3 : 1;
-    int vTileNum = landscape ? 2 : 3;
+    int vTileNum = landscape ? 2 : 4;
+    // show some overlapping content
+    if (!landscape)
+        r.setHeight(r.height() + 30);
     // add toolbarheight to make sure tiles are always visible
-    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin).height() + s_containerYBottomMargin); 
+    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, landscape ? s_tileMargin : 2*s_tileMargin, s_tileMargin).height() + s_containerYBottomMargin); 
 }
 
 // bookmarks

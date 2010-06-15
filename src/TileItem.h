@@ -23,7 +23,7 @@
 
 #include <QObject>
 #include <QRectF>
-#include <QTime>
+#include <QTimer>
 #include <QGraphicsRectItem>
 #include "UrlItem.h"
 
@@ -60,7 +60,7 @@ public:
 Q_SIGNALS:
     void itemActivated(TileItem*);
     void itemClosed(TileItem*);
-    void itemEditingMode(TileItem*);
+    void itemLongPress(TileItem*);
 
 protected:
     TileItem(QGraphicsWidget* parent, TileType type, const UrlItem& urlItem, bool editable = true);
@@ -75,6 +75,7 @@ protected:
 protected Q_SLOTS:
     virtual void activateItem();
     virtual void closeItem();
+    void longpressTimeout();
 
 protected:
     UrlItem m_urlItem;
@@ -85,6 +86,7 @@ protected:
 private:
     void mousePressEvent(QGraphicsSceneMouseEvent* event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
+    void mouseMoveEvent(QGraphicsSceneMouseEvent* event);
     void setEditIconRect();
 
 private:
@@ -92,8 +94,9 @@ private:
     bool m_editable;
     void* m_context; 
     bool m_fixed;
-    QTime m_longpressTime;
     QRectF m_oldRect;
+    QTimer m_longpressTimer;
+    QPointF m_mousePressPos;
 };
 
 class ThumbnailTileItem : public TileItem {

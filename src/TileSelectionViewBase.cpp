@@ -65,6 +65,7 @@ void TileSelectionViewBase::updateBackground(QGraphicsPixmapItem* bckg)
         // FIXME try to find a better way to make sure
         // that bckg goes behind the tiles. stackbefore() somehow
         m_bckg->setZValue(-1); 
+        m_bckg->setPos(-pos());
     }
     update();
 }
@@ -103,6 +104,6 @@ void TileSelectionViewBase::connectItem(TileItem& item)
 {
     connect(&item, SIGNAL(itemActivated(TileItem*)), this, SLOT(tileItemActivated(TileItem*)));
     connect(&item, SIGNAL(itemClosed(TileItem*)), this, SLOT(tileItemClosed(TileItem*)));
-    connect(&item, SIGNAL(itemEditingMode(TileItem*)), this, SLOT(tileItemEditingMode(TileItem*)));
+    connect(&item, SIGNAL(itemLongPress(TileItem*)), this, SLOT(tileItemEditingMode(TileItem*)));
 }
 

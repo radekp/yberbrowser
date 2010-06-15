@@ -51,6 +51,7 @@ class PopupView;
 class QGraphicsPixmapItem;
 class ToolbarWidget;
 class QGraphicsProxyWidget;
+class QWebPage;
 
 class BrowsingView : public BrowsingViewBase
 {
@@ -107,6 +108,7 @@ private:
     void connectWebViewSignals(WebView* currentView, WebView* oldView);
     void updateHistoryStore(bool successLoad);
     QGraphicsPixmapItem* webviewSnapshot();
+    void applyPageSettings(QWebPage* page);
 
 #if !USE_DUI
     QMenuBar* createMenu(QWidget* parent);
