@@ -38,9 +38,10 @@ const int s_keypadYMargin = 5;
 const QSize s_keypadItemMaxSize = QSize(68, 51);
 const int s_keypadItemMargin = 1;
 // keys width/height proportion
-const qreal s_keySizePropotion = 0.75;
+const qreal s_keySizeProportionLandscape = 0.75;
+const qreal s_keySizeProportionPortrait = 1.75;
 // special keys are this much wider
-const qreal s_speclialKeySizePropotion = 1.12;
+const qreal s_speclialKeySizeProportion = 1.32;
 const int s_popupMargin = 4;
 const int s_keypadBottomMargin = 2;
 
@@ -247,6 +248,7 @@ KeypadWidget::KeypadWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 
 KeypadWidget::~KeypadWidget()
 {
+    deleteButtons();
 }
 
 void KeypadWidget::updatePopup(const QString& text)
@@ -257,6 +259,7 @@ void KeypadWidget::updatePopup(const QString& text)
 
 void KeypadWidget::resizeEvent(QGraphicsSceneResizeEvent*)
 {
+    deleteButtons();
 }
 
 void KeypadWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
@@ -292,7 +295,7 @@ void KeypadWidget::appear(int stickyY)
         keypadWidth = rect().width();
 
     m_keypadRect.setWidth(keypadWidth);
-    m_keypadRect.setHeight((m_keypadRect.width() / s_keypadCols) * s_keySizePropotion * (s_keypadRows + s_keypadSpecialRows) + 2*s_keypadYMargin);
+    m_keypadRect.setHeight((m_keypadRect.width() / s_keypadCols) * keyProportion() * (s_keypadRows + s_keypadSpecialRows) + 2*s_keypadYMargin);
     m_keypadRect.moveLeft(rect().left() + (rect().width()/2 - m_keypadRect.width()/2));
     m_keypadRect.moveBottom(stickyY - s_keypadBottomMargin);
     layoutKeypad();
@@ -358,7 +361,7 @@ void KeypadWidget::layoutKeypad()
     int y = m_keypadRect.top() + s_keypadYMargin;
     QSizeF keySize;
     keySize.setWidth((m_keypadRect.width() - 2 * s_keypadXMargin) / s_keypadCols);
-    keySize.setHeight(keySize.width() * s_keySizePropotion);
+    keySize.setHeight(keySize.width() * keyProportion());
     for (int i = 0; i < s_keypadRows; ++i) {
         for (int j = 0; j < s_keypadCols; ++j) {
             KeypadItem* item = new KeypadItem(j + s_keypadCols*i, QRectF(QPointF(x, y), keySize), this);
@@ -371,7 +374,7 @@ void KeypadWidget::layoutKeypad()
         y+= keySize.height();
     }
 
-    int specialKeyWidth = keySize.width() * s_speclialKeySizePropotion;
+    int specialKeyWidth = keySize.width() * s_speclialKeySizeProportion;
     for (int i = 0; i < s_keypadSpecialCols; ++i) {
         // special handling for space, it takes over the leftover place, in the middle
         QSizeF itemSize(specialKeyWidth, keySize.height());
@@ -387,4 +390,18 @@ void KeypadWidget::layoutKeypad()
     }
 }
 
+qreal KeypadWidget::keyProportion()
+{
+    bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
+    return landscape ? s_keySizeProportionLandscape : s_keySizeProportionPortrait;
+}
+
+void KeypadWidget::deleteButtons()
+{
+    for (int i = m_buttons.size() - 1; i >= 0; --i)
+        delete m_buttons.takeAt(i);
+    m_prevButton = 0;
+}
+
 #include "KeypadWidget.moc"
+

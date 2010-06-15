@@ -233,7 +233,10 @@ QRectF PannableViewport::adjustRectForPannedWidgetGeometry(const QRectF& g)
     qreal h = vsz.height() - sz.height();
 
     if ( w > 0 ) {
+// why are we moving webcontent to the middle?
+#if 0
         m_extraPos.setX(w/2);
+#endif
         gg.moveLeft(0);
     } else {
         m_extraPos.setX(0);

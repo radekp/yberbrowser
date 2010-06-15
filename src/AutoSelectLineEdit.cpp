@@ -73,6 +73,13 @@ void AutoSelectLineEdit::setGeometry(const QRectF& rect)
     QGraphicsWidget::setGeometry(rect);
     m_proxyWidget->resize(rect.size());
 
+    if (m_virtualKeypad) {
+        QRectF r(parentWidget()->rect());
+        m_virtualKeypad->setPos(r.topLeft());
+        m_virtualKeypad->resize(r.size());
+        m_virtualKeypad->appear(r.bottom());
+    }
+
 #ifdef Q_OS_SYMBIAN
     // FIXME why does the text color change on orientation
     QPalette palette = d->palette();

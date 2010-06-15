@@ -140,7 +140,6 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
     QGraphicsWidget::resizeEvent(event);
 
-    m_webInteractionProxy->resize(size());
     m_browsingViewport->resize(size());
 
     if (m_homeView) {

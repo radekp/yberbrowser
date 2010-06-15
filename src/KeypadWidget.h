@@ -65,6 +65,8 @@ protected Q_SLOTS:
 
 private:
     void layoutKeypad();
+    qreal keyProportion();
+    void deleteButtons();
 
 private:
     PopupView* m_urlfilterPopup;
