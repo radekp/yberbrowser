@@ -102,7 +102,9 @@ void WebViewportItem::setWebView(QGraphicsWebView* webView)
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
 
     connect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
+#if QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
     connect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportHints&)), this, SLOT(adjustViewport(const QWebPage::ViewportHints&)));
+#endif
 }
 
 void WebViewportItem::commitZoom()
@@ -167,6 +169,7 @@ void WebViewportItem::enableContentUpdates()
 //    m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
 }
 
+#if QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
 /*!
     This method is called before the first layout of the contents and might
     come with viewport data requested by the page via the viewport meta tag.
@@ -196,6 +199,7 @@ void WebViewportItem::adjustViewport(const QWebPage::ViewportHints& viewportInfo
         setZoomScale(1.0 * pixelScale, /* immediate */ true);
     }
 }
+#endif
 
 /*!  Returns a rectangle of a content element containing point \p in
   current item coordinates.
