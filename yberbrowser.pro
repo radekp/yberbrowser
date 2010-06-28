@@ -12,9 +12,9 @@ DATADIR = $$PREFIX/share
 BINDIR = $$PREFIX/bin
 
 !symbian {
-	MOC_DIR     = $$PWD/.moc
-	OBJECTS_DIR = $$PWD/.obj
-	RCC_DIR     = $$PWD/.rcc
+	MOC_DIR     = $$OUT_PWD/.moc
+	OBJECTS_DIR = $$OUT_PWD/.obj
+	RCC_DIR     = $$OUT_PWD/.rcc
 }
 
 meegotouch {
