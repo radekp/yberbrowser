@@ -54,6 +54,7 @@ TileBaseWidget::TileBaseWidget(const QString& title, QGraphicsItem* parent, Qt::
     , m_title(title)
     , m_slideAnimationGroup(0)
     , m_editMode(false)
+    , m_moved(false)
 {
 }
 
@@ -100,6 +101,11 @@ void TileBaseWidget::removeAll()
         delete m_tileList.takeAt(i);
 }
 
+bool TileBaseWidget::contains(TileItem& item)
+{
+    return m_tileList.contains(&item);
+}
+
 void TileBaseWidget::setEditMode(bool on) 
 { 
     m_editMode = on;
@@ -117,7 +123,7 @@ int TileBaseWidget::tileTopVMargin()
     return titleVMargin() + QFontMetrics(FontFactory::instance()->big()).height() + s_tileTopMargin;
 }
 
-QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed)
+QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTileNum, int marginX, int marginY, int fixedItemWidth, int fixedItemHeight)
 {
     if (!m_tileList.size())
         return QSize(0, 0) ;
@@ -130,12 +136,9 @@ QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTile
     int y = rect_.top() + marginY;
     int x = rect_.left() + marginX;
 
-    int width = rect_.width() - (hTileNum + 1)*marginX;
-    int height = rect_.height() - (vTileNum)*marginY;
-
-    int tileWidth = width / hTileNum;
-    int tileHeight = height / vTileNum; 
-    int tileCount = fixed ? qMin(hTileNum * vTileNum, m_tileList.size()) : m_tileList.size();
+    int tileWidth = fixedItemWidth == -1 ? (rect_.width() - (hTileNum + 1)*marginX) / hTileNum : fixedItemWidth;
+    int tileHeight = fixedItemHeight == -1 ?(rect_.height() - (vTileNum)*marginY) / vTileNum : fixedItemHeight;
+    int tileCount = m_tileList.size();
     int i = 0;
     for (; i < tileCount; ++i) {
         if (i >= hTileNum && i%hTileNum == 0) {
@@ -144,15 +147,6 @@ QSize TileBaseWidget::doLayoutTiles(const QRectF& rect_, int hTileNum, int vTile
         }
         m_tileList.at(i)->setRect(QRectF(x, y, tileWidth, tileHeight));
         x+=(tileWidth + marginX);
-    }
-
-    if (fixed) {
-        // leftovers are hidden, lined up after the last item
-        for (int j = i; j < m_tileList.size(); ++j) {
-            m_tileList.at(j)->setRect(QRectF(x, y, tileWidth, tileHeight));
-            x+=(tileWidth + marginX);
-            m_tileList.at(j)->hide();
-        }
     }
     return QSize(tileWidth * hTileNum, y + tileHeight);
 }
@@ -211,13 +205,15 @@ TabWidget::TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags)
 void TabWidget::layoutTiles()
 {
     // 6 tabs max atm
-    // FIXME: this is landscape oriented. check aspect ratio
-    QRectF r(rect());
-    r.setTop(r.top() + tileTopVMargin() - s_tileMargin);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
+    QRectF r(rect());
+    // FIXME work out some proportional thing here as this 2xmargin works 
+    // only on specific resolutions
+    int marginY = landscape ? s_tileMargin : 2*s_tileMargin;
+    r.setTop(r.top() + tileTopVMargin() - marginY);
     int hTileNum = landscape ? 3 : 2;
     int vTileNum = landscape ? 2 : 3;
-    doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin, true);
+    doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, marginY);
 }
 
 void TabWidget::removeTile(const TileItem& removed)
@@ -254,10 +250,13 @@ void HistoryWidget::layoutTiles()
     QRectF r(rect());
     r.setTop(r.top() + tileTopVMargin() - s_tileMargin);
     bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
-    int hTileNum = landscape ? 3 : 2;
-    int vTileNum = landscape ? 2 : 3;
+    int hTileNum = landscape ? 3 : 1;
+    int vTileNum = landscape ? 2 : 4;
+    // show some overlapping content
+    if (!landscape)
+        r.setHeight(r.height() + 30);
     // add toolbarheight to make sure tiles are always visible
-    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, s_tileMargin, s_tileMargin).height() + s_containerYBottomMargin); 
+    setMinimumHeight(doLayoutTiles(r, hTileNum, vTileNum, landscape ? s_tileMargin : 2*s_tileMargin, s_tileMargin).height() + s_containerYBottomMargin); 
 }
 
 // bookmarks
@@ -278,7 +277,7 @@ void BookmarkWidget::layoutTiles()
     QRectF r(rect());
     r.setTop(r.top() + tileTopVMargin());
     // add toolbarheight to make sure tiles are always visible
-    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_bookmarksTileHeight, s_tileMargin, -1).height() + s_containerYBottomMargin);
+    setMinimumHeight(doLayoutTiles(r, 1, -1, s_tileMargin, -1, -1, s_bookmarksTileHeight).height() + s_containerYBottomMargin);
 }
 
 // url filter popup
@@ -300,7 +299,7 @@ void PopupWidget::layoutTiles()
 {
     QRectF r(rect());
     r.setTop(r.top() + ToolbarWidget::height());
-    setMinimumHeight(doLayoutTiles(r, 1, r.height()/s_searchItemTileHeight, s_tileMargin, -1).height());
+    setMinimumHeight(doLayoutTiles(r, 1, -1, s_tileMargin, -1, -1, s_searchItemTileHeight).height());
 }
 
 

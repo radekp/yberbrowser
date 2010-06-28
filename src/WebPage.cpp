@@ -60,6 +60,7 @@ QString WebPage::userAgentForUrl(const QUrl&) const
         // created for the iPhone or Android. Yberbrowser is not
         // known enough for people serving us these pages.
         .replace("Linux", "Linux, like Android")
-        .replace("Macintosh", "iPhone");
+        .replace("Macintosh", "Android");
     return userAgent;
 }
+

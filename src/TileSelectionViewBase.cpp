@@ -25,13 +25,15 @@
 #include <QGraphicsPixmapItem>
 #include <QTimer>
 
-TileSelectionViewBase::TileSelectionViewBase(ViewType type, QPixmap* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
+TileSelectionViewBase::TileSelectionViewBase(ViewType type, QGraphicsPixmapItem* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : QGraphicsWidget(parent, wFlags)
-    , m_bckg(bckg ? new QGraphicsPixmapItem(*bckg, this) : 0)
+    , m_bckg(bckg)
     , m_type(type)
 {
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
+    if (m_bckg)
+        m_bckg->setParentItem(this);
 }
 
 TileSelectionViewBase::~TileSelectionViewBase()
@@ -54,15 +56,16 @@ void TileSelectionViewBase::resizeEvent(QGraphicsSceneResizeEvent* event)
     updateContent();
 }
 
-void TileSelectionViewBase::updateBackground(QPixmap* bckg)
+void TileSelectionViewBase::updateBackground(QGraphicsPixmapItem* bckg)
 {
-    if (bckg) {
-        if (!m_bckg)
-            m_bckg = new QGraphicsPixmapItem(this);
-        m_bckg->setPixmap(*bckg);
-    } else {
-        delete m_bckg;
-        m_bckg = 0;
+    delete m_bckg;
+    m_bckg = bckg;
+    if (m_bckg) {
+        m_bckg->setParentItem(this);
+        // FIXME try to find a better way to make sure
+        // that bckg goes behind the tiles. stackbefore() somehow
+        m_bckg->setZValue(-1); 
+        m_bckg->setPos(-pos());
     }
     update();
 }
@@ -101,6 +104,6 @@ void TileSelectionViewBase::connectItem(TileItem& item)
 {
     connect(&item, SIGNAL(itemActivated(TileItem*)), this, SLOT(tileItemActivated(TileItem*)));
     connect(&item, SIGNAL(itemClosed(TileItem*)), this, SLOT(tileItemClosed(TileItem*)));
-    connect(&item, SIGNAL(itemEditingMode(TileItem*)), this, SLOT(tileItemEditingMode(TileItem*)));
+    connect(&item, SIGNAL(itemLongPress(TileItem*)), this, SLOT(tileItemEditingMode(TileItem*)));
 }
 

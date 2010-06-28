@@ -39,6 +39,7 @@
 #include <QGraphicsLinearLayout>
 #include <QGraphicsProxyWidget>
 #include <QStyleOptionGraphicsItem>
+#include <QPainter>
 
 #if defined(Q_WS_MAEMO_5) && !defined(QT_NO_OPENGL)
 #include <QGLWidget>
@@ -74,7 +75,11 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     m_browsingViewport = new WebViewport(m_webInteractionProxy, this);
 
     m_browsingViewport->setAutoRange(false);
-    m_browsingViewport->attachWidget(m_toolbarWidget);
+#ifdef PERFECT_ATTACHED_TOOLBAR
+    m_browsingViewport->setAttachedWidget(m_toolbarWidget);
+#else
+    m_browsingViewport->setOffsetWidget(m_toolbarWidget);
+#endif
 
     connect(m_toolbarWidget, SIGNAL(bookmarkPressed()), SLOT(addBookmark()));
     connect(m_toolbarWidget, SIGNAL(backPressed()), SLOT(pageBack()));
@@ -118,23 +123,24 @@ void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
 void BrowsingView::addBookmark()
 {
     if (m_activeWebView->url().isEmpty()) {
-        notification("No page, no save.", m_browsingViewport);
+        notification("No page, no save.", this);
         return;
     }
     // webkit returns empty favicon
     BookmarkStore::instance()->add(m_activeWebView->url(), m_activeWebView->title());
-    notification("Bookmark saved.", m_browsingViewport);
+    notification("Bookmark saved.", this);
 }
 
 void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
     QGraphicsWidget::resizeEvent(event);
 
-    m_webInteractionProxy->resize(size());
     m_browsingViewport->resize(size());
 
-    if (m_homeView)
-        m_homeView->resize(QSize(3*m_browsingViewport->size().width(), m_browsingViewport->size().height()));
+    if (m_homeView) {
+        m_homeView->resize(QSize(3*size().width(), size().height()));
+        m_homeView->updateBackground(webviewSnapshot());
+    }
 
     QRectF r(rect());
     r.setHeight(ToolbarWidget::height());
@@ -147,6 +153,12 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
         m_appWin->setUpdatesEnabled(true);
     }
 #endif
+}
+
+void BrowsingView::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
+{
+    // default bckg
+    painter->fillRect(rect(), QBrush(Qt::black));
 }
 
 void BrowsingView::load(const QUrl& url)
@@ -260,6 +272,7 @@ WebView* BrowsingView::newWindow()
     WebView* webView = new WebView();
     m_windowList.append(webView);
     webView->setPage(new WebPage(webView, this));
+    applyPageSettings(webView->page());
     setActiveWindow(webView);
     return webView;
 }
@@ -280,7 +293,7 @@ void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
     connect(m_homeView, SIGNAL(windowClosed(WebView*)), this, SLOT(windowClosed(WebView*)));
     connect(m_homeView, SIGNAL(windowCreated()), this, SLOT(windowCreated()));
     connect(m_homeView, SIGNAL(viewDismissed()), this, SLOT(deleteHomeView()));
-    m_homeView->resize(QSize(3*m_browsingViewport->size().width(), m_browsingViewport->size().height()));
+    m_homeView->resize(QSize(3*size().width(), size().height()));
     m_homeView->appear();
     m_webInteractionProxy->hide();
 }
@@ -310,25 +323,29 @@ void BrowsingView::urlEditingFinished(const QString& url)
 
 void BrowsingView::urlEditfocusChanged(bool focused)
 {
-    if (focused)
+    if (focused) {
+        // bring keypad on when the homeview is already on and the user taps on the editor
+        if (m_homeView)
+            m_toolbarWidget->showKeypad();
         createHomeView(m_homeView ? m_homeView->activeWidget() : m_initialHomeWidget);
+    }
 }
 
 void BrowsingView::updateHistoryStore(bool successLoad)
 {
     // render thumbnail
     QImage* thumbnail = 0;
-    bool exist = HistoryStore::instance()->contains(m_activeWebView->page()->mainFrame()->url().toString());
+    bool exist = HistoryStore::instance()->contains(m_activeWebView->url().toString());
     // update thumbnail even if load failed (cancelled?) when this is the first access.
     bool update = successLoad || !exist;
 
     if (update) {
-        QSizeF thumbnailSize(m_browsingViewport->size());
+        QSizeF thumbnailSize(size());
         thumbnail = new QImage(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
         QPainter p(thumbnail);
         m_activeWebView->page()->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
     }
-    HistoryStore::instance()->accessed(m_activeWebView->url(), m_activeWebView->page()->mainFrame()->title(), thumbnail);
+    HistoryStore::instance()->accessed(m_activeWebView->url(), m_activeWebView->title(), thumbnail);
 }
 
 void BrowsingView::loadStarted()
@@ -412,10 +429,10 @@ void BrowsingView::finishedAutoScrollTest()
     m_autoScrollTest = 0;
 }
 
-QPixmap* BrowsingView::webviewSnapshot()
+QGraphicsPixmapItem* BrowsingView::webviewSnapshot()
 {
-    QSizeF thumbnailSize(m_browsingViewport->size());
-    QImage thumbnail(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);
+    QSizeF thumbnailSize(size());
+    QImage thumbnail(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
 
     QPainter p(&thumbnail);
 
@@ -431,6 +448,16 @@ QPixmap* BrowsingView::webviewSnapshot()
     } else {
         p.fillRect(thumbnail.rect(), QColor(30, 30, 30));
     }
-    return new QPixmap(QPixmap::fromImage(thumbnail));
+    return new QGraphicsPixmapItem(QPixmap::fromImage(thumbnail));
 }
+
+void BrowsingView::applyPageSettings(QWebPage* page)
+{
+    page->setProperty("_q_TiledBackingStoreTileSize", QSize(256, 256));
+    page->setProperty("_q_TiledBackingStoreTileCreationDelay", 25);
+    page->setProperty("_q_TiledBackingStoreCoverAreaMultiplier", QSizeF(1.5, 1.5));
+    page->setProperty("_q_TiledBackingStoreKeepAreaMultiplier", QSizeF(2., 2.5));
+}
+
+
 

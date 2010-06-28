@@ -42,7 +42,7 @@ public:
         Bookmarks
     };
    
-    HomeView(HomeWidgetType initialWidget, QPixmap* bckg, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    HomeView(HomeWidgetType initialWidget, QGraphicsPixmapItem* bckg, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~HomeView();
     
     void setWindowList(QList<WebView*>& windowList) { m_windowList = &windowList; }
@@ -74,6 +74,7 @@ private:
 
     TileBaseWidget* widgetByType(HomeWidgetType type);
     void resetContainerSize();
+    bool closeInstead(TileItem& item);
 
 private:
     HomeWidgetType m_activeWidget;

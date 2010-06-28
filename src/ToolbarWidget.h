@@ -38,19 +38,14 @@ public:
     ToolbarWidget(QGraphicsItem* parent);
     ~ToolbarWidget();
 
-    // FIXME: 
     static int height();
-
     void setToolbarHeight(int);
     int toolbarHeight();
-
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 
     void setTextIfUnfocused(const QString& text);
     void setProgress(uint progress);
 
-    void mousePressEvent(QGraphicsSceneMouseEvent* event);
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
+    void showKeypad();
 
 Q_SIGNALS:
     void bookmarkPressed();
@@ -67,6 +62,9 @@ protected Q_SLOTS:
     void keypadVisible(bool);
 
 private:
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
+    void mousePressEvent(QGraphicsSceneMouseEvent* event);
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event);
     void animateToolbarMove(bool);
 
 private:

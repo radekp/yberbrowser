@@ -22,6 +22,9 @@
 #include <QImage>
 #include <QPainter>
 #include <QDebug>
+#ifdef Q_OS_SYMBIAN
+#include <QApplication>
+#endif
 
 // timeout between clicking url bar and marking the url selected
 static const int s_editorMarginX = 5;
@@ -91,7 +94,7 @@ protected:
         QRectF r(rect());
         r.setLeft(r.right() - m_keyboardIconPlaceholderSize);
         if (r.contains(e->pos())) {
-            q->toggleKeypad();
+            q->setKeypadVisible(!q->isKeypadVisible());
             update();
             return;
         } else {
@@ -113,6 +116,10 @@ protected:
             QLineEdit::focusInEvent(e);
             adjustText();
             selectURLTimer.start();
+#ifdef Q_OS_SYMBIAN
+            // either this, or not sending mousereleaseevent to qlineedit at all
+            qApp->setAutoSipEnabled(false);
+#endif
         }
     }
 
@@ -126,6 +133,10 @@ protected:
             selectURLTimer.stop();
             emit q->focusChanged(false);
             deselect();
+#ifdef Q_OS_SYMBIAN
+            // either this, or not sending mousereleaseevent to qlineedit at all
+            qApp->setAutoSipEnabled(true);
+#endif
         }
     }
 
@@ -138,6 +149,7 @@ protected:
     bool m_focusedEditor;
     bool m_focusChanged;
 };
+
 
 
 

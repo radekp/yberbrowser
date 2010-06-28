@@ -45,7 +45,7 @@ public:
     void resizeEvent(QGraphicsSceneResizeEvent* event);
     ViewType viewtype() const { return m_type; }
 
-    void updateBackground(QPixmap* bckg);
+    void updateBackground(QGraphicsPixmapItem* bckg);
     void updateContent();
 
     // FIXME temp hack until event handling is fixed
@@ -60,7 +60,7 @@ public Q_SLOTS:
     virtual void tileItemEditingMode(TileItem*) {}
 
 protected:
-    TileSelectionViewBase(ViewType type, QPixmap* bckg, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    TileSelectionViewBase(ViewType type, QGraphicsPixmapItem* bckg, QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
 
     virtual void resetContainerSize() = 0;
     virtual void createViewItems() = 0;

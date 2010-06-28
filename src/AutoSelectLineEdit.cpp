@@ -72,6 +72,20 @@ void AutoSelectLineEdit::setGeometry(const QRectF& rect)
 {
     QGraphicsWidget::setGeometry(rect);
     m_proxyWidget->resize(rect.size());
+
+    if (m_virtualKeypad) {
+        QRectF r(parentWidget()->rect());
+        m_virtualKeypad->setPos(r.topLeft());
+        m_virtualKeypad->resize(r.size());
+        m_virtualKeypad->appear(r.bottom());
+    }
+
+#ifdef Q_OS_SYMBIAN
+    // FIXME why does the text color change on orientation
+    QPalette palette = d->palette();
+    palette.setColor(QPalette::Text, Qt::white);
+    d->setPalette(palette);
+#endif
 }
 
 QString AutoSelectLineEdit::text()
@@ -104,9 +118,12 @@ void AutoSelectLineEdit::setSelection(int start, int length)
     d->setSelection(start, length);
 }
 
-void AutoSelectLineEdit::toggleKeypad()
+void AutoSelectLineEdit::setKeypadVisible(bool on)
 {
-    if (!m_virtualKeypad) {
+    if ((on && m_virtualKeypad) || (!on && !m_virtualKeypad))
+        return;
+
+    if (on) {
         popupDismissed();
         createVirtualKeypad();
     } else {

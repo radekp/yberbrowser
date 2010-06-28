@@ -48,9 +48,10 @@ class PannableViewport;
 class ApplicationWindow;
 class AutoScrollTest;
 class PopupView;
-class QPixmap;
+class QGraphicsPixmapItem;
 class ToolbarWidget;
 class QGraphicsProxyWidget;
+class QWebPage;
 
 class BrowsingView : public BrowsingViewBase
 {
@@ -75,6 +76,7 @@ public Q_SLOTS:
 
 protected:
     void resizeEvent(QGraphicsSceneResizeEvent* event);
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*);
 
 protected Q_SLOTS:
     void addBookmark();
@@ -105,7 +107,8 @@ private:
     
     void connectWebViewSignals(WebView* currentView, WebView* oldView);
     void updateHistoryStore(bool successLoad);
-    QPixmap* webviewSnapshot();
+    QGraphicsPixmapItem* webviewSnapshot();
+    void applyPageSettings(QWebPage* page);
 
 #if !USE_MEEGOTOUCH
     QMenuBar* createMenu(QWidget* parent);

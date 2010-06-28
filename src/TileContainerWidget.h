@@ -35,11 +35,19 @@ public:
     virtual void addTile(TileItem& newItem);
     virtual void removeTile(const TileItem& removed);
     virtual void removeAll();
+    virtual bool contains(TileItem& item);
     virtual void layoutTiles() = 0;
 
     void setEditMode(bool on);
     bool editMode() const { return m_editMode; }
 
+    // FIXME really really ugly way of checking whether 
+    // tiles got moved. can't trust mouse events on symbian
+    // hopefully, a better solution comes along soon
+    void setGeometry(const QRectF& rect) { QGraphicsWidget::setGeometry(rect); m_moved = true; }
+    void checkMovedStart() { m_moved = false; }
+    bool moved() { return m_moved; }
+    //
 Q_SIGNALS:
     void closeWidget();
 
@@ -48,7 +56,7 @@ protected:
 
     int titleVMargin();
     int tileTopVMargin();
-    QSize doLayoutTiles(const QRectF& rect, int hTileNum, int vTileNum, int marginX, int marginY, bool fixed = false);
+    QSize doLayoutTiles(const QRectF& rect, int hTileNum, int vTileNum, int marginX, int marginY, int fixedItemWidth = -1, int fixedItemHeight = -1);
 
 private:
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
@@ -67,6 +75,7 @@ protected:
 private:
     QParallelAnimationGroup* m_slideAnimationGroup;
     bool m_editMode;
+    bool m_moved;
 };
 
 // subclasses

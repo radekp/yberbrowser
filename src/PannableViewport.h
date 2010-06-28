@@ -50,8 +50,8 @@ public:
     void setPannedWidget(QGraphicsWidget*);
     void removePannedWidget() { m_pannedWidget = 0; }
 
-    void attachWidget(QGraphicsItem*);
-    void detachWidget(QGraphicsItem*);
+    void setAttachedWidget(QGraphicsItem*);
+    void setOffsetWidget(QGraphicsItem*);
 
 protected:
     bool sceneEvent(QEvent* e);
@@ -79,9 +79,12 @@ protected:
     ScrollbarItem* m_vScrollbar;
     ScrollbarItem* m_hScrollbar;
     QGraphicsItem* m_attachedItem;
+    QGraphicsItem* m_offsetItem;
 
 private:
     void updateScrollbars();
+    int scrolloffsetY() const;
+    void extendUpdate(const QRectF& updateRect);
 
 private:
     void transferAnimStateToView();
