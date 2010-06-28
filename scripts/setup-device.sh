@@ -20,10 +20,8 @@ for h in hosts; do
     grep "Host $h" ~/.ssh/config >/dev/null  2>&1 || printf "\nHost $h\n   StrictHostKeyChecking no\n   UserKnownHostsFile /dev/null\n" >> ~/.ssh/config
 done
 
-extrasdev="deb http://repository.maemo.org/extras-devel/ fremantle free non-free"
 
 if [ -f $HOME/.ssh/id_rsa.pub ]; then
-echo "remember to have active internet connection in your device."
 
 	key=`cat $HOME/.ssh/id_rsa.pub`
 	ssh root@device <<EOF
@@ -45,9 +43,8 @@ fi
 passwd -d user
 passwd -d root
 
-grep '$extrasdev' /etc/apt/sources.list.d/hildon-application-manager.list >/dev/null 2>&1 || echo '$extrasdev' >>  /etc/apt/sources.list.d/hildon-application-manager.list
-dpkg-query -S rsync >/dev/null 2>&1 || (route delete default usb0 ; apt-get update && apt-get -y install rsync)
 EOF
+
 else
     echo "Not adding your public key to device. You don't have one. use ssh-keygen"
 fi
