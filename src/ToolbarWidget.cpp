@@ -44,7 +44,7 @@ ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     , m_bookmarksIcon(QImage(":/data/icon/48x48/bookmarks_48.png"))
     , m_backIcon(QImage(":/data/icon/48x48/back_48.png"))
     , m_cancelIcon(QImage(":/data/icon/48x48/stop_48.png"))
-    , m_progress(0)
+    , m_progress(100)
     , m_urlEdit(new AutoSelectLineEdit(this))
 {
 #ifndef Q_OS_SYMBIAN
@@ -162,7 +162,7 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     painter->drawRoundedRect(r, 5, 5);
 
     int editorX = r.left() + s_iconSize;
-    if (m_progress > 0) {
+    if (m_progress != 100) {
         QRectF pr(r);
         painter->setBrush(QColor(2, 2, 30, 120));
         int progressAreaWidth = r.width() - 2 * s_iconSize;
@@ -184,7 +184,7 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
         // stop/cancel icon and bckg
         r.moveLeft(rect().right() - s_iconSize);
         painter->drawRoundedRect(r, 3, 3);
-        painter->drawImage(r.topLeft(), m_progress > 0 ? m_cancelIcon : m_backIcon);
+        painter->drawImage(r.topLeft(), m_progress == 100 ? m_backIcon : m_cancelIcon);
     }
 }
 
@@ -205,7 +205,7 @@ void ToolbarWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     r.setRight(rect().right());
 
     if (r.contains(event->pos())) {
-        if (m_progress == 0)
+        if (m_progress == 100)
             emit backPressed();
         else
             emit cancelPressed();

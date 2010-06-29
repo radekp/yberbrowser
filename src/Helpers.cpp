@@ -32,7 +32,6 @@
 #include <QPainter>
 #include <QLinearGradient>
 #include <QNetworkRequest>
-#include <qgraphicswebview.h>
 #include <qwebpage.h>
 #include <qwebframe.h>
 #include <QDebug>

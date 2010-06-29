@@ -25,6 +25,12 @@
 #include "TileSelectionViewBase.h"
 #include "HomeView.h"
 
+#if USE_WEBKIT2
+#define PLATFORM(x) 0
+#include <stdint.h>
+#include "WebKit2/WKRetainPtr.h"
+#endif
+
 #if USE_MEEGOTOUCH
 #include <MApplicationPage>
 
@@ -86,7 +92,6 @@ protected Q_SLOTS:
     void urlEditingFinished(const QString& url);
     void urlChanged(const QUrl& url);
 
-    void loadStarted();
     void progressChanged(int);
     void loadFinished(bool success);
 
@@ -107,8 +112,7 @@ private:
     
     void connectWebViewSignals(WebView* currentView, WebView* oldView);
     void updateHistoryStore(bool successLoad);
-    QGraphicsPixmapItem* webviewSnapshot();
-    void applyPageSettings(QWebPage* page);
+    QGraphicsPixmapItem* webviewSnapshot(bool darken = true);
 
 #if !USE_MEEGOTOUCH
     QMenuBar* createMenu(QWidget* parent);
@@ -124,6 +128,9 @@ private:
     HomeView::HomeWidgetType m_initialHomeWidget;
     ToolbarWidget* m_toolbarWidget;
     ApplicationWindow* m_appWin;
+#if USE_WEBKIT2    
+    WKRetainPtr<WKContextRef> m_context;
+#endif
 };
 
 

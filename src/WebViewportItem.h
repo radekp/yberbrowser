@@ -32,10 +32,8 @@
 
 #include <QGraphicsWidget>
 #include <QTimer>
-#include <qwebpage.h>
-#include <qwebkitglobal.h>
 
-class QGraphicsWebView;
+class WebView;
 
 class WebViewportItem : public QGraphicsWidget
 {
@@ -46,15 +44,15 @@ public:
     WebViewportItem(QGraphicsWidget* parent = 0, Qt::WindowFlags wFlags = 0);
     ~WebViewportItem();
 
-    void setWebView(QGraphicsWebView* webView);
-    QGraphicsWebView* webView() const { return m_webView; }
+    void setWebView(WebView* webView);
+    WebView* webView() const { return m_webView; }
 
     QSize contentsSize() const;
 
     void disableContentUpdates();
     void enableContentUpdates();
 
-    QRectF findZoomableRectForPoint(const QPointF&);
+    void findZoomableRectForPoint(const QPointF&);
 
     void setZoomScale(qreal, bool=false);
     qreal zoomScale() const;
@@ -69,12 +67,13 @@ public:
 
 public Q_SLOTS:
     void commitZoom();
-#if QTWEBKIT_VERSION >= 0x020100
+#if QTWEBKIT_VERSION >= 0x020100 && !USE_WEBKIT2
     void adjustViewport(const QWebPage::ViewportHints& viewportInfo);
 #endif
 
 Q_SIGNALS:
     void contentsSizeChangeCausedResize();
+    void zoomRectForPointReceived(const QPointF&, const QRectF&);
 
 protected:
     void resizeEvent(QGraphicsSceneResizeEvent* event);
@@ -85,16 +84,19 @@ protected:
 
 protected Q_SLOTS:
     void webViewContentsSizeChanged(const QSize &size);
-
+    void zoomRectReceived(const QRect& zoomRect);
 
 private:
     Q_DISABLE_COPY(WebViewportItem)
+#if USE_WEBKIT2
     void updatePreferredSize();
+#endif
 
-    QGraphicsWebView* m_webView;
+    WebView* m_webView;
     QTimer m_zoomCommitTimer;
     ResizeMode m_resizeMode;
-
+    QPointF m_zoomPos;
+    QSize m_contentSize;
 };
 
 #endif

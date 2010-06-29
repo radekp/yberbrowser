@@ -27,6 +27,7 @@
 
 #include "WebViewportItem.h"
 #include "EventHelpers.h"
+#include "WebView.h"
 
 #include <QGraphicsScene>
 #include <QGraphicsView>
@@ -38,22 +39,23 @@
 #include <cstdio>
 #include <qwebelement.h>
 #include <qwebframe.h>
-#include <qgraphicswebview.h>
+#include <qwebpage.h>
 #include <qwebsettings.h>
 #include <qwebview.h>
 #include <QtGlobal>
 
-#include "WebViewportItem.h"
-#include "WebPage.h"
-#include "ProgressWidget.h"
-#include "EventHelpers.h"
+#ifndef QTWEBKIT_VERSION_CHECK
+#define QTWEBKIT_VERSION_CHECK(major, minor, patch) ((major<<16)|(minor<<8)|(patch))
+#endif
 
 namespace {
 const int s_defaultPreferredWidth = 800;
 const int s_defaultPreferredHeight = 480;
 const qreal s_minZoomScale = .01; // arbitrary
 const qreal s_maxZoomScale = 10.; // arbitrary
+#if !USE_WEBKIT2
 const int s_minDoubleClickZoomTargetWidth = 100; // in document coords, aka CSS pixels
+#endif
 const int s_zoomCommitTimerDurationMS = 100;
 const qreal s_zoomableContentMinWidth = 300.;
 const qreal s_zoomRectAdjustHeight = 5.;
@@ -76,6 +78,7 @@ WebViewportItem::WebViewportItem(QGraphicsWidget* parent, Qt::WindowFlags wFlags
     , m_webView(0)
     , m_zoomCommitTimer(this)
     , m_resizeMode(WebViewportItem::ResizeWidgetHeightToContent)
+    , m_zoomPos(0, 0)
 {
 #if !defined(ENABLE_PAINT_DEBUG)
     setFlag(QGraphicsItem::ItemHasNoContents, true);
@@ -92,16 +95,21 @@ WebViewportItem::~WebViewportItem()
 {
 }
 
-void WebViewportItem::setWebView(QGraphicsWebView* webView) 
+void WebViewportItem::setWebView(WebView* webView) 
 { 
     m_webView = webView; 
-
-    m_webView->setResizesToContents(true);
-
     m_webView->setParentItem(this);
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
 
+#if USE_WEBKIT2
+    updatePreferredSize();
+    connect(m_webView->page(), SIGNAL(zoomRectReceived(const QRect&)), this, SLOT(zoomRectReceived(const QRect&)));
+    connect(m_webView->page(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
+#else
     connect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
+    m_webView->setResizesToContents(true);
+#endif
+
 #if QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
     connect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportHints&)), this, SLOT(adjustViewport(const QWebPage::ViewportHints&)));
 #endif
@@ -109,7 +117,9 @@ void WebViewportItem::setWebView(QGraphicsWebView* webView)
 
 void WebViewportItem::commitZoom()
 {
+#if !USE_WEBKIT2
     m_webView->setTiledBackingStoreFrozen(false);
+#endif
     m_zoomCommitTimer.stop();
 }
 
@@ -119,7 +129,10 @@ This signal is emitted when contents size has changed and vieport item is resize
 */
 void WebViewportItem::webViewContentsSizeChanged(const QSize& sz)
 {
-    Q_UNUSED(sz);
+#if USE_WEBKIT2
+    m_webView->setGeometry(QRect(0, 0, sz.width(), sz.height()));
+#endif
+    m_contentSize = sz;
     qreal scale = zoomScale();
 
     if (m_resizeMode == WebViewportItem::ResizeWidgetHeightToContent
@@ -146,9 +159,13 @@ void WebViewportItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* o
 
 QSize WebViewportItem::contentsSize() const
 {
+#if USE_WEBKIT2
+    return m_contentSize;
+#else
     if (!m_webView->url().isEmpty())
         return m_webView->page()->mainFrame()->contentsSize();
     return parentWidget()->size().toSize();
+#endif
 }
 
 void WebViewportItem::resizeEvent(QGraphicsSceneResizeEvent* event)
@@ -159,17 +176,31 @@ void WebViewportItem::resizeEvent(QGraphicsSceneResizeEvent* event)
 
 void WebViewportItem::disableContentUpdates()
 {
+#if !USE_WEBKIT2    
     m_webView->setTiledBackingStoreFrozen(true);
+#endif
 }
 
 void WebViewportItem::enableContentUpdates()
 {
+#if !USE_WEBKIT2    
     m_webView->setTiledBackingStoreFrozen(false);
+#endif
     // FIXME what to do with this?
 //    m_zoomCommitTimer.start(s_zoomCommitTimerDurationMS);
 }
 
-#if QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
+#if USE_WEBKIT2
+void WebViewportItem::updatePreferredSize()
+{
+    // FIXME: we have bug in QtWebKit API when tileCacheEnabled is true.
+    // this causes viewport not to reset between the page loads.
+    // Thus, we need to update viewport manually until we have fix for this.
+
+//    m_webView->page()->setPreferredContentsSize(QSize(s_defaultPreferredWidth, s_defaultPreferredHeight));
+    resize(contentsSize());
+}
+#elif QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
 /*!
     This method is called before the first layout of the contents and might
     come with viewport data requested by the page via the viewport meta tag.
@@ -201,11 +232,32 @@ void WebViewportItem::adjustViewport(const QWebPage::ViewportHints& viewportInfo
 }
 #endif
 
+void WebViewportItem::zoomRectReceived(const QRect& zoomRect)
+{
+    QPointF webp = m_webView->mapFromParent(m_zoomPos);
+    QRectF er = zoomRect;
+    er.adjust(-s_zoomRectAdjustWidth, -s_zoomRectAdjustHeight, s_zoomRectAdjustWidth, s_zoomRectAdjustHeight);
+    qreal overMinWidth = er.width() - s_zoomableContentMinWidth;
+    if (overMinWidth < 0)
+        er.adjust(overMinWidth / 2, 0, -overMinWidth / 2, 0);
+    webp.setX(er.x());
+    QRectF res(webp, er.size());
+    QRectF finalRect(m_webView->mapToParent(res.topLeft()),m_webView->mapToParent(res.bottomRight()));
+    emit zoomRectForPointReceived(m_zoomPos, finalRect);
+    m_zoomPos = QPoint(0, 0);
+}
+
 /*!  Returns a rectangle of a content element containing point \p in
   current item coordinates.
 */
-QRectF WebViewportItem::findZoomableRectForPoint(const QPointF& p)
+void WebViewportItem::findZoomableRectForPoint(const QPointF& p)
 {
+    // FIXME check if m_zoomPos is not null -> pending zoom operation
+    //if (!m_zoomPos.isNull())
+    m_zoomPos = p.toPoint();
+#if USE_WEBKIT2
+    m_webView->page()->requestZoomRect(m_webView->mapFromParent(p).toPoint());
+#else
     QPointF webp = m_webView->mapFromParent(p);
 
     QWebHitTestResult r = m_webView->page()->mainFrame()->hitTestContent(webp.toPoint());
@@ -214,18 +266,9 @@ QRectF WebViewportItem::findZoomableRectForPoint(const QPointF& p)
     while (!e.isNull() && e.geometry().width() < s_minDoubleClickZoomTargetWidth) {
         e = e.parent();
     }
-    if (!e.isNull()) {
-        QRectF er = e.geometry();
-        er.adjust(-s_zoomRectAdjustWidth, -s_zoomRectAdjustHeight, s_zoomRectAdjustWidth, s_zoomRectAdjustHeight);
-        qreal overMinWidth = er.width() - s_zoomableContentMinWidth;
-        if (overMinWidth < 0)
-            er.adjust(overMinWidth / 2, 0, -overMinWidth / 2, 0);
-        webp.setX(er.x());
-        QRectF res(webp, er.size());
-        return QRectF(m_webView->mapToParent(res.topLeft()),
-                      m_webView->mapToParent(res.bottomRight()));
-    }
-    return QRectF();
+    if (!e.isNull())
+        zoomRectReceived(e.geometry());
+#endif
 }
 
 qreal WebViewportItem::zoomScale() const

@@ -19,9 +19,16 @@
  */
 
 #include "BrowsingView.h"
-#include "WebView.h"
+
+#if USE_WEBKIT2
+#include "WebKit2/WKContext.h"
+#include "WebKit2/WKPageNamespace.h"
+#else
 #include "WebPage.h"
+#endif
+
 #include "WebViewportItem.h"
+#include "WebView.h"
 #include "YberApplication.h"
 #include "ApplicationWindow.h"
 #include "Settings.h"
@@ -86,6 +93,9 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     connect(m_toolbarWidget, SIGNAL(cancelPressed()), SLOT(stopLoad()));
     connect(m_toolbarWidget, SIGNAL(urlEditingFinished(const QString&)), SLOT(urlEditingFinished(const QString&)));
     connect(m_toolbarWidget, SIGNAL(urlEditorFocusChanged(bool)), SLOT(urlEditfocusChanged(bool)));
+#if USE_WEBKIT2
+    m_context.adopt(WKContextCreateWithProcessModel(kWKProcessModelSecondaryProcess));
+#endif
     // create and activate new window
     newWindow();
 }
@@ -102,21 +112,27 @@ void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
     if (oldView) {
         disconnect(oldView, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
         disconnect(oldView, SIGNAL(loadProgress(int)), this, SLOT(progressChanged(int)));
-        disconnect(oldView, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
         disconnect(oldView, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
         disconnect(oldView, SIGNAL(titleChanged(const QString&)), this, SLOT(setTitle(const QString&)));
-    #if !USE_MEEGOTOUCH
+#if !USE_MEEGOTOUCH
+#if USE_WEBKIT2
+        disconnect(oldView->page(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
+#else
         disconnect(oldView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
-    #endif
+#endif
+#endif
     }
 
     connect(currentView, SIGNAL(loadFinished(bool)), SLOT(loadFinished(bool)));
     connect(currentView, SIGNAL(loadProgress(int)), SLOT(progressChanged(int)));
-    connect(currentView, SIGNAL(loadStarted()), SLOT(loadStarted()));
     connect(currentView, SIGNAL(urlChanged(const QUrl&)), SLOT(urlChanged(const QUrl&)));
     connect(currentView, SIGNAL(titleChanged(const QString&)), SLOT(setTitle(const QString&)));
 #if !USE_MEEGOTOUCH
-    connect(currentView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
+#if USE_WEBKIT2
+        connect(currentView->page(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
+#else
+        connect(currentView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
+#endif
 #endif
 }
 
@@ -136,7 +152,9 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     QGraphicsWidget::resizeEvent(event);
 
     m_browsingViewport->resize(size());
-
+#if USE_WEBKIT2
+    m_webInteractionProxy->setZoomScale(size().width() / m_webInteractionProxy->contentsSize().width());
+#endif
     if (m_homeView) {
         m_homeView->resize(QSize(3*size().width(), size().height()));
         m_homeView->updateBackground(webviewSnapshot());
@@ -171,12 +189,12 @@ void BrowsingView::load(const QUrl& url)
 
 void BrowsingView::stopLoad()
 {
-    m_activeWebView->triggerPageAction(QWebPage::Stop);
+    m_activeWebView->stop();
 }
 
 void BrowsingView::pageBack()
 {
-    m_activeWebView->triggerPageAction(QWebPage::Back);
+    m_activeWebView->back();
 }
 
 #if !USE_MEEGOTOUCH
@@ -269,10 +287,15 @@ WebView* BrowsingView::newWindow()
 {
     if (m_windowList.size() >= s_maxWindows)
         return 0;
+
+#if USE_WEBKIT2
+    WKRetainPtr<WKPageNamespaceRef> pageNamespace(AdoptWK, WKPageNamespaceCreate(m_context.get()));
+    WebView* webView = new WebView(pageNamespace.get());
+#else
     WebView* webView = new WebView();
-    m_windowList.append(webView);
     webView->setPage(new WebPage(webView, this));
-    applyPageSettings(webView->page());
+#endif
+    m_windowList.append(webView);
     setActiveWindow(webView);
     return webView;
 }
@@ -340,17 +363,12 @@ void BrowsingView::updateHistoryStore(bool successLoad)
     bool update = successLoad || !exist;
 
     if (update) {
-        QSizeF thumbnailSize(size());
-        thumbnail = new QImage(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
-        QPainter p(thumbnail);
-        m_activeWebView->page()->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width(), thumbnailSize.height()));
+        QGraphicsPixmapItem* pixmapItem = webviewSnapshot(false);
+        if (pixmapItem) 
+            thumbnail = new QImage(pixmapItem->pixmap().toImage());
+        delete pixmapItem;
     }
     HistoryStore::instance()->accessed(m_activeWebView->url(), m_activeWebView->title(), thumbnail);
-}
-
-void BrowsingView::loadStarted()
-{
-    m_toolbarWidget->setProgress(1);
 }
 
 void BrowsingView::progressChanged(int progress)
@@ -360,7 +378,6 @@ void BrowsingView::progressChanged(int progress)
 
 void BrowsingView::loadFinished(bool success)
 {
-    m_toolbarWidget->setProgress(0);
     if (success) {
         // I might be typing a new url while it is loading, when I press return I don't want the
         // address bar to changed the url to the one I was loading.
@@ -429,7 +446,7 @@ void BrowsingView::finishedAutoScrollTest()
     m_autoScrollTest = 0;
 }
 
-QGraphicsPixmapItem* BrowsingView::webviewSnapshot()
+QGraphicsPixmapItem* BrowsingView::webviewSnapshot(bool darken)
 {
     QSizeF thumbnailSize(size());
     QImage thumbnail(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
@@ -442,22 +459,13 @@ QGraphicsPixmapItem* BrowsingView::webviewSnapshot()
         sItem.exposedRect = QRectF(QPointF(0, 0), thumbnailSize/scale);
         p.scale(scale, scale);
         //FIXME until the right api is figured out
-//        m_activeWebView->paint(&p, &sItem);
-        m_activeWebView->page()->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width()/scale, thumbnailSize.height()/scale));
-        p.fillRect(sItem.exposedRect, QColor(0, 0, 0, 198));
+        m_activeWebView->paint(&p, &sItem);
+        //m_activeWebView->page()->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width()/scale, thumbnailSize.height()/scale));
+        if (darken)
+            p.fillRect(sItem.exposedRect, QColor(0, 0, 0, 198));
     } else {
         p.fillRect(thumbnail.rect(), QColor(30, 30, 30));
     }
     return new QGraphicsPixmapItem(QPixmap::fromImage(thumbnail));
 }
-
-void BrowsingView::applyPageSettings(QWebPage* page)
-{
-    page->setProperty("_q_TiledBackingStoreTileSize", QSize(256, 256));
-    page->setProperty("_q_TiledBackingStoreTileCreationDelay", 25);
-    page->setProperty("_q_TiledBackingStoreCoverAreaMultiplier", QSizeF(1.5, 1.5));
-    page->setProperty("_q_TiledBackingStoreKeepAreaMultiplier", QSizeF(2., 2.5));
-}
-
-
 

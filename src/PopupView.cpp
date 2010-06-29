@@ -23,12 +23,13 @@
 #include "HistoryStore.h"
 #include "TileContainerWidget.h"
 #include "PannableViewport.h"
+#include "WebView.h"
 
+#include <QPen>
 #include <QTimer>
-#include <qgraphicswebview.h>
 #include <qwebpage.h>
 #include <qwebframe.h>
-#ifndef Q_OS_SYMBIAN
+#if 0
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValueIterator>
 #endif
@@ -49,30 +50,40 @@ private Q_SLOTS:
     
 private:
     bool m_loading;
+#if !USE_WEBKIT2
     QGraphicsWebView m_view;
+#endif
     QList<QString> m_suggestions;
 };
 
 Suggest::Suggest()
     : m_loading(false)
 {
+#if !USE_WEBKIT2
     connect(&m_view, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));    
+#endif
 }
 
 void Suggest::start(const QString& text)
 {
+#if USE_WEBKIT2
+    Q_UNUSED(text)
+#else
     if (m_loading)
         m_view.triggerPageAction(QWebPage::Stop);
     m_loading = true;
     m_view.load(QUrl("http://suggestqueries.google.com/complete/search?qu=" + text));
+#endif
 }
 
 void Suggest::stop() 
 {
+#if !USE_WEBKIT2
     if (!m_loading)
         return;
 
     m_view.triggerPageAction(QWebPage::Stop);
+#endif
 }
 
 void Suggest::loadFinished(bool success)
@@ -82,7 +93,7 @@ void Suggest::loadFinished(bool success)
 
     if (!success)
         return;
-#ifndef Q_OS_SYMBIAN
+#if 0
     QString json = m_view.page()->mainFrame()->toPlainText();
     int start = json.indexOf("(");
     if (start != -1) {

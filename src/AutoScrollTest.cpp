@@ -29,6 +29,7 @@
 #include <QGraphicsWidget>
 #include <QGraphicsScene>
 #include <QPainterPath>
+#include <QFontMetrics>
 
 const int s_scrollPixels[] = {10, 20, 30, 40, 50, 10};
 const int s_scrollPixelsTimeot[] = {3000, 3000, 4000, 4000, 3000, 2000};

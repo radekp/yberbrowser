@@ -21,6 +21,7 @@
 #ifndef BackingStoreVisualizerWidget_h
 #define BackingStoreVisualizerWidget_h
 
+#if !USE_WEBKIT2
 #include <QGraphicsWidget>
 #include <QMap>
 #include "yberconfig.h"
@@ -53,5 +54,5 @@ private:
     QMap<int, BackingStoreTileItem*> m_tileMap;
 
 };
-
+#endif
 #endif

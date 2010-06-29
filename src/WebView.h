@@ -20,24 +20,40 @@
 
 #ifndef WebView_h
 #define WebView_h
+
+#if USE_WEBKIT2
+#define PLATFORM(x) 0
+#include <stdint.h>
+#include <WebKit2/qwkgraphicswidget.h>
+#else
 #include <qgraphicswebview.h>
-#include <QDebug>
+#endif
 #include "yberconfig.h"
 #include "PannableViewport.h"
 
-class WebView : public QGraphicsWebView {
-    Q_OBJECT
+class WebView : public
+#if USE_WEBKIT2
+    QWKGraphicsWidget
+#else
+    QGraphicsWebView 
+#endif
+   {
+   Q_OBJECT
 public:
+#if USE_WEBKIT2
+    WebView(WKPageNamespaceRef namespaceRef, QGraphicsItem* parent = 0);
+#else
     WebView(QGraphicsItem* parent = 0);
-
+#endif
     void paint(QPainter* p, const QStyleOptionGraphicsItem* i, QWidget* w= 0);
-
     unsigned int fpsTicks() const { return m_fpsTicks; }
-
 
 private:
     Q_DISABLE_COPY(WebView)
+    void applyPageSettings();
+    void setCookieJar();
 
+private:
     unsigned int m_fpsTicks;
 };
 

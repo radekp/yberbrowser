@@ -26,7 +26,6 @@
 
 class QString;
 class QGraphicsWidget;
-class QGraphicsWebView;
 
 void notification(const QString& text, QGraphicsWidget* parent);
 QUrl urlFromUserInput(const QString& string);

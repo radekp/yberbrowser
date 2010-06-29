@@ -46,6 +46,12 @@ enable_engine_thread {
     DEFINES+=ENABLE_ENGINE_THREAD=0
 }
 
+enable_webkit2 {
+    DEFINES+=USE_WEBKIT2=1
+} else {
+    DEFINES+=USE_WEBKIT2=0
+}
+
 !symbian {
 
 contains(WEBKIT, system) {
@@ -97,8 +103,8 @@ contains(WEBKIT, system) {
 
     INCLUDEPATH += $$WEBKIT_PATH/WebKit/qt/Api \
      $$WEBKIT_PATH/ \
-     $$WEBKIT_PATH/JavaScriptCore/ForwardingHeaders
-
+     $$WEBKIT_PATH/JavaScriptCore/ForwardingHeaders \
+     $$WEBKIT_BUILD_PATH/include
 
     # need to set rpath, so that app can be run during development from
     # the build dir.  after installing, we need to do run 'chrpath -d' on
@@ -192,7 +198,6 @@ HEADERS = \
   src/TileSelectionViewBase.h \
   src/ToolbarWidget.h \
   src/UrlItem.h \
-  src/WebPage.h \
   src/WebView.h \
   src/WebViewportItem.h \
   src/YberApplication.h
@@ -221,7 +226,6 @@ SOURCES = \
   src/TileSelectionViewBase.cpp \
   src/ToolbarWidget.cpp \
   src/UrlItem.cpp \
-  src/WebPage.cpp \
   src/WebView.cpp \
   src/WebViewportItem.cpp \
   src/YberApplication.cpp \
@@ -242,6 +246,11 @@ SOURCES += \
 SOURCES += \
   src/ApplicationWindowHost.cpp \
   src/ApplicationWindow.cpp
+}
+
+!enable_webkit2 {
+HEADERS += src/WebPage.h
+SOURCES += src/WebPage.cpp
 }
 
 

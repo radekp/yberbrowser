@@ -20,6 +20,8 @@
 
 #include "BackingStoreVisualizerWidget.h"
 
+#if !USE_WEBKIT2
+
 #include <qgraphicswebview.h>
 #include <QTimer>
 #include <QDebug>
@@ -170,3 +172,5 @@ void BackingStoreVisualizerWidget::resetCacheTiles()
 }
 
 #include "BackingStoreVisualizerWidget.moc"
+
+#endif

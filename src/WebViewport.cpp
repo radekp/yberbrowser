@@ -21,6 +21,7 @@
 #include <QApplication>
 #include "EventHelpers.h"
 #include "LinkSelectionItem.h"
+#include "WebView.h"
 #include "WebViewport.h"
 #include "WebViewportItem.h"
 #include "qwebframe.h"
@@ -67,6 +68,7 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
 
     setPannedWidget(viewportWidget);
     connect(viewportWidget, SIGNAL(contentsSizeChangeCausedResize()), this, SLOT(contentsSizeChangeCausedResize()));
+    connect(viewportWidget, SIGNAL(zoomRectForPointReceived(const QPointF&, const QRectF&)), SLOT(zoomRectForPointReceived(const QPointF&, const QRectF&)));
     m_backingStoreUpdateEnableTimer.setSingleShot(true);
     connect(&m_backingStoreUpdateEnableTimer, SIGNAL(timeout()), this, SLOT(enableBackingStoreUpdates()));
 }
@@ -155,27 +157,26 @@ void WebViewport::cancelLeftMouseButtonPress(const QPoint &)
 
 void WebViewport::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
-    QRectF target;
     // viewport is center is the target hotspot
     QPointF viewTargetHotspot(size().width() / 2, size().height() / 2);
 
-    if (isZoomedIn()) {
+    if (isZoomedIn())
         startZoomAnimToItemHotspot(QPointF(0, -m_viewportWidget->pos().y()), viewTargetHotspot, size().width() / m_viewportWidget->size().width());
-    } else {
-        QPointF p = m_viewportWidget->mapFromScene(event->scenePos());
-        target = m_viewportWidget->findZoomableRectForPoint(p);
-        if (!target.isValid()) {
-            // fixme
-            return;
-        }
+    else
+        m_viewportWidget->findZoomableRectForPoint(m_viewportWidget->mapFromScene(event->scenePos()));
+}
 
-        // hotspot is the center of the identified rect x-wise
-        // y-wise it's the place user touched
-        QPointF hotspot(target.center().x(), p.y());
-
-
-        startZoomAnimToItemHotspot(hotspot, viewTargetHotspot, size().width() / target.size().width());
+void WebViewport::zoomRectForPointReceived(const QPointF& originalPos, const QRectF& target)
+{
+    QPointF viewTargetHotspot(size().width() / 2, size().height() / 2);
+    if (!target.isValid()) {
+        // fixme
+        return;
     }
+    // hotspot is the center of the identified rect x-wise
+    // y-wise it's the place user touched
+    QPointF hotspot(target.center().x(), originalPos.y());
+    startZoomAnimToItemHotspot(hotspot, viewTargetHotspot, size().width() / target.size().width());
 }
 
 void WebViewport::mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event)
@@ -218,6 +219,9 @@ QWebFrame* findFrame(const QPoint& pos, QWebFrame* frame)
 
 void WebViewport::adjustClickPosition(QPointF& pos)
 {
+#if USE_WEBKIT2    
+    Q_UNUSED(pos);
+#else
     QPointF localPos = m_viewportWidget->webView()->mapFromScene(pos);
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
     qDebug() << __FUNCTION__ << " click pos:" << localPos << " scene pos:" << pos;
@@ -287,6 +291,7 @@ void WebViewport::adjustClickPosition(QPointF& pos)
 #endif
         }
     }
+#endif    
 }
 
 void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
@@ -300,6 +305,7 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
     event->setPos(m_viewportWidget->webView()->mapFromScene(event->scenePos()));
     QPointF p = event->pos();
 
+#if !USE_WEBKIT2    
     QWebHitTestResult result = m_viewportWidget->webView()->page()->mainFrame()->hitTestContent(QPoint(p.x(), p.y()));
     if (!result.linkElement().isNull()) {
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
@@ -323,6 +329,7 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
         qDebug() << "hittest NOT found" << p;
 #endif
     }
+#endif
     m_selfSentEvent = event;
     QApplication::sendEvent(scene(), event);
     m_selfSentEvent = 0;

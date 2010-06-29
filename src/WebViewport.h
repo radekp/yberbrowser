@@ -71,6 +71,7 @@ protected Q_SLOTS:
     void contentsSizeChangeCausedResize();
     void startLinkSelection();
     void enableBackingStoreUpdates();
+    void zoomRectForPointReceived(const QPointF&, const QRectF&);
 
 private:
     void resetZoomAnim();

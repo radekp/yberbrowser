@@ -48,7 +48,6 @@
 #include <cstdio>
 #include <qwebelement.h>
 #include <qwebframe.h>
-#include <qgraphicswebview.h>
 #include <qwebpage.h>
 #include <qwebsettings.h>
 #include <qwebview.h>
