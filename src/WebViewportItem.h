@@ -32,6 +32,9 @@
 
 #include <QGraphicsWidget>
 #include <QTimer>
+#if !USE_WEBKIT2
+#include "qwebpage.h"
+#endif
 
 class WebView;
 
