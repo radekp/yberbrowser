@@ -35,7 +35,6 @@ WebView::WebView(WKPageNamespaceRef namespaceRef, QGraphicsItem* parent)
     : QWKGraphicsWidget(namespaceRef, QWKGraphicsWidget::Tiled, parent)
     , m_fpsTicks(0)
 {
-    setCookieJar();
     applyPageSettings();
     page()->setCreateNewPageFunction(createNewPageCallback);
 }
@@ -44,7 +43,6 @@ WebView::WebView(QGraphicsItem* parent)
     : QGraphicsWebView(parent)
     , m_fpsTicks(0)
 {
-    setCookieJar();
     applyPageSettings();
 }
 #endif
@@ -65,17 +63,5 @@ void WebView::applyPageSettings()
     page()->setProperty("_q_TiledBackingStoreTileCreationDelay", 25);
     page()->setProperty("_q_TiledBackingStoreCoverAreaMultiplier", QSizeF(1.5, 1.5));
     page()->setProperty("_q_TiledBackingStoreKeepAreaMultiplier", QSizeF(2., 2.5));
-}
-
-void WebView::setCookieJar()
-{
-#if !USE_WEBKIT2
-    CookieJar* jar = YberApplication::instance()->cookieJar();
-    // setCookieJar changes the parent of the passed jar ;(
-    // So we need to preserve it
-    QObject* oldParent = jar->parent();
-    page()->networkAccessManager()->setCookieJar(jar);
-    jar->setParent(oldParent);
-#endif
 }
 

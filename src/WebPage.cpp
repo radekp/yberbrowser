@@ -29,6 +29,14 @@ WebPage::WebPage(QObject* parent, BrowsingView* ownerView)
     : QWebPage(parent)
     , m_ownerView(ownerView)
 {
+#if !USE_WEBKIT2
+    CookieJar* jar = YberApplication::instance()->cookieJar();
+    // setCookieJar changes the parent of the passed jar ;(
+    // So we need to preserve it
+    QObject* oldParent = jar->parent();
+    networkAccessManager()->setCookieJar(jar);
+    jar->setParent(oldParent);
+#endif
 }
 
 QWebPage* WebPage::createWindow(QWebPage::WebWindowType)

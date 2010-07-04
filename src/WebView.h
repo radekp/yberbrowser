@@ -51,7 +51,6 @@ public:
 private:
     Q_DISABLE_COPY(WebView)
     void applyPageSettings();
-    void setCookieJar();
 
 private:
     unsigned int m_fpsTicks;
