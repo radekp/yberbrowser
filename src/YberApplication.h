@@ -26,18 +26,14 @@
 #include "ApplicationWindow.h"
 #include "CookieJar.h"
 
-#if USE_MEEGOTOUCH
-#include <MApplication>
-typedef MApplication YberApplicationBase;
-#else
-#include <QApplication>
-typedef QApplication YberApplicationBase;
-#endif
-
-class YberApplication : public YberApplicationBase
+class YberApplication
 {
 public:
+<<<<<<< HEAD
     explicit YberApplication(int& argc, char** argv);
+=======
+    explicit YberApplication();
+>>>>>>> Separate YberApplication and Q/MApplication
     ~YberApplication();
 
     void start();
@@ -49,17 +45,21 @@ public:
 
     CookieJar* cookieJar() const;
 
+<<<<<<< HEAD
     static YberApplication* instance()
     {
         return static_cast<YberApplication*>(QCoreApplication::instance());
     }
+=======
+    static YberApplication* instance();
+>>>>>>> Separate YberApplication and Q/MApplication
 
 private:
     Q_DISABLE_COPY(YberApplication)
 
     bool m_isFullscreen;
     bool m_isTileCacheEnabled;
-    ApplicationWindow *appwin;
+    ApplicationWindow *m_appwin;
     mutable CookieJar* m_cookieJar;
 };
 

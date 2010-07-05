@@ -29,9 +29,8 @@
 #include <QNetworkProxyFactory>
 #include <QDebug>
 
-YberApplication::YberApplication(int& argc, char** argv)
-    : YberApplicationBase(argc, argv)
-    , appwin(0)
+YberApplication::YberApplication()
+    : m_appwin(0)
     , m_cookieJar(0)
 {
     bool useSystemConf = true;
@@ -60,12 +59,12 @@ YberApplication::~YberApplication()
 
 void YberApplication::start()
 {
-    if (!appwin) {
-        appwin = new ApplicationWindow();
+    if (!m_appwin) {
+        m_appwin = new ApplicationWindow();
         if (Settings::instance()->isFullScreen())
-            appwin->showFullScreen();
+            m_appwin->showFullScreen();
         else
-            appwin->show();
+            m_appwin->show();
     }
 }
 
@@ -78,10 +77,10 @@ void YberApplication::createMainView(const QUrl& url)
     if (Settings::instance()->isFullScreen()) {
         page->setComponentsDisplayMode(MApplicationPage::AllComponents, MApplicationPageModel::Hide);
     }
-    page->appear(appwin, MSceneWindow::DestroyWhenDone);
+    page->appear(m_appwin, MSceneWindow::DestroyWhenDone);
     page->setPos(0, 30);
 #else
-    page->appear(appwin);
+    page->appear(m_appwin);
 #endif
 
     if (!url.isEmpty())
@@ -94,3 +93,12 @@ CookieJar* YberApplication::cookieJar() const
         m_cookieJar = new CookieJar;
     return m_cookieJar;
 }
+
+YberApplication* YberApplication::instance()
+{
+    static YberApplication* self = 0;
+    if (!self)
+        self = new YberApplication;
+    return self;
+}
+

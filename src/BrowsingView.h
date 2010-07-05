@@ -49,7 +49,6 @@ typedef QMenuBar MenuBar;
 #endif
 
 class WebView;
-class YberApplication;
 class WebViewportItem;
 class PannableViewport;
 class ApplicationWindow;
@@ -64,7 +63,7 @@ class BrowsingView : public BrowsingViewBase
 {
     Q_OBJECT
 public:
-    BrowsingView(YberApplication&, QGraphicsItem* parent = 0);
+    BrowsingView(QGraphicsItem* parent = 0);
     ~BrowsingView();
 
 #if !USE_MEEGOTOUCH

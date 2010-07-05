@@ -84,13 +84,17 @@ void debugMessageOutput(QtMsgType type, const char *msg)
 
 int main(int argc, char** argv)
 {
-    YberApplication app(argc, argv);
-    app.setApplicationName("yberbrowser");
+#if USE_MEEGOTOUCH
+    MApplication* app = new MApplication(argc, argv);
+#else
+    QApplication* app = new QApplication(argc, argv);
+#endif
+
+    app->setApplicationName("yberbrowser");
 
 #if USE_MEEGOTOUCH
     qInstallMsgHandler(debugMessageOutput);
 #endif
-
 
     QString url;
     QString privPath;
@@ -118,7 +122,7 @@ int main(int argc, char** argv)
     QWebSettings::enablePersistentStorage(settings->privatePath());
     QWebSettings::globalSettings()->setAttribute(QWebSettings::FrameFlatteningEnabled, true);
 
-    QStringList args = app.arguments();
+    QStringList args = app->arguments();
 
     settings->enableTileCache(true);
 
@@ -162,16 +166,20 @@ int main(int argc, char** argv)
 
     QWebSettings::globalSettings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, settings->tileCacheEnabled());
 
-    app.start();
-    app.createMainView(urlFromUserInput(url));
+
+    YberApplication::instance()->start();
+    YberApplication::instance()->createMainView(urlFromUserInput(url));
 
     for (int i = 2; i < args.count(); i++) {
         if (args.at(i) != "-software")
-            app.createMainView(urlFromUserInput(args.at(i)));
+            YberApplication::instance()->createMainView(urlFromUserInput(args.at(i)));
     }
 
-    int retval = app.exec();
+    int retval = app->exec();
 
+#if !defined(NDEBUG)
+    delete app;
+#endif
     return retval;
 }
 

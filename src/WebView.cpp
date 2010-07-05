@@ -22,7 +22,6 @@
 #if USE_WEBKIT2
 #include <WebKit2/WKFrame.h>
 #endif
-#include "YberApplication.h"
 
 #if USE_WEBKIT2
 static QWKPage* createNewPageCallback(QWKPage* page)

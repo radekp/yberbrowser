@@ -46,6 +46,7 @@
 #include <QGraphicsProxyWidget>
 #include <QStyleOptionGraphicsItem>
 #include <QPainter>
+#include <QCoreApplication>
 
 #if USE_MEEGOTOUCH
 #include <MTextEdit>
