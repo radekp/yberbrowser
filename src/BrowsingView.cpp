@@ -29,7 +29,6 @@
 
 #include "WebViewportItem.h"
 #include "WebView.h"
-#include "YberApplication.h"
 #include "ApplicationWindow.h"
 #include "Settings.h"
 #include "HomeView.h"
@@ -70,7 +69,7 @@ const int s_maxWindows = 6;
 /*!
    \class BrowsingView view displaying the web page, e.g the main browser UI.
 */
-BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
+BrowsingView::BrowsingView(QGraphicsItem *parent)
     : BrowsingViewBase(parent)
     , m_activeWebView(0)
     , m_webInteractionProxy(new WebViewportItem(this))

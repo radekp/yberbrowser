@@ -71,7 +71,7 @@ void YberApplication::start()
 
 void YberApplication::createMainView(const QUrl& url)
 {
-    BrowsingView* page = new BrowsingView(*this);
+    BrowsingView* page = new BrowsingView();
 
 #if USE_MEEGOTOUCH
     page->setAutoMarginsForComponentsEnabled(true);
