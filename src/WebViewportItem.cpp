@@ -60,6 +60,7 @@ const int s_zoomCommitTimerDurationMS = 100;
 const qreal s_zoomableContentMinWidth = 300.;
 const qreal s_zoomRectAdjustHeight = 5.;
 const qreal s_zoomRectAdjustWidth = 5.;
+const qreal s_dpiAdjustmentFactor = 1.5;
 }
 
 /*!
@@ -209,7 +210,7 @@ void WebViewportItem::adjustViewport(const QWebPage::ViewportHints& viewportInfo
 {
     // for an explanation of pixelScale look at:
     // http://hacks.mozilla.org/2010/05/upcoming-changes-to-the-viewport-meta-tag-for-firefox-mobile/
-    qreal pixelScale = 1.0;
+    qreal pixelScale = s_dpiAdjustmentFactor;
 
     QSize viewportSize = QSize(s_defaultPreferredWidth, s_defaultPreferredHeight);
 
