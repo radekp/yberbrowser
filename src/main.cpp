@@ -58,28 +58,6 @@
 #endif
 
 void usage(const char* name);
-void debugMessageOutput(QtMsgType type, const char *msg)
-{
-    const char* str = "";
-    switch (type) {
-    case QtDebugMsg:
-        str = "Debug";
-        break;
-    case QtWarningMsg:
-        str = "Warning";
-        break;
-    case QtCriticalMsg:
-        str = "Critical";
-        break;
-
-    case QtFatalMsg:
-        str = "Fatal";
-        break;
-    default:
-        break;
-    }
-    fprintf(stderr, "%s: %s\n", str, msg);
-}
 
 
 int main(int argc, char** argv)
@@ -91,10 +69,6 @@ int main(int argc, char** argv)
 #endif
 
     app->setApplicationName("yberbrowser");
-
-#if USE_MEEGOTOUCH
-    qInstallMsgHandler(debugMessageOutput);
-#endif
 
     QString url;
     QString privPath;
