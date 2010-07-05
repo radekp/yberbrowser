@@ -39,12 +39,12 @@ FontFactory* FontFactory::instance()
 FontFactory::FontFactory()
 {
     QString fontFamily = s_defaultFontFamily;
-    // find something Sansish, if not, pick the first one
+    // Find something Sans'ish; if not, pick the first one.
     QStringList l = QFontDatabase().families(QFontDatabase::Latin);
     if (!l.contains(s_defaultFontFamily, Qt::CaseInsensitive)) {
         QRegExp rx("*Sans*");
         rx.setPatternSyntax(QRegExp::Wildcard);
-        int index = l.indexOf(rx);  
+        int index = l.indexOf(rx);
         if (index == -1)
             index = 0;
         fontFamily = l.at(index);

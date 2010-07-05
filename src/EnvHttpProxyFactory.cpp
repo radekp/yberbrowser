@@ -25,7 +25,6 @@
 
 EnvHttpProxyFactory::EnvHttpProxyFactory()
 {
-
 }
 
 bool EnvHttpProxyFactory::initFromEnvironment()
@@ -37,22 +36,21 @@ bool EnvHttpProxyFactory::initFromEnvironment()
         int proxyPort = (proxyUrl.port() > 0) ? proxyUrl.port() : 8080;
         m_httpProxy << QNetworkProxy(QNetworkProxy::HttpProxy, proxyUrl.host(), proxyPort);
         result = true;
-    } else {
+    } else
         m_httpProxy << QNetworkProxy::NoProxy;
-    }
 
     proxyUrl = urlFromUserInput(qgetenv("https_proxy"));
     if (proxyUrl.isValid() && !proxyUrl.host().isEmpty()) {
         int proxyPort = (proxyUrl.port() > 0) ? proxyUrl.port() : 8080;
         m_httpsProxy << QNetworkProxy(QNetworkProxy::HttpProxy, proxyUrl.host(), proxyPort);
         result = true;
-    } else {
+    } else
         m_httpsProxy << QNetworkProxy::NoProxy;
-    }
+
     return result;
 }
 
-QList<QNetworkProxy> EnvHttpProxyFactory::queryProxy(const QNetworkProxyQuery & query)
+QList<QNetworkProxy> EnvHttpProxyFactory::queryProxy(const QNetworkProxyQuery& query)
 {
 
     QString protocol = query.protocolTag().toLower();

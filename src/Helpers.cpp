@@ -40,11 +40,11 @@ static int s_maxUrlItems = 50;
 
 class NotificationWidget : public QGraphicsWidget {
     Q_OBJECT
-public: 
+public:
     static void show(const QString& text, QGraphicsWidget* parent);
 
 private:
-    NotificationWidget(const QString& text, QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+    NotificationWidget(const QString& text, QGraphicsItem* parent, Qt::WindowFlags flags = 0);
 
     void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget);
 
@@ -81,7 +81,7 @@ void NotificationWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem
     painter->setBrush(QColor(80, 80, 80));
 
     painter->drawRect(rect());
- 
+
     painter->setFont(FontFactory::instance()->medium());
     painter->setPen(Qt::white);
     painter->drawText(rect(), Qt::AlignHCenter|Qt::AlignVCenter, m_text);
@@ -92,7 +92,7 @@ void NotificationWidget::doShow()
     QRectF r(parentWidget()->rect());
     const QFont& f = FontFactory::instance()->medium();
     int height = QFontMetrics(f).height() + 2;
-    
+
     r.setTop(r.center().y()/2 - height/2);
     r.setHeight(height);
     setGeometry(r);
@@ -154,21 +154,21 @@ void internalizeUrlList(UrlList& list, const QString& fileName, uint version)
             }
         }
         store.close();
-    } 
+    }
 }
 
 void externalizeUrlList(UrlList& list, const QString& fileName, uint version)
 {
-    // FIXME clean up old thumbnail items that dont fit s_maxUrlItems now.
+    // FIXME: Clean up old thumbnail items that do not fit s_maxUrlItems now.
     int count = qMin(list.size(), s_maxUrlItems);
     QFile store(Settings::instance()->privatePath() + fileName);
     if (store.open(QFile::WriteOnly | QIODevice::Truncate)) {
         QDataStream out(&store);
-        out<<version<<count;
+        out << version << count;
         for (int i = 0; i < count; ++i)
             list[i].externalize(out);
         store.close();
-    } 
+    }
 }
 
 #include "Helpers.moc"

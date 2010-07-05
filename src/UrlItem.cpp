@@ -81,11 +81,11 @@ bool UrlItem::operator<(const UrlItem& other) const
     return m_title.toLower() < other.m_title.toLower();
 }
 
-void UrlItem::setThumbnail(QImage* thumbnail) 
-{ 
+void UrlItem::setThumbnail(QImage* thumbnail)
+{
     delete m_thumbnail;
 
-    m_thumbnail = thumbnail; 
+    m_thumbnail = thumbnail;
     m_thumbnailChanged = true;
 }
 
@@ -98,13 +98,13 @@ void UrlItem::externalize(QDataStream& out)
     }
     m_thumbnailChanged = false;
 
-    out<<m_url.toString()<<m_title<<m_refcount<<m_lastAccess<<m_thumbnailPath;
+    out << m_url.toString() << m_title << m_refcount << m_lastAccess << m_thumbnailPath;
 }
 
 void UrlItem::internalize(QDataStream& in)
 {
-    QString urlStr; 
-    in>>urlStr>>m_title>>m_refcount>>m_lastAccess>>m_thumbnailPath;
+    QString urlStr;
+    in >> urlStr >> m_title >> m_refcount >> m_lastAccess >> m_thumbnailPath;
     m_url = urlStr;
     if (!m_thumbnailPath.isEmpty())
         m_thumbnail = new QImage(Settings::instance()->privatePath() + m_thumbnailPath);

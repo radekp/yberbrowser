@@ -175,7 +175,6 @@ int main(int argc, char** argv)
     return retval;
 }
 
-
 void usage(const char* name)
 {
     QTextStream s(stderr);

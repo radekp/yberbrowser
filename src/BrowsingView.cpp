@@ -93,9 +93,11 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     connect(m_toolbarWidget, SIGNAL(cancelPressed()), SLOT(stopLoad()));
     connect(m_toolbarWidget, SIGNAL(urlEditingFinished(const QString&)), SLOT(urlEditingFinished(const QString&)));
     connect(m_toolbarWidget, SIGNAL(urlEditorFocusChanged(bool)), SLOT(urlEditfocusChanged(bool)));
+
 #if USE_WEBKIT2
     m_context.adopt(WKContextGetSharedProcessContext());
 #endif
+
     // create and activate new window
     newWindow();
 }
@@ -175,7 +177,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
 
 void BrowsingView::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
 {
-    // default bckg
+    // Default background.
     painter->fillRect(rect(), QBrush(Qt::black));
 }
 
@@ -204,7 +206,8 @@ void BrowsingView::appear(ApplicationWindow* window)
     window->setPage(this);
     window->setMenuBar(createMenu(window));
     window->scene()->addItem(this);
-    // create home view on startup
+
+    // Create home view on startup.
     createHomeView(HomeView::VisitedPages);
 }
 
@@ -220,6 +223,7 @@ QMenuBar* BrowsingView::createMenu(QWidget* parent)
     QAction* fpsTestAction = new QAction("FPS test", this);
     developerMenu->addAction(fpsTestAction);
     connect(fpsTestAction, SIGNAL(triggered(bool)), this, SLOT(startAutoScrollTest()));
+
     return menuBar;
 }
 #endif
@@ -232,9 +236,9 @@ void BrowsingView::windowSelected(WebView* webView)
 
 void BrowsingView::windowClosed(WebView* webView)
 {
-    // create a new window on last window destory. better idea?
+    // Create a new window on last window destory. better idea?
     if (m_windowList.size() == 1) {
-        // on last window close, let's just close the home view, if it is up. revisit it later.
+        // On last window close, let's just close the home view, if it is up. revisit it later.
         deleteHomeView();
         newWindow();
     }
@@ -256,8 +260,8 @@ void BrowsingView::setActiveWindow(WebView* webView)
 {
     if (webView == m_activeWebView)
         return;
-    // invalidate url bar
-    m_toolbarWidget->setTextIfUnfocused(webView->url().isEmpty() ? "no page loaded yet" : webView->url().toString());
+    // Invalidate address bar.
+    m_toolbarWidget->setTextIfUnfocused(webView->url().isEmpty() ? "No page loaded yet." : webView->url().toString());
     connectWebViewSignals(webView, m_activeWebView);
     if (m_activeWebView)
         m_activeWebView->hide();
@@ -265,7 +269,8 @@ void BrowsingView::setActiveWindow(WebView* webView)
     m_activeWebView = webView;
     m_webInteractionProxy->setWebView(webView);
     m_webInteractionProxy->setPos(QPointF(0,0));
-    // view bckg needs to be updated
+
+    // View background needs to be updated.
     if (m_homeView)
         m_homeView->updateBackground(webviewSnapshot());
 }
@@ -308,7 +313,7 @@ void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
         return;
     }
 
-    // create and display new home view
+    // Create and display new home view.
     m_homeView = new HomeView(type, webviewSnapshot(), this);
     m_homeView->setWindowList(m_windowList);
     connect(m_homeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
@@ -334,7 +339,7 @@ void BrowsingView::deleteHomeView()
     // and not going back to WindowSelect again
     if (m_initialHomeWidget == HomeView::WindowSelect && m_activeWebView->url().isEmpty())
         m_initialHomeWidget = HomeView::VisitedPages;
-    
+
     delete m_homeView;
     m_homeView = 0;
 }
@@ -364,7 +369,7 @@ void BrowsingView::updateHistoryStore(bool successLoad)
 
     if (update) {
         QGraphicsPixmapItem* pixmapItem = webviewSnapshot(false);
-        if (pixmapItem) 
+        if (pixmapItem)
             thumbnail = new QImage(pixmapItem->pixmap().toImage());
         delete pixmapItem;
     }
@@ -395,12 +400,13 @@ void BrowsingView::urlChanged(const QUrl& url)
 void BrowsingView::setTitle(const QString& title)
 {
     QString t(title.trimmed());
-    
+
     if (t.isEmpty())
         setTitle(QCoreApplication::instance()->applicationName());
-    else
+    else {
         if (m_appWin)
             m_appWin->setTitle(t);
+    }
 }
 #endif
 
@@ -449,7 +455,7 @@ void BrowsingView::finishedAutoScrollTest()
 QGraphicsPixmapItem* BrowsingView::webviewSnapshot(bool darken)
 {
     QSizeF thumbnailSize(size());
-    QImage thumbnail(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);    
+    QImage thumbnail(thumbnailSize.width(), thumbnailSize.height(), QImage::Format_RGB32);
 
     QPainter p(&thumbnail);
 
@@ -458,14 +464,14 @@ QGraphicsPixmapItem* BrowsingView::webviewSnapshot(bool darken)
         QStyleOptionGraphicsItem sItem;
         sItem.exposedRect = QRectF(QPointF(0, 0), thumbnailSize/scale);
         p.scale(scale, scale);
-        //FIXME until the right api is figured out
+        // FIXME until the right api is figured out.
         m_activeWebView->paint(&p, &sItem);
         //m_activeWebView->page()->mainFrame()->render(&p, QWebFrame::ContentsLayer, QRegion(0, 0, thumbnailSize.width()/scale, thumbnailSize.height()/scale));
         if (darken)
             p.fillRect(sItem.exposedRect, QColor(0, 0, 0, 198));
-    } else {
+    } else
         p.fillRect(thumbnail.rect(), QColor(30, 30, 30));
-    }
+
     return new QGraphicsPixmapItem(QPixmap::fromImage(thumbnail));
 }
 

@@ -27,7 +27,7 @@
 #if USE_WEBKIT2
 static QWKPage* createNewPageCallback(QWKPage* page)
 {
-    // FIXME same page is used for now
+    // FIXME: same page is used for now.
     return page;
 }
 
@@ -64,4 +64,3 @@ void WebView::applyPageSettings()
     page()->setProperty("_q_TiledBackingStoreCoverAreaMultiplier", QSizeF(1.5, 1.5));
     page()->setProperty("_q_TiledBackingStoreKeepAreaMultiplier", QSizeF(2., 2.5));
 }
-

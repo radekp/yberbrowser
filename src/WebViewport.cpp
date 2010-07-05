@@ -148,7 +148,7 @@ bool WebViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
 
 /*! \reimp reimplemented from \QAbstractKineticScroller
  */
-void WebViewport::cancelLeftMouseButtonPress(const QPoint &)
+void WebViewport::cancelLeftMouseButtonPress(const QPoint&)
 {
     // don't send the mouse press event after this callback.
     // QAbstractCKineticScroller started panning
@@ -179,7 +179,7 @@ void WebViewport::zoomRectForPointReceived(const QPointF& originalPos, const QRe
     startZoomAnimToItemHotspot(hotspot, viewTargetHotspot, size().width() / target.size().width());
 }
 
-void WebViewport::mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event)
+void WebViewport::mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent* event)
 {
     QGraphicsSceneMouseEvent mappedEvent(event->type());
     mapEventCommonProperties(this, event, mappedEvent);
@@ -190,9 +190,9 @@ void WebViewport::mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * even
     mouseDoubleClickEvent(&mappedEvent);
 }
 
-void WebViewport::mousePressEventFromChild(QGraphicsSceneMouseEvent * event)
+void WebViewport::mousePressEventFromChild(QGraphicsSceneMouseEvent* event)
 {
-    // FIXME: setpos for release event should be adjusted somewhere else
+    // FIXME: setpos for release event should be adjusted somewhere else.
     event->setPos(m_viewportWidget->webView()->mapFromScene(event->scenePos()));
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
     qDebug() << __FUNCTION__ << " mouse press pos:" << event->pos() << " scene pos: " << event->scenePos();
@@ -211,7 +211,7 @@ QWebFrame* findFrame(const QPoint& pos, QWebFrame* frame)
         if (findFrame(pos, children.at(i)))
             return children.at(i);
     }
-    
+
     if (frame->geometry().contains(pos))
         return frame;
     return 0;
@@ -219,7 +219,7 @@ QWebFrame* findFrame(const QPoint& pos, QWebFrame* frame)
 
 void WebViewport::adjustClickPosition(QPointF& pos)
 {
-#if USE_WEBKIT2    
+#if USE_WEBKIT2
     Q_UNUSED(pos);
 #else
     QPointF localPos = m_viewportWidget->webView()->mapFromScene(pos);
@@ -291,7 +291,7 @@ void WebViewport::adjustClickPosition(QPointF& pos)
 #endif
         }
     }
-#endif    
+#endif
 }
 
 void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
@@ -301,11 +301,11 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
     delete m_delayedMouseReleaseEvent;
     m_delayedMouseReleaseEvent = 0;
 
-    // FIXME: setpos for release event should be adjusted somewhere else
+    // FIXME: setPos for release event should be adjusted somewhere else.
     event->setPos(m_viewportWidget->webView()->mapFromScene(event->scenePos()));
     QPointF p = event->pos();
 
-#if !USE_WEBKIT2    
+#if !USE_WEBKIT2
     QWebHitTestResult result = m_viewportWidget->webView()->page()->mainFrame()->hitTestContent(QPoint(p.x(), p.y()));
     if (!result.linkElement().isNull()) {
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
@@ -318,7 +318,7 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
             frame = frame->parentFrame();
         }
         m_linkSelectionItem = new LinkSelectionItem(this);
-        m_linkSelectionItem->appear(m_viewportWidget->webView()->mapToScene(p), m_viewportWidget->webView()->mapToScene(QRect(linkPoint, result.boundingRect().size())).boundingRect());   
+        m_linkSelectionItem->appear(m_viewportWidget->webView()->mapToScene(p), m_viewportWidget->webView()->mapToScene(QRect(linkPoint, result.boundingRect().size())).boundingRect());
         // delayed click
         m_delayedMouseReleaseEvent = new QGraphicsSceneMouseEvent(event->type());
         copyMouseEvent(event, m_delayedMouseReleaseEvent);
@@ -464,7 +464,7 @@ void WebViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldS
         m_backingStoreUpdateEnableTimer.stop();
         m_viewportWidget->disableContentUpdates();
     } else if (newState == YberHack_Qt::QAbstractKineticScroller::Inactive)
-//        m_viewportWidget->enableContentUpdates();
+        // m_viewportWidget->enableContentUpdates();
         m_backingStoreUpdateEnableTimer.start(backingStoreUpdateEnableDelay);
 }
 
@@ -472,4 +472,3 @@ void WebViewport::enableBackingStoreUpdates()
 {
     m_viewportWidget->enableContentUpdates();
 }
-

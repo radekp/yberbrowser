@@ -20,7 +20,7 @@
 
 #include "PannableTileContainer.h"
 #include "ScrollbarItem.h"
-#include "ToolbarWidget.h" 
+#include "ToolbarWidget.h"
 #include "TileSelectionViewBase.h" // FIXME temp
 
 #include <QGraphicsSceneMouseEvent>
@@ -28,8 +28,8 @@
 #include <QGraphicsScene>
 #include <QCoreApplication>
 
-PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags wFlags)
-    : PannableViewport(parent, wFlags)
+PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags flags)
+    : PannableViewport(parent, flags)
 {
     m_vScrollbar->setMargins(ToolbarWidget::height() + 5, -1);
 }
@@ -50,10 +50,9 @@ bool PannableTileContainer::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneMouseMove:
     case QEvent::GraphicsSceneMouseRelease:
     case QEvent::GraphicsSceneMouseDoubleClick:
-        return (static_cast<TileSelectionViewBase *>(parentWidget()))->filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
+        return (static_cast<TileSelectionViewBase*>(parentWidget()))->filterMouseEvent(static_cast<QGraphicsSceneMouseEvent*>(e));
     default:
         break;
     }
     return false;
 }
-

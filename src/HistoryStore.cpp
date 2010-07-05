@@ -37,7 +37,7 @@ HistoryStore* HistoryStore::instance()
     if (!historyStore)
         historyStore = new HistoryStore();
     return historyStore;
-}    
+}
 
 HistoryStore::HistoryStore()
     : m_needsPersisting(false)
@@ -90,13 +90,13 @@ void HistoryStore::accessed(const QUrl& url, const QString& title, QImage* thumb
             // '<=' is for the last access sorting, recently used items move up
             while (--j >= 0 && item.refcount() >= m_list.at(j).refcount()) {}
             // position adjusting and check whether we really moved
-            if (++j != i) 
+            if (++j != i)
                 m_list.move(i, j);
             found = j;
             break;
         }
     }
-    
+
     if (found == -1) {
         // insert to the top of the 1 refcount items. recently used sort
         int i = m_list.size();
@@ -165,19 +165,19 @@ void HistoryStore::remove(const QUrl& url)
     }
 }
 
-bool HistoryStore::matchUrls(const QString& url1, const QString& url2) 
+bool HistoryStore::matchUrls(const QString& url1, const QString& url2)
 {
     // www.cnn.com == www.cnn.com
     if (url1 == url2)
         return true;
     // www.cnn.com == cnn.com
-    if ((url1.startsWith("www.") && url1.mid(4) == url2) || 
+    if ((url1.startsWith("www.") && url1.mid(4) == url2) ||
         (url2.startsWith("www.") && url2.mid(4) == url1))
         return true;
     return false;
 }
 
-void HistoryStore::externalizeSoon() 
+void HistoryStore::externalizeSoon()
 {
     m_needsPersisting = true;
     QTimer::singleShot(2000, this, SLOT(externalize()));

@@ -46,7 +46,7 @@ ScrollbarItem::ScrollbarItem(Qt::Orientation orientation, QGraphicsItem* parent)
 {
 #ifndef Q_OS_SYMBIAN
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
-#endif    
+#endif
     m_fadeAnim.setDuration(s_scrollbarFadeDuration);
     m_fadeAnim.setStartValue(s_scrollbarOpacityStart);
     m_fadeAnim.setEndValue(s_scrollbarOpacity);
@@ -92,7 +92,7 @@ void ScrollbarItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*o
 
 void ScrollbarItem::fadingFinished()
 {
-    // hide when fading out
+    // Hide when fading out.
     if (opacity() != s_scrollbarOpacity)
         hide();
 }
@@ -134,7 +134,7 @@ void ScrollbarItem::contentPositionUpdated(qreal contentPos, qreal contentLength
     else
         setRect(QRectF(viewSize.width() - s_thumbWidth - 1, m_topMargin + thumbPos, s_thumbWidth,  thumbLength));
 
-    // show scrollbar only when scrolling is possible
+    // Show scrollbar only when scrolling is possible.
     if (thumbLength < thumbRange)
         updateVisibilityAndFading(shouldFadeOut);
     else if (isVisible())
