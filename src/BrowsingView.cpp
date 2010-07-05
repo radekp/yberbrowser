@@ -48,10 +48,6 @@
 #include <QStyleOptionGraphicsItem>
 #include <QPainter>
 
-#if defined(Q_WS_MAEMO_5) && !defined(QT_NO_OPENGL)
-#include <QGLWidget>
-#endif
-
 #if USE_MEEGOTOUCH
 #include <MTextEdit>
 #include <MToolBar>
@@ -64,7 +60,12 @@
 #endif
 #include "WebViewport.h"
 
+namespace {
+
 const int s_maxWindows = 6;
+
+}
+
 
 /*!
    \class BrowsingView view displaying the web page, e.g the main browser UI.
@@ -80,7 +81,6 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     , m_appWin(0)
 {
     m_browsingViewport = new WebViewport(m_webInteractionProxy, this);
-
     m_browsingViewport->setAutoRange(false);
 #ifdef PERFECT_ATTACHED_TOOLBAR
     m_browsingViewport->setAttachedWidget(m_toolbarWidget);
