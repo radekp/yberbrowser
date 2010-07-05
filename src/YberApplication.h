@@ -29,11 +29,7 @@
 class YberApplication
 {
 public:
-<<<<<<< HEAD
-    explicit YberApplication(int& argc, char** argv);
-=======
     explicit YberApplication();
->>>>>>> Separate YberApplication and Q/MApplication
     ~YberApplication();
 
     void start();
@@ -42,14 +38,7 @@ public:
 
     CookieJar* cookieJar() const;
 
-<<<<<<< HEAD
-    static YberApplication* instance()
-    {
-        return static_cast<YberApplication*>(QCoreApplication::instance());
-    }
-=======
     static YberApplication* instance();
->>>>>>> Separate YberApplication and Q/MApplication
 
 private:
     Q_DISABLE_COPY(YberApplication)
