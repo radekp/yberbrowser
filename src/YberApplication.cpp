@@ -29,7 +29,7 @@
 #include <QNetworkProxyFactory>
 #include <QDebug>
 
-YberApplication::YberApplication(int & argc, char ** argv)
+YberApplication::YberApplication(int& argc, char** argv)
     : YberApplicationBase(argc, argv)
     , appwin(0)
     , m_cookieJar(0)
@@ -79,7 +79,7 @@ void YberApplication::createMainView(const QUrl& url)
         page->setComponentsDisplayMode(MApplicationPage::AllComponents, MApplicationPageModel::Hide);
     }
     page->appear(appwin, MSceneWindow::DestroyWhenDone);
-    page->setPos(0,30);
+    page->setPos(0, 30);
 #else
     page->appear(appwin);
 #endif

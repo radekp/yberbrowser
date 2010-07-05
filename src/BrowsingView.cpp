@@ -98,7 +98,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     m_context.adopt(WKContextGetSharedProcessContext());
 #endif
 
-    // create and activate new window
+    // Create and activate new window.
     newWindow();
 }
 
@@ -131,9 +131,9 @@ void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
     connect(currentView, SIGNAL(titleChanged(QString)), SLOT(setTitle(QString)));
 #if !USE_MEEGOTOUCH
 #if USE_WEBKIT2
-        connect(currentView->page(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
+    connect(currentView->page(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
 #else
-        connect(currentView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
+    connect(currentView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
 #endif
 #endif
 }
@@ -144,7 +144,7 @@ void BrowsingView::addBookmark()
         notification("No page, no save.", this);
         return;
     }
-    // webkit returns empty favicon
+    // WebKit returns empty favicon, known bug.
     BookmarkStore::instance()->add(m_activeWebView->url(), m_activeWebView->title());
     notification("Bookmark saved.", this);
 }
@@ -158,7 +158,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     m_webInteractionProxy->setZoomScale(size().width() / m_webInteractionProxy->contentsSize().width());
 #endif
     if (m_homeView) {
-        m_homeView->resize(QSize(3*size().width(), size().height()));
+        m_homeView->resize(QSize(3 * size().width(), size().height()));
         m_homeView->updateBackground(webviewSnapshot());
     }
 

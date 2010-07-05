@@ -37,7 +37,7 @@ typedef QApplication YberApplicationBase;
 class YberApplication : public YberApplicationBase
 {
 public:
-    explicit YberApplication(int & argc, char ** argv);
+    explicit YberApplication(int& argc, char** argv);
     ~YberApplication();
 
     void start();
@@ -50,7 +50,9 @@ public:
     CookieJar* cookieJar() const;
 
     static YberApplication* instance()
-    { return static_cast<YberApplication*>(QCoreApplication::instance()); }
+    {
+        return static_cast<YberApplication*>(QCoreApplication::instance());
+    }
 
 private:
     Q_DISABLE_COPY(YberApplication)
