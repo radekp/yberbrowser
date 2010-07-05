@@ -40,9 +40,6 @@ public:
 
     void createMainView(const QUrl& url);
 
-    bool isFullscreen() const { return m_isFullscreen; }
-    bool isTileCacheEnabled() const { return m_isTileCacheEnabled; }
-
     CookieJar* cookieJar() const;
 
 <<<<<<< HEAD
@@ -57,14 +54,8 @@ public:
 private:
     Q_DISABLE_COPY(YberApplication)
 
-    bool m_isFullscreen;
-    bool m_isTileCacheEnabled;
     ApplicationWindow *m_appwin;
     mutable CookieJar* m_cookieJar;
 };
-
-
-
-
 
 #endif
