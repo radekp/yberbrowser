@@ -91,7 +91,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     connect(m_toolbarWidget, SIGNAL(bookmarkPressed()), SLOT(addBookmark()));
     connect(m_toolbarWidget, SIGNAL(backPressed()), SLOT(pageBack()));
     connect(m_toolbarWidget, SIGNAL(cancelPressed()), SLOT(stopLoad()));
-    connect(m_toolbarWidget, SIGNAL(urlEditingFinished(const QString&)), SLOT(urlEditingFinished(const QString&)));
+    connect(m_toolbarWidget, SIGNAL(urlEditingFinished(QString)), SLOT(urlEditingFinished(QString)));
     connect(m_toolbarWidget, SIGNAL(urlEditorFocusChanged(bool)), SLOT(urlEditfocusChanged(bool)));
 
 #if USE_WEBKIT2
@@ -114,8 +114,8 @@ void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
     if (oldView) {
         disconnect(oldView, SIGNAL(loadFinished(bool)), this, SLOT(loadFinished(bool)));
         disconnect(oldView, SIGNAL(loadProgress(int)), this, SLOT(progressChanged(int)));
-        disconnect(oldView, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
-        disconnect(oldView, SIGNAL(titleChanged(const QString&)), this, SLOT(setTitle(const QString&)));
+        disconnect(oldView, SIGNAL(urlChanged(QUrl)), this, SLOT(urlChanged(QUrl)));
+        disconnect(oldView, SIGNAL(titleChanged(QString)), this, SLOT(setTitle(QString)));
 #if !USE_MEEGOTOUCH
 #if USE_WEBKIT2
         disconnect(oldView->page(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
@@ -127,8 +127,8 @@ void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
 
     connect(currentView, SIGNAL(loadFinished(bool)), SLOT(loadFinished(bool)));
     connect(currentView, SIGNAL(loadProgress(int)), SLOT(progressChanged(int)));
-    connect(currentView, SIGNAL(urlChanged(const QUrl&)), SLOT(urlChanged(const QUrl&)));
-    connect(currentView, SIGNAL(titleChanged(const QString&)), SLOT(setTitle(const QString&)));
+    connect(currentView, SIGNAL(urlChanged(QUrl)), SLOT(urlChanged(QUrl)));
+    connect(currentView, SIGNAL(titleChanged(QString)), SLOT(setTitle(QString)));
 #if !USE_MEEGOTOUCH
 #if USE_WEBKIT2
         connect(currentView->page(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
@@ -268,7 +268,7 @@ void BrowsingView::setActiveWindow(WebView* webView)
     webView->show();
     m_activeWebView = webView;
     m_webInteractionProxy->setWebView(webView);
-    m_webInteractionProxy->setPos(QPointF(0,0));
+    m_webInteractionProxy->setPos(QPointF(0, 0));
 
     // View background needs to be updated.
     if (m_homeView)
@@ -316,7 +316,7 @@ void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
     // Create and display new home view.
     m_homeView = new HomeView(type, webviewSnapshot(), this);
     m_homeView->setWindowList(m_windowList);
-    connect(m_homeView, SIGNAL(pageSelected(const QUrl&)), this, SLOT(load(const QUrl&)));
+    connect(m_homeView, SIGNAL(pageSelected(QUrl)), this, SLOT(load(QUrl)));
     connect(m_homeView, SIGNAL(windowSelected(WebView*)), this, SLOT(windowSelected(WebView*)));
     connect(m_homeView, SIGNAL(windowClosed(WebView*)), this, SLOT(windowClosed(WebView*)));
     connect(m_homeView, SIGNAL(windowCreated()), this, SLOT(windowCreated()));
