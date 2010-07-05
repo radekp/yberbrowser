@@ -116,12 +116,10 @@ void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
         disconnect(oldView, SIGNAL(loadProgress(int)), this, SLOT(progressChanged(int)));
         disconnect(oldView, SIGNAL(urlChanged(QUrl)), this, SLOT(urlChanged(QUrl)));
         disconnect(oldView, SIGNAL(titleChanged(QString)), this, SLOT(setTitle(QString)));
-#if !USE_MEEGOTOUCH
 #if USE_WEBKIT2
         disconnect(oldView->page(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
 #else
         disconnect(oldView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
-#endif
 #endif
     }
 
@@ -129,12 +127,10 @@ void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
     connect(currentView, SIGNAL(loadProgress(int)), SLOT(progressChanged(int)));
     connect(currentView, SIGNAL(urlChanged(QUrl)), SLOT(urlChanged(QUrl)));
     connect(currentView, SIGNAL(titleChanged(QString)), SLOT(setTitle(QString)));
-#if !USE_MEEGOTOUCH
 #if USE_WEBKIT2
     connect(currentView->page(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
 #else
     connect(currentView->page()->mainFrame(), SIGNAL(initialLayoutCompleted()), m_browsingViewport, SLOT(reset()));
-#endif
 #endif
 }
 
