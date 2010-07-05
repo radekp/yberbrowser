@@ -50,9 +50,6 @@ public:
     void enableTileCache(bool enable) { m_tilingEnabled = enable; }
     bool tileCacheEnabled() const { return m_tilingEnabled; }
 
-    void enableEngineThread(bool enable) { m_engineThreadEnabled = enable; }
-    bool engineThreadEnabled() const { return m_engineThreadEnabled; }
-    
     void setPrivatePath(QString& path) { m_privatePath = path; }
     QString privatePath() const { return m_privatePath; }
 
@@ -69,7 +66,6 @@ private:
         m_showFPS = false;
         m_autoCompleteEnabled = true;
         m_tilingEnabled = true;
-        m_engineThreadEnabled = false;
 #if defined(Q_WS_MAEMO_5) || defined(Q_OS_SYMBIAN) || USE_MEEGOTOUCH
         m_isFullScreen = true;
 #else
@@ -83,7 +79,6 @@ private:
     bool m_showFPS;
     bool m_autoCompleteEnabled;
     bool m_tilingEnabled;
-    bool m_engineThreadEnabled;
     QString m_privatePath;
     bool m_isFullScreen;
 };

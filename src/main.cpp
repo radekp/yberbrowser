@@ -122,11 +122,6 @@ int main(int argc, char** argv)
 
     settings->enableTileCache(true);
 
-#if ENABLE(ENGINE_THREAD)
-    settings->enableEngineThread(true);
-#else
-    settings->enableEngineThread(false);
-#endif
     bool gotFlag = true;
     while (gotFlag) {
         if (args.count() > 1) {
@@ -151,11 +146,6 @@ int main(int argc, char** argv)
             } else if (args.at(1) == "-f") {
                 settings->enableFPS(true);
                 args.removeAt(1);
-#if ENABLE(ENGINE_THREAD)
-            } else if (args.at(1) == "-e") {
-                settings->enableEngineThread(false);
-                args.removeAt(1);
-#endif
             } else if (args.at(1) == "-?" || args.at(1) == "-h" || args.at(1) == "--help") {
                 usage(argv[0]);
                 return EXIT_SUCCESS;
@@ -169,11 +159,6 @@ int main(int argc, char** argv)
 
     if (args.count() > 1)
         url = args.at(1);
-
-#if ENABLE(ENGINE_THREAD)
-    if (settings->engineThreadEnabled())
-        QWebSettings::enableEngineThread();
-#endif
 
     QWebSettings::globalSettings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, settings->tileCacheEnabled());
 
@@ -202,9 +187,6 @@ void usage(const char* name)
     s << " -v enable tile visualization" << endl;
     s << " -f show fps counter" << endl;
     s << " -a disable url autocomplete" << endl;
-#if ENABLE(ENGINE_THREAD)
-    s << " -e disable engine thread" << endl;
-#endif
     s << " -h|-?|--help help" << endl;
     s << endl;
     s << " use http_proxy env var to set http proxy" << endl;
