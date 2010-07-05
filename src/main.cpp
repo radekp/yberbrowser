@@ -70,7 +70,6 @@ int main(int argc, char** argv)
 
     app->setApplicationName("yberbrowser");
 
-    QString url;
     QString privPath;
 #ifdef Q_OS_SYMBIAN
     privPath = QDir::toNativeSeparators(QApplication::applicationDirPath()) + QString("\\");
@@ -135,6 +134,7 @@ int main(int argc, char** argv)
         }
     }
 
+    QString url;
     if (args.count() > 1)
         url = args.at(1);
 
