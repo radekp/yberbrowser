@@ -40,12 +40,6 @@ contains(QT_CONFIG, maemo5)  {
     QT += maemo5 dbus
 }
 
-enable_engine_thread {
-    DEFINES+=ENABLE_ENGINE_THREAD=1
-} else {
-    DEFINES+=ENABLE_ENGINE_THREAD=0
-}
-
 enable_webkit2 {
     DEFINES+=USE_WEBKIT2=1
 } else {
