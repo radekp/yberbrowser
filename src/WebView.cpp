@@ -20,7 +20,7 @@
 
 #include "WebView.h"
 #if USE_WEBKIT2
-#include "WebKit2/WKFrame.h"
+#include <WebKit2/WKFrame.h>
 #endif
 #include "YberApplication.h"
 
@@ -32,7 +32,7 @@ static QWKPage* createNewPageCallback(QWKPage* page)
 }
 
 WebView::WebView(WKPageNamespaceRef namespaceRef, QGraphicsItem* parent)
-    : QWKGraphicsWidget(namespaceRef, QWKGraphicsWidget::Tiled, parent)
+    : QGraphicsWKView(namespaceRef, QGraphicsWKView::Tiled, parent)
     , m_fpsTicks(0)
 {
     applyPageSettings();
@@ -51,7 +51,7 @@ void WebView::paint(QPainter* p, const QStyleOptionGraphicsItem* option, QWidget
 {
     m_fpsTicks++;
 #if USE_WEBKIT2
-   QWKGraphicsWidget::paint(p, option, w);
+    QGraphicsWKView::paint(p, option, w);
 #else
     QGraphicsWebView::paint(p, option, w);
 #endif

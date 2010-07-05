@@ -28,7 +28,8 @@
 #if USE_WEBKIT2
 #define PLATFORM(x) 0
 #include <stdint.h>
-#include "WebKit2/WKRetainPtr.h"
+#include <WebKit2/WKContext.h>
+#include <WebKit2/WKRetainPtr.h>
 #endif
 
 #if USE_MEEGOTOUCH
@@ -128,7 +129,7 @@ private:
     HomeView::HomeWidgetType m_initialHomeWidget;
     ToolbarWidget* m_toolbarWidget;
     ApplicationWindow* m_appWin;
-#if USE_WEBKIT2    
+#if USE_WEBKIT2
     WKRetainPtr<WKContextRef> m_context;
 #endif
 };

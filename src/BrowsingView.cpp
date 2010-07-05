@@ -21,8 +21,8 @@
 #include "BrowsingView.h"
 
 #if USE_WEBKIT2
-#include "WebKit2/WKContext.h"
-#include "WebKit2/WKPageNamespace.h"
+#include <WebKit2/WKContext.h>
+#include <WebKit2/WKPageNamespace.h>
 #else
 #include "WebPage.h"
 #endif
@@ -94,7 +94,7 @@ BrowsingView::BrowsingView(YberApplication&, QGraphicsItem *parent)
     connect(m_toolbarWidget, SIGNAL(urlEditingFinished(const QString&)), SLOT(urlEditingFinished(const QString&)));
     connect(m_toolbarWidget, SIGNAL(urlEditorFocusChanged(bool)), SLOT(urlEditfocusChanged(bool)));
 #if USE_WEBKIT2
-    m_context.adopt(WKContextCreateWithProcessModel(kWKProcessModelSecondaryProcess));
+    m_context.adopt(WKContextGetSharedProcessContext());
 #endif
     // create and activate new window
     newWindow();

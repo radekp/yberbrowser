@@ -24,7 +24,7 @@
 #if USE_WEBKIT2
 #define PLATFORM(x) 0
 #include <stdint.h>
-#include <WebKit2/qwkgraphicswidget.h>
+#include <WebKit2/qgraphicswkview.h>
 #else
 #include <qgraphicswebview.h>
 #endif
@@ -33,12 +33,12 @@
 
 class WebView : public
 #if USE_WEBKIT2
-    QWKGraphicsWidget
+    QGraphicsWKView
 #else
-    QGraphicsWebView 
+    QGraphicsWebView
 #endif
-   {
-   Q_OBJECT
+    {
+    Q_OBJECT
 public:
 #if USE_WEBKIT2
     WebView(WKPageNamespaceRef namespaceRef, QGraphicsItem* parent = 0);
