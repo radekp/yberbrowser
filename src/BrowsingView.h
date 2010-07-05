@@ -110,7 +110,7 @@ protected Q_SLOTS:
 
 private:
     Q_DISABLE_COPY(BrowsingView)
-    
+
     void connectWebViewSignals(WebView* currentView, WebView* oldView);
     void updateHistoryStore(bool successLoad);
     QGraphicsPixmapItem* webviewSnapshot(bool darken = true);

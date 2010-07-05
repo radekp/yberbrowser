@@ -272,7 +272,11 @@ void PannableViewport::setPannedWidgetGeometry(const QRectF& g)
     r.setTop(r.top() + scrolloffsetY());
     m_pannedWidget->setGeometry(r);
     updateScrollbars();
-    extendUpdate(r);
+
+    // FIXME: Consider adding a background item instead.
+    QRegion viewport(geometry().toRect());
+    viewport.subtracted(QRegion(m_pannedWidget->geometry().toRect()));
+    update(viewport.boundingRect());
 }
 
 void PannableViewport::startPannedWidgetGeomAnim(const QRectF& geom)
@@ -323,21 +327,3 @@ int PannableViewport::scrolloffsetY() const
         offset+=m_attachedItem->boundingRect().height();
     return offset;
 }
-
-void PannableViewport::extendUpdate(const QRectF& updateRect)
-{
-    QRectF r(updateRect);
-    // extend update area when overshoting to avoid garbage (leftover) at
-    // the overshoot area
-    if (m_overShootDelta.x() > 0)
-        r.setLeft(r.left() - m_overShootDelta.x());
-    else
-        r.setRight(r.right() - m_overShootDelta.x());
-
-    if (m_overShootDelta.y() > 0)
-        r.setTop(r.top() - m_overShootDelta.y());
-    else
-        r.setBottom(r.bottom() - m_overShootDelta.y());
-    update(r);
-}
-
