@@ -50,9 +50,6 @@ public:
 
     void setWidget(QGraphicsWidget*);
 
-    void setAttachedWidget(QGraphicsItem*);
-    void setOffsetWidget(QGraphicsItem*);
-
 Q_SIGNALS:
     void panningStopped();
     void positionChanged(const QRectF&);
@@ -70,11 +67,8 @@ protected Q_SLOTS:
     void geomAnimStateChanged(QAbstractAnimation::State newState, QAbstractAnimation::State);
 
 protected:
-    QGraphicsWidget* m_pannedWidget;
     ScrollbarItem* m_vScrollbar;
     ScrollbarItem* m_hScrollbar;
-    QGraphicsItem* m_attachedItem;
-    QGraphicsItem* m_offsetItem;
 
 private:
     QSize viewportSize() const;
@@ -84,7 +78,6 @@ private:
     void setScrollPosition(const QPoint &pos, const QPoint &overShootDelta);
     void stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState);
     void updateScrollbars();
-    int scrolloffsetY() const;
 
     bool canStartScrollingAt(const QPoint &globalPos) const;
     QPointF clipPointToViewport(const QPointF& p) const;
@@ -93,6 +86,7 @@ private:
     QRectF adjustRectForPannedWidgetGeometry(const QRectF&);
 
 private:
+    QGraphicsWidget* m_pannedWidget;
     QPointF m_overShootDelta;
     QPointF m_extraPos;
     QRectF m_geomAnimEndValue;

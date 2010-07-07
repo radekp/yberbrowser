@@ -66,7 +66,6 @@ const int s_maxWindows = 6;
 
 }
 
-
 /*!
    \class BrowsingView view displaying the web page, e.g the main browser UI.
 */
@@ -80,20 +79,17 @@ BrowsingView::BrowsingView(QGraphicsItem *parent)
     , m_toolbarWidget(new ToolbarWidget(this))
     , m_appWin(0)
 {
+    setFlag(QGraphicsItem::ItemClipsToShape, true);
+    setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     m_browsingViewport = new WebViewport(m_webInteractionProxy, this);
-    m_browsingViewport->setAutoRange(false);
-#ifdef PERFECT_ATTACHED_TOOLBAR
-    m_browsingViewport->setAttachedWidget(m_toolbarWidget);
-#else
-    m_browsingViewport->setOffsetWidget(m_toolbarWidget);
-#endif
+
 
     connect(m_toolbarWidget, SIGNAL(bookmarkPressed()), SLOT(addBookmark()));
     connect(m_toolbarWidget, SIGNAL(backPressed()), SLOT(pageBack()));
     connect(m_toolbarWidget, SIGNAL(cancelPressed()), SLOT(stopLoad()));
     connect(m_toolbarWidget, SIGNAL(urlEditingFinished(QString)), SLOT(urlEditingFinished(QString)));
     connect(m_toolbarWidget, SIGNAL(urlEditorFocusChanged(bool)), SLOT(urlEditfocusChanged(bool)));
-
+    connect(m_toolbarWidget, SIGNAL(sizeUpdated()), this, SLOT(updateToolbarSpacing()));
 #if USE_WEBKIT2
     m_context.adopt(WKContextGetSharedProcessContext());
 #endif
@@ -106,8 +102,7 @@ BrowsingView::~BrowsingView()
 {
     delete m_autoScrollTest;
     delete m_homeView;
-    delete m_toolbarWidget;
-}
+ }
 
 void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
 {
@@ -160,7 +155,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
 
     QRectF r(rect());
     r.setHeight(ToolbarWidget::height());
-    m_toolbarWidget->setRect(r);
+    m_toolbarWidget->setGeometry(r);
 #if !USE_MEEGOTOUCH
     if (!m_appWin->updatesEnabled()) {
         QSizeF dsz = m_browsingViewport->size() - m_sizeBeforeResize;
@@ -264,7 +259,7 @@ void BrowsingView::setActiveWindow(WebView* webView)
     webView->show();
     m_activeWebView = webView;
     m_webInteractionProxy->setWebView(webView);
-    m_webInteractionProxy->setPos(QPointF(0, 0));
+    m_browsingViewport->reset();
 
     // View background needs to be updated.
     if (m_homeView)
@@ -436,10 +431,12 @@ void BrowsingView::startAutoScrollTest()
     if (Settings::instance()->isFullScreen() && !m_appWin->isFullScreen())
         toggleFullScreen();
     delete m_autoScrollTest;
+#if 0
     m_autoScrollTest = new AutoScrollTest(m_browsingViewport, m_activeWebView, this);
     m_autoScrollTest->resize(rect().size());
     connect(m_autoScrollTest, SIGNAL(finished()), this, SLOT(finishedAutoScrollTest()));
     m_autoScrollTest->starScrollTest();
+#endif
 }
 
 void BrowsingView::finishedAutoScrollTest()
@@ -471,3 +468,13 @@ QGraphicsPixmapItem* BrowsingView::webviewSnapshot(bool darken)
     return new QGraphicsPixmapItem(QPixmap::fromImage(thumbnail));
 }
 
+
+void BrowsingView::updateToolbarSpacing()
+{
+    qreal h = m_toolbarWidget->size().height();
+    QRectF r = geometry();
+    r.setTop(h);
+
+    m_browsingViewport->setGeometry(r);
+
+}

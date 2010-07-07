@@ -29,7 +29,10 @@
 #include "qwebelement.h"
 
 #include <QGraphicsScene>
+#include <QGraphicsLinearLayout>
 #include <QMetaMethod>
+
+ #include <QGraphicsSceneResizeEvent>
 
 //#define ENABLE_LINK_SELECTION_DEBUG
 
@@ -65,9 +68,9 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
     , m_clickablePointItem(0)
 #endif
 {
-    m_recognizer.reset();
-
+    setAutoRange(false);
     setWidget(viewportWidget);
+
     connect(viewportWidget, SIGNAL(contentsSizeChangeCausedResize()), this, SLOT(contentsSizeChangeCausedResize()));
     connect(viewportWidget, SIGNAL(zoomRectForPointReceived(const QPointF&, const QRectF&)), SLOT(zoomRectForPointReceived(const QPointF&, const QRectF&)));
     m_backingStoreUpdateEnableTimer.setSingleShot(true);
@@ -80,6 +83,7 @@ WebViewport::~WebViewport()
 {
     delete m_delayedMouseReleaseEvent;
     delete m_linkSelectionItem;
+
 #if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
     delete m_searchRectItem;
     delete m_clickablePointItem;
@@ -155,7 +159,9 @@ void WebViewport::cancelLeftMouseButtonPress(const QPoint&)
 {
     // don't send the mouse press event after this callback.
     // QAbstractCKineticScroller started panning
+#if 0
     m_recognizer.clearDelayedPress();
+#endif
 }
 
 void WebViewport::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
@@ -436,7 +442,6 @@ void WebViewport::startZoomAnimToItemHotspot(const QPointF& hotspot, const QPoin
 
     // mark that interaction has happened
     m_viewportWidget->setResizeMode(WebViewportItem::ResizeWidgetToContent);
-
     startPannedWidgetGeomAnim(r);
 }
 
@@ -448,6 +453,7 @@ bool WebViewport::isZoomedIn() const
 void WebViewport::reset()
 {
     stopPannedWidgetGeomAnim();
+
     // mark that interaction has not happened
     m_viewportWidget->setResizeMode(WebViewportItem::ResizeWidgetHeightToContent);
     setPannedWidgetGeometry(QRectF(QPointF(), m_viewportWidget->contentsSize() * (size().width() / m_viewportWidget->contentsSize().width())));
@@ -484,3 +490,4 @@ void WebViewport::enableBackingStoreUpdates()
     m_panningState = Inactive;
     m_viewportWidget->enableContentUpdates();
 }
+

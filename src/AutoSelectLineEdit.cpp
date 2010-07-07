@@ -24,7 +24,10 @@
 #include "KeypadWidget.h"
 #include "PopupView.h"
 #include "ToolbarWidget.h"
-
+#include "YberApplication.h"
+#if USE_MEEGOTOUCH
+#include <MApplicationPage>
+#endif
 #include <QUrl>
 
 const int s_clientItemMargin = 5;
@@ -72,13 +75,6 @@ void AutoSelectLineEdit::setGeometry(const QRectF& rect)
 {
     QGraphicsWidget::setGeometry(rect);
     m_proxyWidget->resize(rect.size());
-
-    if (m_virtualKeypad) {
-        QRectF r(parentWidget()->rect());
-        m_virtualKeypad->setPos(r.topLeft());
-        m_virtualKeypad->resize(r.size());
-        m_virtualKeypad->appear(r.bottom());
-    }
 
 #ifdef Q_OS_SYMBIAN
     // FIXME why does the text color change on orientation
@@ -216,8 +212,10 @@ bool AutoSelectLineEdit::realFocusEvent()
 
 void AutoSelectLineEdit::createVirtualKeypad()
 {
-    QRectF r(parentWidget()->rect());
-    m_virtualKeypad = new KeypadWidget(parentWidget());
+    QRectF r(parentView()->geometry());
+    qDebug() << parentView() << parentView()->geometry();
+
+    m_virtualKeypad = new KeypadWidget(parentView());
     m_virtualKeypad->setPos(r.topLeft());
     m_virtualKeypad->resize(r.size());
     m_virtualKeypad->appear(r.bottom());
@@ -237,7 +235,7 @@ void AutoSelectLineEdit::createVirtualKeypad()
 void AutoSelectLineEdit::createUrlFilterPopup()
 {
     QRectF r(clientRect());
-    m_urlfilterPopup = new PopupView(this);
+    m_urlfilterPopup = new PopupView(parentView());
     m_urlfilterPopup->setPos(r.topLeft());
     m_urlfilterPopup->resize(r.size());
     m_urlfilterPopup->appear();
@@ -256,7 +254,7 @@ QRectF AutoSelectLineEdit::clientRect() const
 {
     // client items like keypad and popup should offset back to
     // the edge of the screen
-    QRectF r(parentWidget()->geometry());
+    QRectF r(parentView()->geometry());
     r.moveLeft(r.left() - pos().x());
     r.moveTop(rect().bottom() + s_clientItemMargin);
     r.setHeight(r.height() - rect().height() - s_clientItemMargin);
@@ -271,3 +269,7 @@ void AutoSelectLineEdit::cleanupAndSendFinished(const QString& text)
     emit textEditingFinished(text);
 }
 
+QGraphicsWidget* AutoSelectLineEdit::parentView()
+{
+    return YberApplication::instance()->activeApplicationWindow()->currentPage();
+}

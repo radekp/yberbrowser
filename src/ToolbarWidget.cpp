@@ -40,7 +40,7 @@ const int s_shrinkAnimTimeout = 500;
 #endif
 
 ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
-    : QGraphicsRectItem(parent)
+    : QGraphicsWidget(parent)
     , m_bookmarksIcon(QImage(":/data/icon/48x48/bookmarks_48.png"))
     , m_backIcon(QImage(":/data/icon/48x48/back_48.png"))
     , m_cancelIcon(QImage(":/data/icon/48x48/stop_48.png"))
@@ -76,9 +76,9 @@ int ToolbarWidget::height()
 
 void ToolbarWidget::setToolbarHeight(int height)
 {
-    QRectF r(rect());
+    QRectF r(geometry());
     r.setHeight(height);
-    setRect(r);
+    setGeometry(r);
 }
 
 int ToolbarWidget::toolbarHeight()
@@ -147,14 +147,12 @@ void ToolbarWidget::keypadVisible(bool on)
 void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
 {
     painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+    QRectF r(rect());
 
     static QRectF oldRect;
-    QRectF r(rect());
     bool geometryChanged = (r != oldRect);
     oldRect = r;
     if (geometryChanged) {
-        m_urlEdit->setGeometry(QRectF(QPointF(r.left() + s_iconSize, r.top()), QSizeF(r.width() - 2 * s_iconSize, r.height())));
-
         m_bckgGradient.setStart(rect().bottomLeft());
         m_bckgGradient.setFinalStop(rect().topLeft());
     }
@@ -179,7 +177,7 @@ void ToolbarWidget::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QW
     painter->setBrush(QColor(20, 20, 20, 120));
 
     // dont paint icons while in thin mode
-    if (rect().height() == height()) {
+    if (size().height() == s_toolbarSize) {
         // bookmark icon and bckg
         r.setRight(editorX);
         painter->drawRoundedRect(r, 3, 3);
@@ -217,15 +215,38 @@ void ToolbarWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     } 
 }
 
-void ToolbarWidget::animateToolbarMove(bool on)
+void ToolbarWidget::animateToolbarMove(bool animateToSmall)
 {
-    QPropertyAnimation* moveAnim = new QPropertyAnimation(this, "toolbarHeight");
+    QPropertyAnimation* moveAnim = new QPropertyAnimation(this, "geometry");
     moveAnim->setDuration(s_shrinkAnimTimeout);
 
-    moveAnim->setStartValue(rect().height());
-    moveAnim->setEndValue(on ? s_thinToolbarHeight : height());
+    moveAnim->setStartValue(geometry());
+    QRectF tgt = geometry();
+    tgt.setHeight(animateToSmall ? s_thinToolbarHeight : s_toolbarSize);
+    moveAnim->setEndValue(tgt);
 
     moveAnim->setEasingCurve(QEasingCurve::OutQuad);
     moveAnim->start();
 }
 
+/*!
+ * \reimp
+ * we need to catch resize because the layout of WebViewport depends
+ * on the size of the toolbar. However, we have two modes:
+ * 1) fixed to content
+ * 2) fixed to viewport
+ *
+ * In mode 1, we could catch resizes from a custom QGraphicsLayout
+ * In mode 2, we want to add the toolbar to the parent layout,
+ * e.g BrowsingView layout. This is to prevent moving the toolbar
+ * constantly as the content inside viewport moves (e.g. the
+ * toolbar is not inside the viewport, but it affects the viewport
+ * layout
+ */
+void ToolbarWidget::setGeometry(const QRectF& r)
+{
+    QGraphicsWidget::setGeometry(r);
+    m_urlEdit->setGeometry(QRectF(QPointF(r.left() + s_iconSize, r.top()), QSizeF(r.width() - 2 * s_iconSize, r.height())));
+
+    emit sizeUpdated();
+}

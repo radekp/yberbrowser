@@ -21,7 +21,7 @@
 #ifndef ToolbarWidget_h_
 #define ToolbarWidget_h_
 
-#include <QGraphicsRectItem>
+#include <QGraphicsWidget>
 #include <QLinearGradient>
 
 class PopupView;
@@ -31,7 +31,7 @@ class QWidget;
 class QGraphicsSceneMouseEvent;
 class AutoSelectLineEdit;
 
-class ToolbarWidget : public QObject, public QGraphicsRectItem {
+class ToolbarWidget : public QGraphicsWidget {
     Q_OBJECT
     Q_PROPERTY(int toolbarHeight READ toolbarHeight WRITE setToolbarHeight)
 public:
@@ -47,12 +47,15 @@ public:
 
     void showKeypad();
 
+    void setGeometry(const QRectF&);
+
 Q_SIGNALS:
     void bookmarkPressed();
     void cancelPressed();
     void backPressed();
     void urlEditingFinished(const QString& url);
     void urlEditorFocusChanged(bool);
+    void sizeUpdated();
 
 protected Q_SLOTS:
     void textEdited(const QString&);

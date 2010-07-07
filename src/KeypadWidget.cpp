@@ -22,12 +22,16 @@
 #include "FontFactory.h"
 #include "PopupView.h"
 #include "AutoSelectLineEdit.h"
+#include "YberApplication.h"
 
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 #include <QPainter>
 #include <QUrl>
 #include <QDebug>
+#if USE_MEEGOTOUCH
+#include <MApplicationPage>
+#endif
 
 #ifdef Q_OS_SYMBIAN
 const int s_keypadXMargin = 1;
@@ -392,7 +396,7 @@ void KeypadWidget::layoutKeypad()
 
 qreal KeypadWidget::keyProportion()
 {
-    bool landscape = parentWidget()->size().width() > parentWidget()->size().height();
+    bool landscape = parentView()->size().width() > parentView()->size().height();
     return landscape ? s_keySizeProportionLandscape : s_keySizeProportionPortrait;
 }
 
@@ -401,6 +405,11 @@ void KeypadWidget::deleteButtons()
     for (int i = m_buttons.size() - 1; i >= 0; --i)
         delete m_buttons.takeAt(i);
     m_prevButton = 0;
+}
+
+QGraphicsWidget* KeypadWidget::parentView()
+{
+    return YberApplication::instance()->activeApplicationWindow()->currentPage();
 }
 
 #include "KeypadWidget.moc"

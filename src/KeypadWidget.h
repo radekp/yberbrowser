@@ -67,6 +67,7 @@ private:
     void layoutKeypad();
     qreal keyProportion();
     void deleteButtons();
+    static QGraphicsWidget* parentView();
 
 private:
     PopupView* m_urlfilterPopup;

@@ -50,6 +50,8 @@ public:
 
     void setTitle(const QString& title);
 
+    QGraphicsWidget* currentPage() const { return m_page; }
+
 protected:
     void resizeEvent(QResizeEvent* event);
 

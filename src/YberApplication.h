@@ -36,6 +36,8 @@ public:
 
     void createMainView(const QUrl& url);
 
+    ApplicationWindow* activeApplicationWindow() const { return m_appwin; }
+
     CookieJar* cookieJar() const;
 
     static YberApplication* instance();

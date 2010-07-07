@@ -68,6 +68,7 @@ void YberApplication::startWithWindow(ApplicationWindow* appwin)
         else
             m_appwin->show();
     }
+
 }
 
 void YberApplication::createMainView(const QUrl& url)

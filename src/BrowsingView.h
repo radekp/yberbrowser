@@ -51,7 +51,7 @@ typedef QMenuBar MenuBar;
 
 class WebView;
 class WebViewportItem;
-class PannableViewport;
+class WebViewport;
 class AutoScrollTest;
 class PopupView;
 class QGraphicsPixmapItem;
@@ -70,6 +70,9 @@ public:
     void appear(ApplicationWindow* window);
 #endif
     void createHomeView(HomeView::HomeWidgetType type);
+
+    void setAttachedWidget(QGraphicsItem*);
+    void setOffsetWidget(QGraphicsItem*);
 
 public Q_SLOTS:
     void load(const QUrl&);
@@ -106,6 +109,7 @@ protected Q_SLOTS:
     void windowClosed(WebView* webView);
     void windowCreated();
     void deleteHomeView();
+    void updateToolbarSpacing();
 
 private:
     Q_DISABLE_COPY(BrowsingView)
@@ -113,13 +117,13 @@ private:
     void connectWebViewSignals(WebView* currentView, WebView* oldView);
     void updateHistoryStore(bool successLoad);
     QGraphicsPixmapItem* webviewSnapshot(bool darken = true);
-
+    
 #if !USE_MEEGOTOUCH
     QMenuBar* createMenu(QWidget* parent);
 #endif
 
     WebView* m_activeWebView;
-    PannableViewport* m_browsingViewport;
+    WebViewport* m_browsingViewport;
     WebViewportItem* m_webInteractionProxy;
     QSizeF m_sizeBeforeResize;
     AutoScrollTest* m_autoScrollTest;

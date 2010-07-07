@@ -96,9 +96,9 @@ WebViewportItem::~WebViewportItem()
 {
 }
 
-void WebViewportItem::setWebView(WebView* webView) 
-{ 
-    m_webView = webView; 
+void WebViewportItem::setWebView(WebView* webView)
+{
+    m_webView = webView;
     m_webView->setParentItem(this);
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
 
@@ -128,19 +128,31 @@ void WebViewportItem::commitZoom()
 \fn void WebViewportItem::contentsSizeChangeCausedResize()
 This signal is emitted when contents size has changed and vieport item is resized due to this
 */
-void WebViewportItem::webViewContentsSizeChanged(const QSize& sz)
+void WebViewportItem::webViewContentsSizeChanged(const QSize& newContentsSize)
 {
 #if USE_WEBKIT2
     m_webView->setGeometry(QRect(0, 0, sz.width(), sz.height()));
 #endif
-    m_contentSize = sz;
-    qreal scale = zoomScale();
+    QSizeF currentSize = size();
+    qreal targetScale = zoomScale();
 
+    m_contentSize = newContentsSize;
+#if 0
     if (m_resizeMode == WebViewportItem::ResizeWidgetHeightToContent
-        || contentsSize().width() * scale < size().width())
-        scale = size().width() / contentsSize().width();
+        || (newContentsSize.width() * targetScale) < currentSize.width()) {
+        targetScale = currentSize.width() / newContentsSize.width();
+    }
+#endif
 
-    resize(contentsSize() * scale);
+    QSizeF scaledSize = newContentsSize * targetScale;
+    qDebug() << scaledSize << newContentsSize << m_resizeMode;
+
+    setMaximumSize(scaledSize);
+    setMinimumSize(scaledSize);
+    setPreferredSize(scaledSize);
+    resize(scaledSize);
+
+
     emit contentsSizeChangeCausedResize();
 }
 
@@ -163,9 +175,7 @@ QSize WebViewportItem::contentsSize() const
 #if USE_WEBKIT2
     return m_contentSize;
 #else
-    if (!m_webView->url().isEmpty())
-        return m_webView->page()->mainFrame()->contentsSize();
-    return parentWidget()->size().toSize();
+    return m_webView->page()->mainFrame()->contentsSize();
 #endif
 }
 
@@ -173,6 +183,7 @@ void WebViewportItem::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
     QGraphicsWidget::resizeEvent(event);
     setZoomScale(size().width() / contentsSize().width());
+    qDebug() << size();
 }
 
 void WebViewportItem::disableContentUpdates()

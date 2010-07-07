@@ -83,6 +83,7 @@ private:
     void createUrlFilterPopup();
     QRectF clientRect() const;
     void cleanupAndSendFinished(const QString& text);
+    static QGraphicsWidget* parentView();
 
 private:
     friend class AutoSelectLineEditPrivate;
