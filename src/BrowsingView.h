@@ -24,6 +24,7 @@
 #include "yberconfig.h"
 #include "TileSelectionViewBase.h"
 #include "HomeView.h"
+#include "ApplicationWindow.h"
 
 #if USE_WEBKIT2
 #define PLATFORM(x) 0
@@ -51,7 +52,6 @@ typedef QMenuBar MenuBar;
 class WebView;
 class WebViewportItem;
 class PannableViewport;
-class ApplicationWindow;
 class AutoScrollTest;
 class PopupView;
 class QGraphicsPixmapItem;

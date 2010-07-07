@@ -54,18 +54,25 @@
 #if USE_MEEGOTOUCH
 #include <MApplication>
 #include <MApplicationPage>
-#include <MApplicationWindow>
+#include <MComponentCache>
 #endif
+
+#include "ApplicationWindow.h"
 
 void usage(const char* name);
 
 
+#if USE_MEEGOTOUCH
+M_EXPORT
+#endif
 int main(int argc, char** argv)
 {
-#if USE_MEEGOTOUCH
-    MApplication* app = new MApplication(argc, argv);
+ #if USE_MEEGOTOUCH
+    MApplication* app = MComponentCache::mApplication(argc, argv);
+    MApplicationWindow* window = MComponentCache::mApplicationWindow();
 #else
     QApplication* app = new QApplication(argc, argv);
+    ApplicationWindow* window = new ApplicationWindow();
 #endif
 
     app->setApplicationName("yberbrowser");
@@ -141,7 +148,7 @@ int main(int argc, char** argv)
     QWebSettings::globalSettings()->setAttribute(QWebSettings::TiledBackingStoreEnabled, settings->tileCacheEnabled());
 
 
-    YberApplication::instance()->start();
+    YberApplication::instance()->startWithWindow(window);
     YberApplication::instance()->createMainView(urlFromUserInput(url));
 
     for (int i = 2; i < args.count(); i++) {

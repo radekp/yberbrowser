@@ -26,12 +26,7 @@
 #if USE_MEEGOTOUCH
 
 #include <MApplicationWindow>
-class ApplicationWindow :  public MApplicationWindow 
-{
-public:
-    void showFullScreen() { show(); }
-};
-
+typedef class MApplicationWindow ApplicationWindow;
 
 #else
 

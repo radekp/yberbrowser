@@ -57,10 +57,12 @@ YberApplication::~YberApplication()
     delete m_cookieJar;
 }
 
-void YberApplication::start()
+void YberApplication::startWithWindow(ApplicationWindow* appwin)
 {
+    Q_ASSERT(!m_appwin);
+
     if (!m_appwin) {
-        m_appwin = new ApplicationWindow();
+        m_appwin = appwin;
         if (Settings::instance()->isFullScreen())
             m_appwin->showFullScreen();
         else

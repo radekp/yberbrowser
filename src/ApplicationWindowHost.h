@@ -30,7 +30,7 @@
 
 #include <QMainWindow>
 
-class ApplicationWindow;
+#include "ApplicationWindow.h"
 
 class ApplicationWindowHost : public QMainWindow
 {

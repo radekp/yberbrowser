@@ -32,7 +32,7 @@ public:
     explicit YberApplication();
     ~YberApplication();
 
-    void start();
+    void startWithWindow(ApplicationWindow*);
 
     void createMainView(const QUrl& url);
 

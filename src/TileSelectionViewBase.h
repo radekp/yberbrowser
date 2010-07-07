@@ -23,8 +23,8 @@
 
 #include <QGraphicsWidget>
 
+#include "ApplicationWindow.h"
 class QGraphicsPixmapItem;
-class ApplicationWindow;
 class TileItem;
 class QGraphicsSceneMouseEvent;
 
