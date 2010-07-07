@@ -48,8 +48,12 @@ ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     , m_urlEdit(new AutoSelectLineEdit(this))
 {
 #ifndef Q_OS_SYMBIAN
-    setCacheMode(QGraphicsItem::DeviceCoordinateCache);
-#endif    
+    //FIXME: cache mode is disabled, because it causes the icons not
+    // to draw when animating back from the shrink state. This is due
+    // to paint() being called for intermediate fractional size (like
+    // 47.8), but not at the end size (like 48)
+    // setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+#endif
     connect(m_urlEdit, SIGNAL(textEdited(const QString&)), SLOT(textEdited(const QString&)));
     connect(m_urlEdit, SIGNAL(textEditingFinished(const QString&)), SLOT(textEditingFinished(const QString&)));
     connect(m_urlEdit, SIGNAL(focusChanged(bool)), SLOT(editorFocusChanged(bool)));
