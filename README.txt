@@ -62,6 +62,34 @@ make
 ./yberbrowser
 
 
+---+ Building with meegotouch
+
+To build yberbrowser on host with meegotouch follow instructions below.
+
+Fetch meegotouch as follows:
+
+git clone git://gitorious.org/maemo-6-ui-framework/libdui.git libdui
+git clone git://gitorious.org/maemo-6-ui-framework/duitheme.git duitheme
+
+Build meegotouch as follows:
+
+cd libdui && \
+./configure && \
+qmake && \
+make -j3 && \
+sudo make install
+
+cd duitheme && \
+qmake && \
+make -j3 && \
+sudo make install
+
+Configure yber
+
+mkdir builddir-host
+cd builddir-host
+qmake ../yberbrowser.pro WEBKIT=system CONFIG+=meegotouch
+
 ---+ Build notes
 
 Build scripts will one of following dirs:
@@ -107,6 +135,8 @@ qmake ../yberbrowser.pro WEBKIT=local WEBKIT_PATH=`pwd`/../webkit/
 
 
 
+
+
 Variables for qmake
 -------------------
 
@@ -118,6 +148,11 @@ WEBKIT_PATH= full path to webkit sources, where webkit is also built by default
 WEBKIT_BUILD_PATH= override the full path where the webkit has been built to
 WEBKIT_BUILD_MODE= override what mode the webkit has been built (used unless WEBKIT_BUILD_PATH has been defined)
 
+
+
+CONFIG+=meegotouch
+
+builds meegotouch version.
 
 
 Day-to-day development
