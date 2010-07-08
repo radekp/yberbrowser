@@ -78,10 +78,20 @@ private:
     void wheelEventFromChild(QGraphicsSceneWheelEvent *event);
     bool mouseEventFromChild(QGraphicsSceneMouseEvent *event);
     bool isZoomedIn() const;
-    void stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState);
+
+    enum PanningState {
+        Inactive,
+        Pushing
+    };
+
+private Q_SLOTS:
+    void webPanningStarted();
+    void webPanningStopped();
 
 private:
     WebViewportItem* m_viewportWidget;
+    PanningState m_panningState;
+
     CommonGestureRecognizer m_recognizer;
     QEvent* m_selfSentEvent;
 

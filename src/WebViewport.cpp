@@ -55,6 +55,7 @@ const int backingStoreUpdateEnableDelay = 700;
 WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
     : PannableViewport(parent)
     , m_viewportWidget(viewportWidget)
+    , m_panningState(WebViewport::Inactive)
     , m_recognizer(this)
     , m_selfSentEvent(0)
     , m_linkSelectionItem(0)
@@ -66,11 +67,13 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
 {
     m_recognizer.reset();
 
-    setPannedWidget(viewportWidget);
+    setWidget(viewportWidget);
     connect(viewportWidget, SIGNAL(contentsSizeChangeCausedResize()), this, SLOT(contentsSizeChangeCausedResize()));
     connect(viewportWidget, SIGNAL(zoomRectForPointReceived(const QPointF&, const QRectF&)), SLOT(zoomRectForPointReceived(const QPointF&, const QRectF&)));
     m_backingStoreUpdateEnableTimer.setSingleShot(true);
     connect(&m_backingStoreUpdateEnableTimer, SIGNAL(timeout()), this, SLOT(enableBackingStoreUpdates()));
+    connect(this, SIGNAL(positionChanged(QRectF)), this, SLOT(webPanningStarted()));
+    connect(this, SIGNAL(panningStopped()), this, SLOT(webPanningStopped()));
 }
 
 WebViewport::~WebViewport()
@@ -456,19 +459,28 @@ void WebViewport::contentsSizeChangeCausedResize()
     stopPannedWidgetGeomAnim();
 }
 
-void WebViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState)
+void WebViewport::webPanningStarted()
 {
-    PannableViewport::stateChanged(oldState, newState);
     // turn on and off tile creating while autoscrolling
-    if (newState == YberHack_Qt::QAbstractKineticScroller::Pushing) {
+    if (m_panningState != WebViewport::Pushing) {
+        m_panningState = Pushing;
         m_backingStoreUpdateEnableTimer.stop();
         m_viewportWidget->disableContentUpdates();
-    } else if (newState == YberHack_Qt::QAbstractKineticScroller::Inactive)
+    }
+}
+
+void WebViewport::webPanningStopped()
+{
+    if (m_panningState != WebViewport::Inactive) {
         // m_viewportWidget->enableContentUpdates();
+        m_panningState = Inactive;
         m_backingStoreUpdateEnableTimer.start(backingStoreUpdateEnableDelay);
+
+    }
 }
 
 void WebViewport::enableBackingStoreUpdates()
 {
+    m_panningState = Inactive;
     m_viewportWidget->enableContentUpdates();
 }

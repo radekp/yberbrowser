@@ -127,7 +127,7 @@ PopupView::PopupView(QGraphicsItem* parent, Qt::WindowFlags wFlags)
     , m_popupWidget(new PopupWidget(this, wFlags))
     , m_pannableContainer(new PannableViewport(this, wFlags))
 {
-    m_pannableContainer->setPannedWidget(m_popupWidget);
+    m_pannableContainer->setWidget(m_popupWidget);
     connect(m_popupWidget, SIGNAL(closeWidget(void)), this, SLOT(closeViewSoon()));
     connect(m_suggestTimer, SIGNAL(timeout()), this, SLOT(startSuggest()));
     connect(m_suggest, SIGNAL(suggestionsAvailable()), this, SLOT(populateSuggestion()));

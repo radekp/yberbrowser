@@ -57,9 +57,9 @@ HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsPixmapItem* bckg, QGra
     , m_pannableWindowSelectContainer(new PannableTileContainer(this, wFlags))
     , m_windowList(0) 
 {
-    m_pannableHistoryContainer->setPannedWidget(m_historyWidget);
-    m_pannableBookmarkContainer->setPannedWidget(m_bookmarkWidget);
-    m_pannableWindowSelectContainer->setPannedWidget(m_tabWidget);
+    m_pannableHistoryContainer->setWidget(m_historyWidget);
+    m_pannableBookmarkContainer->setWidget(m_bookmarkWidget);
+    m_pannableWindowSelectContainer->setWidget(m_tabWidget);
     
     m_tabWidget->setEditMode(true);
 

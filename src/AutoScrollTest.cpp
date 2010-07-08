@@ -80,11 +80,11 @@ void AutoScrollTest::starScrollTest()
 
 void AutoScrollTest::doScroll()
 {
-    QPointF panPos(m_viewport->panPos().x(), m_viewport->panPos().y() - m_scrollValue);
-    m_viewport->setPanPos(panPos);
+    QPointF position(m_viewport->position().x(), m_viewport->position().y() - m_scrollValue);
+    m_viewport->setPosition(position);
 
     // switch direction
-    if (panPos.y() != m_viewport->panPos().y())
+    if (position.y() != m_viewport->position().y())
         m_scrollValue = -m_scrollValue;
 }
 

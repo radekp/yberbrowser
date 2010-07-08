@@ -67,12 +67,12 @@ PannableViewport::~PannableViewport()
 {
 }
 
-void PannableViewport::setPanPos(const QPointF& pos)
+void PannableViewport::setPosition(const QPointF& pos)
 {
     setPannedWidgetGeometry(QRectF(pos, m_pannedWidget->size() + QSize(0, scrolloffsetY())));
 }
 
-QPointF PannableViewport::panPos() const
+QPointF PannableViewport::position() const
 {
     return m_pannedWidget->pos() - m_extraPos - m_overShootDelta - (QPointF(0, scrolloffsetY()));
 }
@@ -81,7 +81,7 @@ void PannableViewport::setRange(const QRectF& )
 {
 }
 
-void PannableViewport::setPannedWidget(QGraphicsWidget* view)
+void PannableViewport::setWidget(QGraphicsWidget* view)
 {
     if (view == m_pannedWidget)
         return;
@@ -135,7 +135,7 @@ QSize PannableViewport::viewportSize() const
 
 QPoint PannableViewport::scrollPosition() const
 {
-    return (-panPos()).toPoint();
+    return (-position()).toPoint();
 }
 
 void PannableViewport::updateScrollbars()
@@ -143,7 +143,7 @@ void PannableViewport::updateScrollbars()
     // FIXME: find out how to update marging based on the attached widget when the widget boundingrect is changed
     m_vScrollbar->setMargins(scrolloffsetY() + 5, -1);
 
-    QPointF contentPos = panPos();
+    QPointF contentPos = position();
     QSizeF contentSize = m_pannedWidget->size();
 
     bool shouldFadeOut = !(state() == YberHack_Qt::QAbstractKineticScroller::MousePressed || state() == YberHack_Qt::QAbstractKineticScroller::Pushing);
@@ -155,13 +155,16 @@ void PannableViewport::updateScrollbars()
 void PannableViewport::setScrollPosition(const QPoint &pos, const QPoint &overShootDelta)
 {
     m_overShootDelta = overShootDelta;
-    setPanPos(-pos);
+    setPosition(-pos);
 }
 
 void PannableViewport::stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState)
 {
     YberHack_Qt::QAbstractKineticScroller::stateChanged(oldState, newState);
     updateScrollbars();
+
+    if (newState == YberHack_Qt::QAbstractKineticScroller::Inactive)
+        emit panningStopped();
 }
 
 bool PannableViewport::canStartScrollingAt(const QPoint &globalPos) const
@@ -277,6 +280,8 @@ void PannableViewport::setPannedWidgetGeometry(const QRectF& g)
     QRegion viewport(geometry().toRect());
     viewport.subtracted(QRegion(m_pannedWidget->geometry().toRect()));
     update(viewport.boundingRect());
+
+    emit positionChanged(geometry());
 }
 
 void PannableViewport::startPannedWidgetGeomAnim(const QRectF& geom)

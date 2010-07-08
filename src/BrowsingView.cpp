@@ -165,7 +165,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
     if (!m_appWin->updatesEnabled()) {
         QSizeF dsz = m_browsingViewport->size() - m_sizeBeforeResize;
         QPointF d(dsz.width(), dsz.height());
-        m_browsingViewport->setPanPos(m_browsingViewport->panPos() + d);
+        m_browsingViewport->setPosition(m_browsingViewport->position() + d);
         m_appWin->setUpdatesEnabled(true);
     }
 #endif

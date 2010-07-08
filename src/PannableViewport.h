@@ -32,39 +32,34 @@
 class ScrollbarItem;
 class QGraphicsItem;
 
-class PannableViewport : public QGraphicsWidget, public YberHack_Qt::QAbstractKineticScroller
+class PannableViewport : public QGraphicsWidget, private YberHack_Qt::QAbstractKineticScroller
 {
     Q_OBJECT
-    Q_PROPERTY(QPointF panPos READ panPos WRITE setPanPos)
-public:
+    Q_DISABLE_COPY(PannableViewport);
+    Q_PROPERTY(QPointF position READ position WRITE setPosition)
 
-    PannableViewport(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+public:
+    explicit PannableViewport(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     ~PannableViewport();
 
-    void setPanPos(const QPointF& pos);
-    QPointF panPos() const;
+    void setPosition(const QPointF& pos);
+    QPointF position() const;
 
     void setRange(const QRectF&);
     void setAutoRange(bool) { }
 
-    void setPannedWidget(QGraphicsWidget*);
-    void removePannedWidget() { m_pannedWidget = 0; }
+    void setWidget(QGraphicsWidget*);
 
     void setAttachedWidget(QGraphicsItem*);
     void setOffsetWidget(QGraphicsItem*);
 
+Q_SIGNALS:
+    void panningStopped();
+    void positionChanged(const QRectF&);
+
 protected:
     bool sceneEvent(QEvent* e);
     bool sceneEventFilter(QGraphicsItem *i, QEvent *e);
-
-    QSize viewportSize() const;
-    QPoint maximumScrollPosition() const;
-    QPoint scrollPosition() const;
-    void setScrollPosition(const QPoint &pos, const QPoint &overShootDelta);
-
-    virtual void stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState);
-    bool canStartScrollingAt(const QPoint &globalPos) const;
-    QPointF clipPointToViewport(const QPointF& p) const;
 
     virtual void setPannedWidgetGeometry(const QRectF& r);
 
@@ -82,13 +77,22 @@ protected:
     QGraphicsItem* m_offsetItem;
 
 private:
+    QSize viewportSize() const;
+
+    QPoint maximumScrollPosition() const;
+    QPoint scrollPosition() const;
+    void setScrollPosition(const QPoint &pos, const QPoint &overShootDelta);
+    void stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState);
     void updateScrollbars();
     int scrolloffsetY() const;
 
-private:
+    bool canStartScrollingAt(const QPoint &globalPos) const;
+    QPointF clipPointToViewport(const QPointF& p) const;
+
     void transferAnimStateToView();
     QRectF adjustRectForPannedWidgetGeometry(const QRectF&);
 
+private:
     QPointF m_overShootDelta;
     QPointF m_extraPos;
     QRectF m_geomAnimEndValue;
