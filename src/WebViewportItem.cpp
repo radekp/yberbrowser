@@ -87,7 +87,6 @@ WebViewportItem::WebViewportItem(QGraphicsWidget* parent, Qt::WindowFlags wFlags
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     setFlag(QGraphicsItem::ItemClipsToShape, true);
 
-    setFiltersChildEvents(true);
     connect(&m_zoomCommitTimer, SIGNAL(timeout()), this, SLOT(commitZoom()));
     m_zoomCommitTimer.setSingleShot(true);
 }

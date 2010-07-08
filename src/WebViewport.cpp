@@ -70,6 +70,7 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
     , m_clickablePointItem(0)
 #endif
 {
+    setFiltersChildEvents(true);
     // AutoRange is set to false, because MPannableViewport observes
     // sizehints, not the size of the contained object
     // setting sizehints for every resize doesn't seem to work
