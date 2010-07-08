@@ -23,10 +23,17 @@
 #include <QGraphicsBlurEffect>
 #include <QPropertyAnimation>
 
+namespace {
+
 const qreal s_linkOpacity = 0.7;
-const QColor s_linkRectangleColor(10, 10, 80);
+const uchar s_linkRectangleColorR = 230;
+const uchar s_linkRectangleColorG = 200;
+const uchar s_linkRectangleColorB = 0;
+
 const int s_appearAnimDuration = 350;
 const int s_disappearAnimDuration = 650;
+
+}
 
 /*!
   \class LinkSelectionItem class responsible for implementing the link selection UI
@@ -37,7 +44,8 @@ const int s_disappearAnimDuration = 650;
 LinkSelectionItem::LinkSelectionItem(QGraphicsItem* parent) 
     : QGraphicsRectItem(QRect(0, 0, 0, 0), parent) 
 {
-    setBrush(QBrush(s_linkRectangleColor));
+    setBrush(QBrush(QColor(s_linkRectangleColorR, s_linkRectangleColorG, s_linkRectangleColorB)));
+
     setOpacity(s_linkOpacity);
 }
 
