@@ -59,10 +59,6 @@ protected:
     bool sceneEvent(QEvent* e);
     bool sceneEventFilter(QGraphicsItem *i, QEvent *e);
 
-protected:
-    ScrollbarItem* m_vScrollbar;
-    ScrollbarItem* m_hScrollbar;
-
 private:
     void updateScrollbars();
 
@@ -74,10 +70,10 @@ private:
 
 private:
     QGraphicsWidget* m_pannedWidget;
-    QPointF m_overShootDelta;
+    ScrollbarItem* m_vScrollbar;
+    ScrollbarItem* m_hScrollbar;
 
-    int m_scrollbarXOffset;
-    int m_scrollbarYOffset;
+    QPointF m_overShootDelta;
 };
 
 #endif

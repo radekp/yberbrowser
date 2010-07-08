@@ -31,7 +31,6 @@
 PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags flags)
     : PannableViewport(parent, flags)
 {
-    m_vScrollbar->setMargins(ToolbarWidget::height() + 5, -1);
 }
 
 PannableTileContainer::~PannableTileContainer()
