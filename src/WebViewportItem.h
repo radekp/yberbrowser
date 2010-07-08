@@ -61,8 +61,9 @@ public:
     qreal zoomScale() const;
 
     enum ResizeMode {
-        ResizeWidgetToContent,
-        ResizeWidgetHeightToContent
+        ContentResizePreservesScale,
+        ContentResizePreservesWidth,
+        ContentResizePreservesHeight
     };
 
     void setResizeMode(ResizeMode);

@@ -78,7 +78,7 @@ WebViewportItem::WebViewportItem(QGraphicsWidget* parent, Qt::WindowFlags wFlags
     : QGraphicsWidget(parent, wFlags)
     , m_webView(0)
     , m_zoomCommitTimer(this)
-    , m_resizeMode(WebViewportItem::ResizeWidgetHeightToContent)
+    , m_resizeMode(WebViewportItem::ContentResizePreservesWidth)
     , m_zoomPos(0, 0)
 {
 #if !defined(ENABLE_PAINT_DEBUG)
@@ -131,28 +131,29 @@ This signal is emitted when contents size has changed and vieport item is resize
 void WebViewportItem::webViewContentsSizeChanged(const QSize& newContentsSize)
 {
 #if USE_WEBKIT2
-    m_webView->setGeometry(QRect(0, 0, sz.width(), sz.height()));
+    m_webView->setGeometry(QRect(0, 0, newContentsSize.width(), newContentsSize.height()));
 #endif
     QSizeF currentSize = size();
     qreal targetScale = zoomScale();
 
     m_contentSize = newContentsSize;
-#if 0
-    if (m_resizeMode == WebViewportItem::ResizeWidgetHeightToContent
-        || (newContentsSize.width() * targetScale) < currentSize.width()) {
+
+    switch(m_resizeMode) {
+    case WebViewportItem::ContentResizePreservesWidth:
         targetScale = currentSize.width() / newContentsSize.width();
+        break;
+    case WebViewportItem::ContentResizePreservesHeight:
+        targetScale = currentSize.height() / newContentsSize.height();
+        break;
+    case WebViewportItem::ContentResizePreservesScale:
+        break;
     }
-#endif
 
     QSizeF scaledSize = newContentsSize * targetScale;
-    qDebug() << scaledSize << newContentsSize << m_resizeMode;
 
-    setMaximumSize(scaledSize);
-    setMinimumSize(scaledSize);
-    setPreferredSize(scaledSize);
     resize(scaledSize);
 
-
+    // fixme: emit only when size changed (or change signal name)
     emit contentsSizeChangeCausedResize();
 }
 
@@ -183,7 +184,6 @@ void WebViewportItem::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
     QGraphicsWidget::resizeEvent(event);
     setZoomScale(size().width() / contentsSize().width());
-    qDebug() << size();
 }
 
 void WebViewportItem::disableContentUpdates()
@@ -235,10 +235,10 @@ void WebViewportItem::adjustViewport(const QWebPage::ViewportHints& viewportInfo
     // FIXME we should start using the scale range at some point
     // viewportInfo.minimumScaleFactor() and viewportInfor.maximumScaleFactor()
     if (viewportInfo.initialScaleFactor() > 0) {
-        setResizeMode(ResizeWidgetToContent);
+        setResizeMode(WebViewport::ContentResizePreservesScale);
         setZoomScale(viewportInfo.initialScaleFactor() * pixelScale, /* immediate */ true);
     } else {
-        setResizeMode(ResizeWidgetHeightToContent);
+        setResizeMode(WebViewport::ContentResizePreservesWidth);
         setZoomScale(1.0 * pixelScale, /* immediate */ true);
     }
 }

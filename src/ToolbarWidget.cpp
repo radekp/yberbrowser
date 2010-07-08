@@ -63,6 +63,11 @@ ToolbarWidget::ToolbarWidget(QGraphicsItem* parent)
     stops << QGradientStop(0.00, QColor(165, 165, 165, 220)) << QGradientStop(0.10, QColor(80, 80, 80, 225)) << QGradientStop(0.90, QColor(80, 80, 80, 225));
     for (int j = 0; j < stops.size(); ++j)
         m_bckgGradient.setColorAt(stops.at(j).first, stops.at(j).second);
+
+    setMinimumHeight(s_thinToolbarHeight);
+    setPreferredHeight(s_toolbarSize);
+    setMaximumHeight(s_toolbarSize);
+    resize(0, s_toolbarSize);
 }
 
 ToolbarWidget::~ToolbarWidget()
@@ -217,12 +222,13 @@ void ToolbarWidget::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
 void ToolbarWidget::animateToolbarMove(bool animateToSmall)
 {
+    QRectF tgt = geometry();
+    tgt.setHeight(animateToSmall ? s_thinToolbarHeight : s_toolbarSize);
+
     QPropertyAnimation* moveAnim = new QPropertyAnimation(this, "geometry");
     moveAnim->setDuration(s_shrinkAnimTimeout);
 
     moveAnim->setStartValue(geometry());
-    QRectF tgt = geometry();
-    tgt.setHeight(animateToSmall ? s_thinToolbarHeight : s_toolbarSize);
     moveAnim->setEndValue(tgt);
 
     moveAnim->setEasingCurve(QEasingCurve::OutQuad);

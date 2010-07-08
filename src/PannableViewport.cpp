@@ -189,3 +189,14 @@ bool PannableViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
 
     return doFilter ? true : QGraphicsItem::sceneEventFilter(i, e);
 }
+
+#if 0
+/*! \reimp reimplemented from \QAbstractKineticScroller
+ */
+void WebViewport::cancelLeftMouseButtonPress(const QPoint&)
+{
+    // don't send the mouse press event after this callback.
+    // QAbstractCKineticScroller started panning
+    m_recognizer.clearDelayedPress();
+}
+#endif

@@ -109,7 +109,7 @@ protected Q_SLOTS:
     void windowClosed(WebView* webView);
     void windowCreated();
     void deleteHomeView();
-    void updateToolbarSpacing();
+    void updateToolbarSpacingAndBrowsingViewportPosition();
 
 private:
     Q_DISABLE_COPY(BrowsingView)

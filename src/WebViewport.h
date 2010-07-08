@@ -58,14 +58,14 @@ public Q_SLOTS:
     bool sceneEventFilter(QGraphicsItem*, QEvent*);
     void wheelEvent(QGraphicsSceneWheelEvent*);
     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent*);
-    
-    void cancelLeftMouseButtonPress(const QPoint&);
+    void resizeEvent(QGraphicsSceneResizeEvent* event);
 
     void mousePressEventFromChild(QGraphicsSceneMouseEvent * event);
     void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event);
     void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event);
     void adjustClickPosition(QPointF& pos);
     bool processMaemo5ZoomKeys(QKeyEvent* event);
+
 
  protected Q_SLOTS:
     void contentsSizeChangeCausedResize();
@@ -89,6 +89,8 @@ public Q_SLOTS:
     void stopPannedWidgetGeomAnim();
     QRectF adjustRectForPannedWidgetGeometry(const QRectF&);
     void transferAnimStateToView();
+    void updateViewportItemSizeIfDimensionPreserved();
+    void updateViewportRange();
 
  private Q_SLOTS:
     void webPanningStarted();

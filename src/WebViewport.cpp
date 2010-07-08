@@ -70,8 +70,13 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
     , m_clickablePointItem(0)
 #endif
 {
-    setWidget(m_viewportWidget);
+    // AutoRange is set to false, because MPannableViewport observes
+    // sizehints, not the size of the contained object
+    // setting sizehints for every resize doesn't seem to work
+    // for WebViewportItem
+    setAutoRange(false);
     setPanDirection(Qt::Horizontal | Qt::Vertical);
+    setWidget(m_viewportWidget);
 
     m_geomAnim.addAnimation(&m_posAnim);
     m_geomAnim.addAnimation(&m_sizeAnim);
@@ -89,7 +94,7 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
     connect(viewportWidget, SIGNAL(zoomRectForPointReceived(const QPointF&, const QRectF&)), SLOT(zoomRectForPointReceived(const QPointF&, const QRectF&)));
     m_backingStoreUpdateEnableTimer.setSingleShot(true);
     connect(&m_backingStoreUpdateEnableTimer, SIGNAL(timeout()), this, SLOT(enableBackingStoreUpdates()));
-    connect(this, SIGNAL(positionChanged(QRectF)), this, SLOT(webPanningStarted()));
+    connect(this, SIGNAL(positionChanged(QPointF)), this, SLOT(webPanningStarted()));
     connect(this, SIGNAL(panningStopped()), this, SLOT(webPanningStopped()));
 }
 
@@ -141,7 +146,7 @@ bool WebViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
     case QEvent::GraphicsSceneMouseRelease:
     case QEvent::GraphicsSceneMouseDoubleClick:
         // FIXME: detect interaction properly
-        m_viewportWidget->setResizeMode(WebViewportItem::ResizeWidgetToContent);
+        m_viewportWidget->setResizeMode(WebViewportItem::ContentResizePreservesScale);
         m_recognizer.filterMouseEvent(static_cast<QGraphicsSceneMouseEvent *>(e));
         doFilter = true;
         break;
@@ -165,17 +170,6 @@ bool WebViewport::sceneEventFilter(QGraphicsItem *i, QEvent *e)
 
     return doFilter;
 
-}
-
-/*! \reimp reimplemented from \QAbstractKineticScroller
- */
-void WebViewport::cancelLeftMouseButtonPress(const QPoint&)
-{
-    // don't send the mouse press event after this callback.
-    // QAbstractCKineticScroller started panning
-#if 0
-    m_recognizer.clearDelayedPress();
-#endif
 }
 
 void WebViewport::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
@@ -444,7 +438,7 @@ void WebViewport::startZoomAnimToItemHotspot(const QPointF& hotspot, const QPoin
     QPointF newViewportOrigo = newHotspot - viewTargetHotspot;
 
     // mark that interaction has happened
-    m_viewportWidget->setResizeMode(WebViewportItem::ResizeWidgetToContent);
+    m_viewportWidget->setResizeMode(WebViewportItem::ContentResizePreservesScale);
     startPannedWidgetGeomAnim(- newViewportOrigo, m_viewportWidget->size() * scale);
 }
 
@@ -458,14 +452,16 @@ void WebViewport::reset()
     stopPannedWidgetGeomAnim();
 
     // mark that interaction has not happened
-    m_viewportWidget->setResizeMode(WebViewportItem::ResizeWidgetHeightToContent);
-    setPannedWidgetGeometry(QRectF(QPointF(), m_viewportWidget->contentsSize() * (size().width() / m_viewportWidget->contentsSize().width())));
+    m_viewportWidget->setResizeMode(WebViewportItem::ContentResizePreservesWidth);
+    updateViewportItemSizeIfDimensionPreserved();
+
     m_viewportWidget->commitZoom();
 }
 
 void WebViewport::contentsSizeChangeCausedResize()
 {
     stopPannedWidgetGeomAnim();
+    updateViewportRange();
 }
 
 void WebViewport::webPanningStarted()
@@ -568,7 +564,7 @@ void WebViewport::setPannedWidgetGeometry(const QRectF& g)
         QPointF delta = m_viewportWidget->geometry().topLeft() - current.topLeft();
         m_linkSelectionItem->moveBy(delta.x(), delta.y());
     }
-
+    updateViewportRange();
 }
 
 void WebViewport::startPannedWidgetGeomAnim(const QPointF& pos, const QSizeF& size)
@@ -616,5 +612,35 @@ void WebViewport::geomAnimStateChanged(QAbstractAnimation::State newState,QAbstr
     default:
         break;
     }
+}
+
+void WebViewport::resizeEvent(QGraphicsSceneResizeEvent* event)
+{
+    PannableViewport::resizeEvent(event);
+    updateViewportItemSizeIfDimensionPreserved();
+}
+
+void WebViewport::updateViewportItemSizeIfDimensionPreserved()
+{
+    switch(m_viewportWidget->resizeMode()) {
+    case WebViewportItem::ContentResizePreservesWidth:
+        setPannedWidgetGeometry(QRectF(QPointF(), m_viewportWidget->contentsSize() * (size().width() / m_viewportWidget->contentsSize().width())));
+        break;
+    case WebViewportItem::ContentResizePreservesHeight:
+        setPannedWidgetGeometry(QRectF(QPointF(), m_viewportWidget->contentsSize() * (size().height() / m_viewportWidget->contentsSize().height())));
+        break;
+    case WebViewportItem::ContentResizePreservesScale:
+        break;
+    }
+
+}
+void WebViewport::updateViewportRange()
+{
+    // this is called whenever viewport item is resized
+    // it is called after we change the size
+    // and after item itself resizes itself
+    // this must be done this way, because we cannot observe
+    // the resize events of the item 
+    setRange(QRectF(QPoint(), widget()->geometry().size()));
 }
 

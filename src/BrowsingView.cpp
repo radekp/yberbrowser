@@ -143,7 +143,7 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
 {
     QGraphicsWidget::resizeEvent(event);
 
-    m_browsingViewport->resize(size());
+    updateToolbarSpacingAndBrowsingViewportPosition();
 #if USE_WEBKIT2
     m_webInteractionProxy->setZoomScale(size().width() / m_webInteractionProxy->contentsSize().width());
 #endif
@@ -468,12 +468,10 @@ QGraphicsPixmapItem* BrowsingView::webviewSnapshot(bool darken)
 }
 
 
-void BrowsingView::updateToolbarSpacing()
+void BrowsingView::updateToolbarSpacingAndBrowsingViewportPosition()
 {
     qreal h = m_toolbarWidget->size().height();
     QRectF r = geometry();
     r.setTop(h);
-
     m_browsingViewport->setGeometry(r);
-
 }
