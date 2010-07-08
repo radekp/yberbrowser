@@ -249,9 +249,10 @@ SOURCES += src/WebPage.cpp
 
 
 # support for launcher see libdui/launcher.html
-
 # the flags are used for all configurations, so we get the same flags
 # during the development as for the target
+# however, debugging -pie executables is not supported by gdb
+!debug {
 QMAKE_CXXFLAGS += -fPIC -fvisibility=hidden -fvisibility-inlines-hidden
 QMAKE_LFLAGS += -pie -rdynamic
-
+}
