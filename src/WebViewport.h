@@ -23,7 +23,8 @@
 
 #include "yberconfig.h"
 
-#include <QGraphicsItemAnimation>
+#include <QPropertyAnimation>
+#include <QParallelAnimationGroup>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsWidget>
 #include <QTimer>
@@ -54,50 +55,61 @@ public Q_SLOTS:
     void reset();
 
  protected:
-     bool sceneEventFilter(QGraphicsItem*, QEvent*);
-     void wheelEvent(QGraphicsSceneWheelEvent*);
-     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent*);
+    bool sceneEventFilter(QGraphicsItem*, QEvent*);
+    void wheelEvent(QGraphicsSceneWheelEvent*);
+    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent*);
+    
+    void cancelLeftMouseButtonPress(const QPoint&);
 
-     void cancelLeftMouseButtonPress(const QPoint&);
-
-     void mousePressEventFromChild(QGraphicsSceneMouseEvent * event);
-     void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event);
-     void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event);
-     void adjustClickPosition(QPointF& pos);
-     void setPannedWidgetGeometry(const QRectF& r);
-     bool processMaemo5ZoomKeys(QKeyEvent* event);
+    void mousePressEventFromChild(QGraphicsSceneMouseEvent * event);
+    void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event);
+    void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event);
+    void adjustClickPosition(QPointF& pos);
+    bool processMaemo5ZoomKeys(QKeyEvent* event);
 
  protected Q_SLOTS:
-     void contentsSizeChangeCausedResize();
-     void startLinkSelection();
-     void enableBackingStoreUpdates();
-     void zoomRectForPointReceived(const QPointF&, const QRectF&);
+    void contentsSizeChangeCausedResize();
+    void startLinkSelection();
+    void enableBackingStoreUpdates();
+    void zoomRectForPointReceived(const QPointF&, const QRectF&);
 
  private:
-     void resetZoomAnim();
-     void wheelEventFromChild(QGraphicsSceneWheelEvent *event);
-     bool mouseEventFromChild(QGraphicsSceneMouseEvent *event);
-     bool isZoomedIn() const;
+    void resetZoomAnim();
+    void wheelEventFromChild(QGraphicsSceneWheelEvent *event);
+    bool mouseEventFromChild(QGraphicsSceneMouseEvent *event);
+    bool isZoomedIn() const;
 
-     enum PanningState {
-         Inactive,
-         Pushing
-     };
+    enum PanningState {
+        Inactive,
+        Pushing
+    };
+
+    void setPannedWidgetGeometry(const QRectF& r);
+    void startPannedWidgetGeomAnim(const QPointF& pos, const QSizeF& size);
+    void stopPannedWidgetGeomAnim();
+    QRectF adjustRectForPannedWidgetGeometry(const QRectF&);
+    void transferAnimStateToView();
 
  private Q_SLOTS:
-     void webPanningStarted();
-     void webPanningStopped();
+    void webPanningStarted();
+    void webPanningStopped();
+    void geomAnimStateChanged(QAbstractAnimation::State newState, QAbstractAnimation::State);
 
  private:
-     WebViewportItem* m_viewportWidget;
-     PanningState m_panningState;
-     CommonGestureRecognizer m_recognizer;
+    WebViewportItem* m_viewportWidget;
+    PanningState m_panningState;
+    CommonGestureRecognizer m_recognizer;
 
-     QEvent* m_selfSentEvent;
+    QEvent* m_selfSentEvent;
 
-     QTimer m_backingStoreUpdateEnableTimer;
-     LinkSelectionItem* m_linkSelectionItem; 
+    QTimer m_backingStoreUpdateEnableTimer;
+    LinkSelectionItem* m_linkSelectionItem; 
     QGraphicsSceneMouseEvent* m_delayedMouseReleaseEvent;
+
+    QParallelAnimationGroup m_geomAnim;
+    QPropertyAnimation m_posAnim;
+    QPropertyAnimation m_sizeAnim;
+    QRectF m_geomAnimEndValue;
 
 #if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
     QGraphicsRectItem* m_searchRectItem;

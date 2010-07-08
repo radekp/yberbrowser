@@ -49,6 +49,7 @@ public:
     void setAutoRange(bool) { }
 
     void setWidget(QGraphicsWidget*);
+    QGraphicsWidget* widget() const { return m_pannedWidget; }
 
 Q_SIGNALS:
     void panningStopped();
@@ -58,39 +59,23 @@ protected:
     bool sceneEvent(QEvent* e);
     bool sceneEventFilter(QGraphicsItem *i, QEvent *e);
 
-    virtual void setPannedWidgetGeometry(const QRectF& r);
-
-    void startPannedWidgetGeomAnim(const QRectF& geom);
-    void stopPannedWidgetGeomAnim();
-
-protected Q_SLOTS:
-    void geomAnimStateChanged(QAbstractAnimation::State newState, QAbstractAnimation::State);
-
 protected:
     ScrollbarItem* m_vScrollbar;
     ScrollbarItem* m_hScrollbar;
 
 private:
-    QSize viewportSize() const;
+    void updateScrollbars();
 
+    QSize viewportSize() const;
     QPoint maximumScrollPosition() const;
     QPoint scrollPosition() const;
     void setScrollPosition(const QPoint &pos, const QPoint &overShootDelta);
     void stateChanged(YberHack_Qt::QAbstractKineticScroller::State oldState, YberHack_Qt::QAbstractKineticScroller::State newState);
-    void updateScrollbars();
-
-    bool canStartScrollingAt(const QPoint &globalPos) const;
-    QPointF clipPointToViewport(const QPointF& p) const;
-
-    void transferAnimStateToView();
-    QRectF adjustRectForPannedWidgetGeometry(const QRectF&);
 
 private:
     QGraphicsWidget* m_pannedWidget;
     QPointF m_overShootDelta;
-    QPointF m_extraPos;
-    QRectF m_geomAnimEndValue;
-    QPropertyAnimation m_geomAnim;
+
     int m_scrollbarXOffset;
     int m_scrollbarYOffset;
 };

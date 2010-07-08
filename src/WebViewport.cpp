@@ -42,6 +42,8 @@ const int s_edgeMarginForLinkSelectionRetry = 50;
 const int s_minSearchRectSize = 8;
 const int s_maxSearchRectSize = 25;
 const int backingStoreUpdateEnableDelay = 700;
+const int s_geomAnimDuration = 300;
+
 }
 
 /*!
@@ -69,7 +71,19 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
 #endif
 {
     setAutoRange(false);
-    setWidget(viewportWidget);
+    setWidget(m_viewportWidget);
+
+    m_geomAnim.addAnimation(&m_posAnim);
+    m_geomAnim.addAnimation(&m_sizeAnim);
+
+    m_posAnim.setTargetObject(this);
+    m_posAnim.setDuration(s_geomAnimDuration);
+    m_posAnim.setPropertyName("position");
+    m_sizeAnim.setTargetObject(m_viewportWidget);
+    m_sizeAnim.setDuration(s_geomAnimDuration);
+    m_sizeAnim.setPropertyName("size");
+
+    connect(&m_geomAnim, SIGNAL(stateChanged(QAbstractAnimation::State,QAbstractAnimation::State)), this, SLOT(geomAnimStateChanged(QAbstractAnimation::State,QAbstractAnimation::State)));
 
     connect(viewportWidget, SIGNAL(contentsSizeChangeCausedResize()), this, SLOT(contentsSizeChangeCausedResize()));
     connect(viewportWidget, SIGNAL(zoomRectForPointReceived(const QPointF&, const QRectF&)), SLOT(zoomRectForPointReceived(const QPointF&, const QRectF&)));
@@ -395,16 +409,6 @@ bool WebViewport::mouseEventFromChild(QGraphicsSceneMouseEvent *event)
     return m_recognizer.filterMouseEvent(event);
 }
 
-void WebViewport::setPannedWidgetGeometry(const QRectF& r)
-{
-    PannableViewport::setPannedWidgetGeometry(r);
-    if (m_linkSelectionItem) {
-        QRectF current = m_viewportWidget->geometry();
-        QPointF delta = m_viewportWidget->geometry().topLeft() - current.topLeft();
-        m_linkSelectionItem->moveBy(delta.x(), delta.y());
-    }
-}
-
 bool WebViewport::processMaemo5ZoomKeys(QKeyEvent* event)
 {
     const bool zoomIn = event->key() == Qt::Key_F7;
@@ -438,11 +442,10 @@ void WebViewport::startZoomAnimToItemHotspot(const QPointF& hotspot, const QPoin
 {
     QPointF newHotspot = (hotspot * scale);
     QPointF newViewportOrigo = newHotspot - viewTargetHotspot;
-    QRectF r(- newViewportOrigo, m_viewportWidget->size() * scale);
 
     // mark that interaction has happened
     m_viewportWidget->setResizeMode(WebViewportItem::ResizeWidgetToContent);
-    startPannedWidgetGeomAnim(r);
+    startPannedWidgetGeomAnim(- newViewportOrigo, m_viewportWidget->size() * scale);
 }
 
 bool WebViewport::isZoomedIn() const
@@ -489,5 +492,129 @@ void WebViewport::enableBackingStoreUpdates()
 {
     m_panningState = Inactive;
     m_viewportWidget->enableContentUpdates();
+}
+
+
+
+QRectF WebViewport::adjustRectForPannedWidgetGeometry(const QRectF& g)
+{
+    stopPannedWidgetGeomAnim();
+
+    QRectF gg(g);
+
+    QSizeF sz = g.size();
+    QSizeF vsz = size();
+
+    qreal w = vsz.width() - sz.width();
+    qreal h = vsz.height() - sz.height();
+
+    if ( w > 0 ) {
+// why are we moving webcontent to the middle?
+#if 0
+        m_extraPos.setX(w/2);
+#endif
+        gg.moveLeft(0);
+    } else {
+#if 0
+        m_extraPos.setX(0);
+#endif
+        if (gg.x() < w)
+            gg.moveLeft(w);
+        if (gg.x() > 0)
+            gg.moveLeft(0);
+    }
+
+    if ( h > 0 ) {
+// why are we moving webcontent to the middle?
+#if 0
+        m_extraPos.setY(h/2);
+#endif
+        gg.moveTop(0);
+    } else {
+#if 0
+        m_extraPos.setY(0);
+#endif
+        if (gg.y() < h)
+            gg.moveTop(h);
+        if (gg.y() > 0)
+            gg.moveTop(0);
+    }
+#if 0
+    gg.translate(m_extraPos);
+#endif
+#if 0
+    // this is disabled because of merging the function will probably
+    // go anyway soon, so this edge-case need
+    // not to be taken into account now
+    gg.translate(m_overShootDelta);
+#endif
+    return gg;
+}
+
+void WebViewport::setPannedWidgetGeometry(const QRectF& g)
+{
+    QRectF r(adjustRectForPannedWidgetGeometry(g));
+
+    widget()->resize(r.size());
+    setPosition(r.topLeft());
+
+    // FIXME: Consider adding a background item instead.
+    QRegion viewport(geometry().toRect());
+    viewport.subtracted(QRegion(widget()->geometry().toRect()));
+    update(viewport.boundingRect());
+
+    if (m_linkSelectionItem) {
+        QRectF current = m_viewportWidget->geometry();
+        QPointF delta = m_viewportWidget->geometry().topLeft() - current.topLeft();
+        m_linkSelectionItem->moveBy(delta.x(), delta.y());
+    }
+
+}
+
+void WebViewport::startPannedWidgetGeomAnim(const QPointF& pos, const QSizeF& size)
+{
+    QRectF currentGeometry = widget()->geometry();
+
+    m_posAnim.setStartValue(currentGeometry.topLeft());
+    m_sizeAnim.setStartValue(currentGeometry.size());
+
+    m_geomAnimEndValue = adjustRectForPannedWidgetGeometry(QRectF(pos, size));
+
+    m_posAnim.setEndValue(m_geomAnimEndValue.topLeft());
+    m_sizeAnim.setEndValue(m_geomAnimEndValue.size());
+
+    m_geomAnim.start();
+}
+
+void WebViewport::stopPannedWidgetGeomAnim()
+{
+    m_geomAnimEndValue = QRectF();
+    m_geomAnim.stop();
+}
+
+void WebViewport::transferAnimStateToView()
+{
+    if (m_geomAnimEndValue.isValid()) {
+        widget()->resize(m_geomAnimEndValue.size());
+        setPosition(m_geomAnimEndValue.topLeft());
+    }
+}
+
+void WebViewport::geomAnimStateChanged(QAbstractAnimation::State newState,QAbstractAnimation::State)
+{
+    switch(newState) {
+    case QAbstractAnimation::Running:
+        break;
+
+    case QAbstractAnimation::Stopped: {
+        transferAnimStateToView();
+        break;
+    }
+    case QAbstractAnimation::Paused:
+        // FIXME: what to do?
+        break;
+    default:
+        break;
+    }
 }
 
