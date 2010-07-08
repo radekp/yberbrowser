@@ -23,6 +23,18 @@
 
 #include "yberconfig.h"
 
+#if USE_MEEGOTOUCH
+#include <MPannableViewport>
+class PannableViewport : public MPannableViewport
+{
+public:
+    explicit PannableViewport(QGraphicsItem* parent = 0)
+        : MPannableViewport(parent)
+        {
+        }
+};
+
+#else
 
 #include <QGraphicsWidget>
 #include <QPropertyAnimation>
@@ -39,7 +51,7 @@ class PannableViewport : public QGraphicsWidget, private YberHack_Qt::QAbstractK
     Q_PROPERTY(QPointF position READ position WRITE setPosition)
 
 public:
-    explicit PannableViewport(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
+    explicit PannableViewport(QGraphicsItem* parent = 0);
     ~PannableViewport();
 
     void setPosition(const QPointF& pos);
@@ -75,5 +87,6 @@ private:
 
     QPointF m_overShootDelta;
 };
+#endif
 
 #endif

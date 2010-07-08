@@ -72,7 +72,7 @@ const int s_maxWindows = 6;
 BrowsingView::BrowsingView(QGraphicsItem *parent)
     : BrowsingViewBase(parent)
     , m_activeWebView(0)
-    , m_webInteractionProxy(new WebViewportItem(this))
+    , m_webInteractionProxy(new WebViewportItem())
     , m_autoScrollTest(0)
     , m_homeView(0)
     , m_initialHomeWidget(HomeView::VisitedPages)
@@ -82,7 +82,6 @@ BrowsingView::BrowsingView(QGraphicsItem *parent)
     setFlag(QGraphicsItem::ItemClipsToShape, true);
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     m_browsingViewport = new WebViewport(m_webInteractionProxy, this);
-
 
     connect(m_toolbarWidget, SIGNAL(bookmarkPressed()), SLOT(addBookmark()));
     connect(m_toolbarWidget, SIGNAL(backPressed()), SLOT(pageBack()));

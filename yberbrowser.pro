@@ -232,12 +232,12 @@ HEADERS += \
 
 SOURCES += \
   src/PannableTileContainer.cpp \
-  src/PannableViewport.cpp \
   src/WebViewport.cpp \
   3rdparty/qabstractkineticscroller.cpp \
 
 !meegotouch {
 SOURCES += \
+  src/PannableViewport.cpp \
   src/ApplicationWindowHost.cpp \
   src/ApplicationWindow.cpp
 }

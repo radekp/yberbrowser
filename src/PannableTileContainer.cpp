@@ -28,8 +28,8 @@
 #include <QGraphicsScene>
 #include <QCoreApplication>
 
-PannableTileContainer::PannableTileContainer(QGraphicsItem* parent, Qt::WindowFlags flags)
-    : PannableViewport(parent, flags)
+PannableTileContainer::PannableTileContainer(QGraphicsItem* parent)
+    : PannableViewport(parent)
 {
 }
 

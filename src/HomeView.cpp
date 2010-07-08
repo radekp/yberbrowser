@@ -49,18 +49,18 @@ const int s_containerXMargin = 40;
 HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsPixmapItem* bckg, QGraphicsItem* parent, Qt::WindowFlags wFlags)
     : TileSelectionViewBase(TileSelectionViewBase::Home, bckg, parent, wFlags)
     , m_activeWidget(initialWidget)
-    , m_bookmarkWidget(new BookmarkWidget(this, wFlags))
-    , m_historyWidget(new HistoryWidget(this, wFlags))
-    , m_tabWidget(new TabWidget(this, wFlags))
-    , m_pannableHistoryContainer(new PannableTileContainer(this, wFlags))
-    , m_pannableBookmarkContainer(new PannableTileContainer(this, wFlags))
-    , m_pannableWindowSelectContainer(new PannableTileContainer(this, wFlags))
-    , m_windowList(0) 
+    , m_bookmarkWidget(new BookmarkWidget())
+    , m_historyWidget(new HistoryWidget())
+    , m_tabWidget(new TabWidget())
+    , m_pannableHistoryContainer(new PannableTileContainer(this))
+    , m_pannableBookmarkContainer(new PannableTileContainer(this))
+    , m_pannableWindowSelectContainer(new PannableTileContainer(this))
+    , m_windowList(0)
 {
     m_pannableHistoryContainer->setWidget(m_historyWidget);
     m_pannableBookmarkContainer->setWidget(m_bookmarkWidget);
     m_pannableWindowSelectContainer->setWidget(m_tabWidget);
-    
+
     m_tabWidget->setEditMode(true);
 
     connect(m_tabWidget, SIGNAL(closeWidget(void)), SLOT(closeViewSoon()));
@@ -70,7 +70,6 @@ HomeView::HomeView(HomeWidgetType initialWidget, QGraphicsPixmapItem* bckg, QGra
 
 HomeView::~HomeView()
 {
-    delete m_tabWidget;
     delete m_pannableWindowSelectContainer;
     delete m_pannableHistoryContainer;
     delete m_pannableBookmarkContainer;

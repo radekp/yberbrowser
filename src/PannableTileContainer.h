@@ -30,9 +30,9 @@ class QGraphicsSceneMouseEvent;
 class PannableTileContainer : public PannableViewport {
     Q_OBJECT
 public:
-    PannableTileContainer(QGraphicsItem*, Qt::WindowFlags wFlags = 0);
+    PannableTileContainer(QGraphicsItem*);
     ~PannableTileContainer();
-    
+
 protected:
     bool sceneEventFilter(QGraphicsItem*, QEvent*);
 };

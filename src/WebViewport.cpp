@@ -70,8 +70,8 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
     , m_clickablePointItem(0)
 #endif
 {
-    setAutoRange(false);
     setWidget(m_viewportWidget);
+    setPanDirection(Qt::Horizontal | Qt::Vertical);
 
     m_geomAnim.addAnimation(&m_posAnim);
     m_geomAnim.addAnimation(&m_sizeAnim);

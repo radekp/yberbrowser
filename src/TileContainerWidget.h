@@ -83,7 +83,7 @@ private:
 class TabWidget : public TileBaseWidget {
     Q_OBJECT
 public:
-    TabWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+    TabWidget(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     void layoutTiles();
 
     void removeTile(const TileItem& removed);
@@ -92,7 +92,7 @@ public:
 class HistoryWidget : public TileBaseWidget {
     Q_OBJECT
 public:
-    HistoryWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+    HistoryWidget(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
     
     void removeTile(const TileItem& removed);
     void layoutTiles();
@@ -101,7 +101,7 @@ public:
 class BookmarkWidget : public TileBaseWidget {
     Q_OBJECT
 public:
-    BookmarkWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+    BookmarkWidget(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
 
     void removeTile(const TileItem& removed);
     void layoutTiles();
@@ -110,7 +110,7 @@ public:
 class PopupWidget : public TileBaseWidget {
     Q_OBJECT
 public:
-    PopupWidget(QGraphicsItem* parent, Qt::WindowFlags wFlags = 0);
+    PopupWidget(QGraphicsItem* parent = 0, Qt::WindowFlags wFlags = 0);
 
     void removeTile(const TileItem& removed);
     void layoutTiles();
