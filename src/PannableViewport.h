@@ -59,6 +59,8 @@ public:
 
     void setRange(const QRectF&);
     void setAutoRange(bool) { }
+    void setPanDirection(Qt::Orientations) {}
+    
 
     void setWidget(QGraphicsWidget*);
     QGraphicsWidget* widget() const { return m_pannedWidget; }

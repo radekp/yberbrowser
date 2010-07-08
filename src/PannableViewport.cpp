@@ -47,7 +47,7 @@ const qreal s_axisLockThreshold = .7;
 */
 
 PannableViewport::PannableViewport(QGraphicsItem* parent)
-    : QGraphicsWidget(parent, wFlags)
+    : QGraphicsWidget(parent)
     , m_pannedWidget(0)
     , m_vScrollbar(new ScrollbarItem(Qt::Vertical, this))
     , m_hScrollbar(new ScrollbarItem(Qt::Horizontal, this))
