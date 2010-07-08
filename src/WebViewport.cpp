@@ -332,11 +332,12 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
         QPoint linkPoint = result.boundingRect().topLeft();
         QWebFrame* frame = result.frame();
         while (frame) {
-            linkPoint+=frame->pos();
+            linkPoint += frame->pos();
             frame = frame->parentFrame();
         }
         m_linkSelectionItem = new LinkSelectionItem(this);
-        m_linkSelectionItem->appear(m_viewportWidget->webView()->mapToScene(p), m_viewportWidget->webView()->mapToScene(QRect(linkPoint, result.boundingRect().size())).boundingRect());
+        m_linkSelectionItem->appear(mapFromScene(m_viewportWidget->webView()->mapToScene(p)),
+                                    mapFromScene(m_viewportWidget->webView()->mapToScene(QRectF(linkPoint, result.boundingRect().size())).boundingRect()).boundingRect());
         // delayed click
         m_delayedMouseReleaseEvent = new QGraphicsSceneMouseEvent(event->type());
         copyMouseEvent(event, m_delayedMouseReleaseEvent);
