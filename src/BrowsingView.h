@@ -124,7 +124,6 @@ private:
 
     WebView* m_activeWebView;
     WebViewport* m_browsingViewport;
-    WebViewportItem* m_webInteractionProxy;
     QSizeF m_sizeBeforeResize;
     AutoScrollTest* m_autoScrollTest;
     QList<WebView*> m_windowList;

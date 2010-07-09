@@ -72,7 +72,6 @@ const int s_maxWindows = 6;
 BrowsingView::BrowsingView(QGraphicsItem *parent)
     : BrowsingViewBase(parent)
     , m_activeWebView(0)
-    , m_webInteractionProxy(new WebViewportItem())
     , m_autoScrollTest(0)
     , m_homeView(0)
     , m_initialHomeWidget(HomeView::VisitedPages)
@@ -81,7 +80,7 @@ BrowsingView::BrowsingView(QGraphicsItem *parent)
 {
     setFlag(QGraphicsItem::ItemClipsToShape, true);
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
-    m_browsingViewport = new WebViewport(m_webInteractionProxy, this);
+    m_browsingViewport = new WebViewport(this);
 
     connect(m_toolbarWidget, SIGNAL(bookmarkPressed()), SLOT(addBookmark()));
     connect(m_toolbarWidget, SIGNAL(backPressed()), SLOT(pageBack()));
@@ -101,6 +100,7 @@ BrowsingView::~BrowsingView()
 {
     delete m_autoScrollTest;
     delete m_homeView;
+    // FIXME: leaks the webviews
  }
 
 void BrowsingView::connectWebViewSignals(WebView* currentView, WebView* oldView)
@@ -145,8 +145,10 @@ void BrowsingView::resizeEvent(QGraphicsSceneResizeEvent* event)
 
     updateToolbarSpacingAndBrowsingViewportPosition();
 #if USE_WEBKIT2
-    m_webInteractionProxy->setZoomScale(size().width() / m_webInteractionProxy->contentsSize().width());
+    WebViewportItem* item = m_browsingViewport->viewportItem();
+    item->setZoomScale(size().width() / item->contentsSize().width());
 #endif
+
     if (m_homeView) {
         m_homeView->resize(QSize(3 * size().width(), size().height()));
         m_homeView->updateBackground(webviewSnapshot());
@@ -257,8 +259,7 @@ void BrowsingView::setActiveWindow(WebView* webView)
         m_activeWebView->hide();
     webView->show();
     m_activeWebView = webView;
-    m_webInteractionProxy->setWebView(webView);
-    m_browsingViewport->reset();
+    m_browsingViewport->setWebView(webView);
 
     // View background needs to be updated.
     if (m_homeView)
@@ -313,7 +314,6 @@ void BrowsingView::createHomeView(HomeView::HomeWidgetType type)
     connect(m_homeView, SIGNAL(viewDismissed()), this, SLOT(deleteHomeView()));
     m_homeView->resize(QSize(3*size().width(), size().height()));
     m_homeView->appear();
-    m_webInteractionProxy->hide();
 }
 
 void BrowsingView::deleteHomeView()
@@ -322,7 +322,6 @@ void BrowsingView::deleteHomeView()
         return;
 
     m_homeView->disappear();
-    m_webInteractionProxy->show();
     // save homeview state, so that it is positioned back to the same view when reopened
     m_initialHomeWidget = m_homeView->activeWidget();
     // unless this is WindowSelect with empty page, users probably want to load something

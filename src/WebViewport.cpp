@@ -57,9 +57,9 @@ const int s_geomAnimDuration = 300;
 
   Not used in Meego atm. Maybe needed someday
 */
-WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
+WebViewport::WebViewport(QGraphicsItem* parent)
     : PannableViewport(parent)
-    , m_viewportWidget(viewportWidget)
+    , m_viewportWidget(new WebViewportItem())
     , m_panningState(WebViewport::Inactive)
     , m_recognizer(this)
     , m_selfSentEvent(0)
@@ -91,8 +91,8 @@ WebViewport::WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent)
 
     connect(&m_geomAnim, SIGNAL(stateChanged(QAbstractAnimation::State,QAbstractAnimation::State)), this, SLOT(geomAnimStateChanged(QAbstractAnimation::State,QAbstractAnimation::State)));
 
-    connect(viewportWidget, SIGNAL(contentsSizeChangeCausedResize()), this, SLOT(contentsSizeChangeCausedResize()));
-    connect(viewportWidget, SIGNAL(zoomRectForPointReceived(const QPointF&, const QRectF&)), SLOT(zoomRectForPointReceived(const QPointF&, const QRectF&)));
+    connect(m_viewportWidget, SIGNAL(contentsSizeChangeCausedResize()), this, SLOT(contentsSizeChangeCausedResize()));
+    connect(m_viewportWidget, SIGNAL(zoomRectForPointReceived(const QPointF&, const QRectF&)), SLOT(zoomRectForPointReceived(const QPointF&, const QRectF&)));
     m_backingStoreUpdateEnableTimer.setSingleShot(true);
     connect(&m_backingStoreUpdateEnableTimer, SIGNAL(timeout()), this, SLOT(enableBackingStoreUpdates()));
     connect(this, SIGNAL(positionChanged(QPointF)), this, SLOT(webPanningStarted()));
@@ -456,7 +456,6 @@ void WebViewport::reset()
     // mark that interaction has not happened
     m_viewportWidget->setResizeMode(WebViewportItem::ContentResizePreservesWidth);
     updateViewportItemSizeIfDimensionPreserved();
-
     m_viewportWidget->commitZoom();
 }
 
@@ -634,8 +633,8 @@ void WebViewport::updateViewportItemSizeIfDimensionPreserved()
     case WebViewportItem::ContentResizePreservesScale:
         break;
     }
-
 }
+
 void WebViewport::updateViewportRange()
 {
     // this is called whenever viewport item is resized
@@ -646,3 +645,8 @@ void WebViewport::updateViewportRange()
     setRange(QRectF(QPoint(), widget()->geometry().size()));
 }
 
+void WebViewport::setWebView(WebView* webView)
+{
+    m_viewportWidget->setWebView(webView);
+    reset();
+}

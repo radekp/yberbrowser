@@ -97,23 +97,57 @@ WebViewportItem::~WebViewportItem()
 
 void WebViewportItem::setWebView(WebView* webView)
 {
+    m_zoomCommitTimer.stop();
+
+    if (m_webView == webView)
+        return;
+
+    if (m_webView) {
+        disconnectWebViewSignals();
+        WebView* oldWebView = m_webView;
+        m_webView = 0;
+        oldWebView->setParent(0);
+    }
+
     m_webView = webView;
     m_webView->setParentItem(this);
     m_webView->setAttribute(Qt::WA_OpaquePaintEvent, true);
 
 #if USE_WEBKIT2
     updatePreferredSize();
+#else
+    m_webView->setResizesToContents(true);
+#endif
+
+    connectWebViewSignals();
+}
+
+void WebViewportItem::connectWebViewSignals()
+{
+#if USE_WEBKIT2
     connect(m_webView->page(), SIGNAL(zoomRectReceived(const QRect&)), this, SLOT(zoomRectReceived(const QRect&)));
     connect(m_webView->page(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
 #else
     connect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
-    m_webView->setResizesToContents(true);
-#endif
-
 #if QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
     connect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportHints&)), this, SLOT(adjustViewport(const QWebPage::ViewportHints&)));
 #endif
+#endif
 }
+
+void WebViewportItem::disconnectWebViewSignals()
+{
+#if USE_WEBKIT2
+    disconnect(m_webView->page(), SIGNAL(zoomRectReceived(const QRect&)), this, SLOT(zoomRectReceived(const QRect&)));
+    disconnect(m_webView->page(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
+#else
+    disconnect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
+#if QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
+    disconnect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportHints&)), this, SLOT(adjustViewport(const QWebPage::ViewportHints&)));
+#endif
+#endif
+}
+
 
 void WebViewportItem::commitZoom()
 {

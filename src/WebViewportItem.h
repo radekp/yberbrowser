@@ -95,6 +95,8 @@ private:
 #if USE_WEBKIT2
     void updatePreferredSize();
 #endif
+    void connectWebViewSignals();
+    void disconnectWebViewSignals();
 
     WebView* m_webView;
     QTimer m_zoomCommitTimer;

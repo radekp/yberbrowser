@@ -35,6 +35,7 @@
 //#define ENABLE_LINK_SELECTION_VISUAL_DEBUG
 
 class WebViewportItem;
+class WebView;
 class LinkSelectionItem;
 class QGraphicsSceneMouseEvent;
 #if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
@@ -46,15 +47,17 @@ class WebViewport : public PannableViewport, private CommonGestureConsumer
 {
     Q_OBJECT
 public:
-    WebViewport(WebViewportItem* viewportWidget, QGraphicsItem* parent = 0);
+    WebViewport(QGraphicsItem* parent = 0);
     ~WebViewport();
 
     void startZoomAnimToItemHotspot(const QPointF& hotspot,  const QPointF& viewTargetHotspot, qreal scale);
+    void setWebView(WebView* webview);
+    WebViewportItem* viewportItem() const { return m_viewportWidget; }
 
 public Q_SLOTS:
     void reset();
 
- protected:
+protected:
     bool sceneEventFilter(QGraphicsItem*, QEvent*);
     void wheelEvent(QGraphicsSceneWheelEvent*);
     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent*);
