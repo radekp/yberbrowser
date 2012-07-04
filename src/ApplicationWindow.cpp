@@ -24,6 +24,10 @@
 #include <QGraphicsWidget>
 #include <QMenuBar>
 
+#if QTOPIA
+#include <QSoftMenuBar>
+#endif
+
 /*!
   \class ApplicationWindow is the top-level application container
 
@@ -61,7 +65,11 @@ void ApplicationWindow::resizeEvent(QResizeEvent* event)
 
 void ApplicationWindow::setMenuBar(QMenuBar* bar)
 {
+#if QTOPIA
+    Q_UNUSED(bar);
+#else
     m_owner->setMenuBar(bar);
+#endif
 }
 
 void ApplicationWindow::show()
