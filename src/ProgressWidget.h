@@ -37,7 +37,7 @@ public:
     void updateGeometry(const QRectF& rect);
     virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = 0);
 
-public Q_SLOTS:
+public:
     void loadStarted();
     void progressChanged(int percentage);
     void loadFinished(bool success);
