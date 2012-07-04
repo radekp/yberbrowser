@@ -62,6 +62,11 @@ FontFactory::FontFactory()
     medium = 8;
     big = 12;
 #endif
+#ifdef QTOPIA
+    small = 4;
+    medium = 6;
+    big = 10;
+#endif
     m_smallFont.setPointSize(small);
     m_mediumFont.setPointSize(medium);
     m_bigFont.setPointSize(big);
