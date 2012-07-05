@@ -72,7 +72,6 @@ void ApplicationWindow::setMenuBar(QMenuBar* bar)
 #endif
     menu->addAction(tr("Maximize"), this, SLOT(showMaximized()));
     menu->addAction(tr("Fullscreen"), this, SLOT(showFullScreen()));
-    m_owner->showMaximized();
 }
 
 void ApplicationWindow::show()
