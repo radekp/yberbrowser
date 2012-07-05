@@ -1,3 +1,5 @@
+WEBKIT=system
+
 !isEqual(QT_MAJOR_VERSION, 4) | !greaterThan(QT_MINOR_VERSION, 5): {
     error("Use Qt4.6");
 }
@@ -22,8 +24,6 @@ meegotouch {
 } else {
     DEFINES+=USE_MEEGOTOUCH=0
 }
-
-*-g++*: QMAKE_CXXFLAGS += -Werror
 
 QT += network
 QT += xml xmlpatterns script
