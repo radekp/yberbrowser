@@ -39,13 +39,13 @@ class QMenuBar;
 
 class ApplicationWindow : public QGraphicsView
 {
+    Q_OBJECT
 public:
     ApplicationWindow(QWidget* parent=0);
     void setPage(QGraphicsWidget* page);
 
     void setMenuBar(QMenuBar*);
     void show();
-    void showFullScreen();
     bool isFullScreen();
 
     void setTitle(const QString& title);
@@ -59,6 +59,11 @@ private:
     ApplicationWindowHost* m_owner;
     QGraphicsWidget* m_page;
     bool m_isFullScreen;
+
+public slots:
+    void showMaximized();
+    void showFullScreen();
+
 };
 
 #endif

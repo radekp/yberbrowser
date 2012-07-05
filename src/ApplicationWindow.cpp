@@ -65,16 +65,25 @@ void ApplicationWindow::resizeEvent(QResizeEvent* event)
 
 void ApplicationWindow::setMenuBar(QMenuBar* bar)
 {
-#if QTOPIA
-    Q_UNUSED(bar);
+#ifdef QTOPIA
+    QMenu *menu = QSoftMenuBar::menuFor(this);
 #else
-    m_owner->setMenuBar(bar);
+    QMenu *menu = m_owner->menuBar()->addMenu("&File");
 #endif
+    menu->addAction(tr("Maximize"), this, SLOT(showMaximized()));
+    menu->addAction(tr("Fullscreen"), this, SLOT(showFullScreen()));
+    m_owner->showMaximized();
 }
 
 void ApplicationWindow::show()
 {
     m_owner->showNormal();
+    m_isFullScreen = false;
+}
+
+void ApplicationWindow::showMaximized()
+{
+    m_owner->showMaximized();
     m_isFullScreen = false;
 }
 
