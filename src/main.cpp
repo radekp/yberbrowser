@@ -57,6 +57,10 @@
 #include <MComponentCache>
 #endif
 
+#if QTOPIA
+#include <QtopiaApplication>
+#endif
+
 #include "ApplicationWindow.h"
 
 void usage(const char* name);
@@ -70,6 +74,9 @@ int main(int argc, char** argv)
  #if USE_MEEGOTOUCH
     MApplication* app = MComponentCache::mApplication(argc, argv);
     MApplicationWindow* window = MComponentCache::mApplicationWindow();
+#elif QTOPIA
+    QtopiaApplication* app = new QtopiaApplication(argc, argv);
+    ApplicationWindow* window = new ApplicationWindow();
 #else
     QApplication* app = new QApplication(argc, argv);
     ApplicationWindow* window = new ApplicationWindow();
@@ -156,6 +163,9 @@ int main(int argc, char** argv)
             YberApplication::instance()->createMainView(urlFromUserInput(args.at(i)));
     }
 
+#if QTOPIA
+    window->showMaximized();
+#endif
     int retval = app->exec();
 
 #if !defined(NDEBUG)
