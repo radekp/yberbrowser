@@ -22,6 +22,7 @@
 #include "ApplicationWindow.h"
 #include "Settings.h"
 
+#include <QEvent>
 #include <qglobal.h>
 #if !defined(QT_NO_OPENGL)
 #include <QGLWidget>
@@ -111,6 +112,25 @@ ApplicationWindowHost::~ApplicationWindowHost()
 {
 
 }
+
+#ifdef QTOPIA
+bool ApplicationWindowHost::event(QEvent *event)
+{
+    if(event->type() == QEvent::WindowDeactivate)
+    {
+        lower();
+    }
+    else if(event->type() == QEvent::WindowActivate)
+    {
+        QString title = windowTitle();
+        setWindowTitle(QLatin1String("_allow_on_top_"));
+        raise();
+        setWindowTitle(title);
+    }
+    return QWidget::event(event);
+}
+#endif
+
 
 #if defined(Q_WS_MAEMO_5)
 #if QT_VERSION < QT_VERSION_CHECK(4, 6, 2)

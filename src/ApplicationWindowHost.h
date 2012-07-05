@@ -39,15 +39,18 @@ class ApplicationWindowHost : public QMainWindow
 public:
     ~ApplicationWindowHost();
 
-
 #if defined(Q_WS_MAEMO_5)
 #if QT_VERSION < QT_VERSION_CHECK(4, 6, 2)
-protected:
-    bool event(QEvent *ev);
 protected Q_SLOTS:
     void orientationChanged(const QString&);
 #endif
 #endif
+
+#ifdef QTOPIA
+protected:
+    bool event(QEvent *ev);
+#endif
+
 private:
     ApplicationWindowHost();
 

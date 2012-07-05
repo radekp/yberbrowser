@@ -89,7 +89,14 @@ void ApplicationWindow::showMaximized()
 
 void ApplicationWindow::showFullScreen()
 {
+#ifdef QTOPIA
+    // Show editor view in full screen
+    m_owner->setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+    m_owner->setWindowState(Qt::WindowFullScreen);
+    m_owner->raise();
+#else
     m_owner->showFullScreen();
+#endif
     m_isFullScreen = true;
 }
 
