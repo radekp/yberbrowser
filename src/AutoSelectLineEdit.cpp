@@ -29,6 +29,9 @@
 #include <MApplicationPage>
 #endif
 #include <QUrl>
+#ifdef QTOPIA
+#include <QtopiaApplication>
+#endif
 
 const int s_clientItemMargin = 5;
 
@@ -116,6 +119,14 @@ void AutoSelectLineEdit::setSelection(int start, int length)
 
 void AutoSelectLineEdit::setKeypadVisible(bool on)
 {
+#ifdef QTOPIA
+    if(on)
+        QtopiaApplication::showInputMethod();
+    else
+        QtopiaApplication::hideInputMethod();
+    return;
+#endif
+
     if ((on && m_virtualKeypad) || (!on && !m_virtualKeypad))
         return;
 
