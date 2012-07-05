@@ -221,7 +221,7 @@ void ThumbnailTileItem::doLayoutTile()
     }
     m_title = QFontMetrics(f).elidedText(m_urlItem.title(), Qt::ElideRight, m_textRect.width() - s_tilesRound);
     // scale on the fly, only when default icon is not present
-    if (m_defaultIcon.isNull())
+    if (m_defaultIcon.isNull() && m_urlItem.thumbnail())
         m_scaledThumbnail = m_urlItem.thumbnail()->scaled(m_thumbnailRect.size().toSize(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
 }
 
