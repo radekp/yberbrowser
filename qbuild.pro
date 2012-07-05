@@ -13,6 +13,8 @@ DEFINES+=QTOPIA
 STRING_LANGUAGE=en_US
 LANGUAGES=en_US
 
+RESOURCES = yberbrowser.qrc
+
 # Package info
 pkg [
     name=yberbrowser
