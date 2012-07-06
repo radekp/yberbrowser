@@ -63,7 +63,7 @@ private:
 public slots:
     void showMaximized();
     void showFullScreen();
-
+    static void toggleFullScreen();
 };
 
 #endif

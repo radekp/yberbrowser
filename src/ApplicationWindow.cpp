@@ -28,6 +28,8 @@
 #include <QSoftMenuBar>
 #endif
 
+ApplicationWindow *instance;
+
 /*!
   \class ApplicationWindow is the top-level application container
 
@@ -43,6 +45,7 @@ ApplicationWindow::ApplicationWindow(QWidget* parent)
     , m_page(0)
     , m_isFullScreen(false)
 {
+    instance = this;
     m_owner->setApplicationWindow(this);
 }
 
@@ -104,6 +107,13 @@ bool ApplicationWindow::isFullScreen()
     return m_isFullScreen;
 }
 
+void ApplicationWindow::toggleFullScreen()
+{
+    if(instance->m_isFullScreen)
+        instance->showMaximized();
+    else
+        instance->showFullScreen();
+}
 
 void ApplicationWindow::setTitle(const QString& title)
 {

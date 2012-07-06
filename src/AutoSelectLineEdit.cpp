@@ -120,10 +120,7 @@ void AutoSelectLineEdit::setSelection(int start, int length)
 void AutoSelectLineEdit::setKeypadVisible(bool on)
 {
 #ifdef QTOPIA
-    if(on)
-        QtopiaApplication::showInputMethod();
-    else
-        QtopiaApplication::hideInputMethod();
+    ApplicationWindow::toggleFullScreen();
     return;
 #endif
 
