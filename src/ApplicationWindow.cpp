@@ -23,6 +23,7 @@
 
 #include <QGraphicsWidget>
 #include <QMenuBar>
+#include <QProcess>
 
 #if QTOPIA
 #include <QSoftMenuBar>
@@ -73,8 +74,13 @@ void ApplicationWindow::setMenuBar(QMenuBar* bar)
 #else
     QMenu *menu = m_owner->menuBar()->addMenu("&File");
 #endif
-    menu->addAction(tr("Maximize"), this, SLOT(showMaximized()));
+    menu->addAction(tr("Rotation"), this, SLOT(setupRotation()));
     menu->addAction(tr("Fullscreen"), this, SLOT(showFullScreen()));
+}
+
+void ApplicationWindow::setupRotation()
+{
+    QProcess::execute("rotation");
 }
 
 void ApplicationWindow::show()
