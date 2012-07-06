@@ -1,12 +1,8 @@
 [Desktop Entry]
-Encoding=UTF-8
-Version=1.0
-Type=Application
-Name=yberbrowser
-Exec=/opt/yberbrowser/y.sh
-Icon=yberbrowser
-StartupWMClass=yberbrowser
-X-Window-Icon=yberbrowser
-X-HildonDesk-ShowInToolbar=true
-X-Osso-Type=application/x-executable
+Name[]=Yber web browser
+Comment[]=Cross Platform WebKit Browser
+Exec=yberbrowser
 Terminal=false
+Type=Application
+Categories=Qt;Network;WebBrowser;
+Icon=yberbrowser/yberbrowser
