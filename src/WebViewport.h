@@ -57,6 +57,9 @@ public:
 public Q_SLOTS:
     void reset();
 
+Q_SIGNALS:
+    void mouseEvent();
+
 protected:
     bool sceneEventFilter(QGraphicsItem*, QEvent*);
     void wheelEvent(QGraphicsSceneWheelEvent*);

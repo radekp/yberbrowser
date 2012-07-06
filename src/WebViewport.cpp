@@ -314,6 +314,8 @@ void WebViewport::adjustClickPosition(QPointF& pos)
 
 void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
 {
+    emit mouseEvent();
+
     delete m_linkSelectionItem;
     m_linkSelectionItem = 0;
     delete m_delayedMouseReleaseEvent;

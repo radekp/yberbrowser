@@ -49,6 +49,8 @@ public:
 
     void setGeometry(const QRectF&);
 
+    bool urlHasFocus();
+
 Q_SIGNALS:
     void bookmarkPressed();
     void cancelPressed();

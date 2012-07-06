@@ -256,3 +256,8 @@ void ToolbarWidget::setGeometry(const QRectF& r)
 
     emit sizeUpdated();
 }
+
+bool ToolbarWidget::urlHasFocus()
+{
+    return m_urlEdit->hasFocus();
+}
