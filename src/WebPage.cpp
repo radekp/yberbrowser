@@ -54,15 +54,17 @@ QWebPage* WebPage::createWindow(QWebPage::WebWindowType)
 
 QString WebPage::userAgentForUrl(const QUrl&) const
 {
-    static QString userAgent = QWebPage::userAgentForUrl(QUrl())
-#if !defined(Q_OS_SYMBIAN) && !defined(Q_WS_MAEMO_5)
-        .replace("Safari", "Mobile Safari")
-#endif
-        // NOTE: For testing purposed we want to receive pages
-        // created for the iPhone or Android. Yberbrowser is not
-        // known enough for people serving us these pages.
-        .replace("Linux", "Linux, like Android")
-        .replace("Macintosh", "Android");
-    return userAgent;
+    return "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_5_7; en-us) AppleWebKit/530.17 (KHTML, like Gecko) Version/4.0 Safari/530.17";
+
+//    static QString userAgent = QWebPage::userAgentForUrl(QUrl())
+//#if !defined(Q_OS_SYMBIAN) && !defined(Q_WS_MAEMO_5)
+//        .replace("Safari", "Mobile Safari")
+//#endif
+//        // NOTE: For testing purposed we want to receive pages
+//        // created for the iPhone or Android. Yberbrowser is not
+//        // known enough for people serving us these pages.
+//        .replace("Linux", "Linux, like Android")
+//        .replace("Macintosh", "Android");
+//    return userAgent;
 }
 
