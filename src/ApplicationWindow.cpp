@@ -24,6 +24,7 @@
 #include <QGraphicsWidget>
 #include <QMenuBar>
 #include <QProcess>
+#include <QApplication>
 
 #if QTOPIA
 #include <QSoftMenuBar>
@@ -76,6 +77,7 @@ void ApplicationWindow::setMenuBar(QMenuBar* bar)
 #endif
     menu->addAction(tr("Rotation"), this, SLOT(setupRotation()));
     menu->addAction(tr("Fullscreen"), this, SLOT(showFullScreen()));
+    menu->addAction(tr("Quit"), qApp, SLOT(closeAllWindows()));
 }
 
 void ApplicationWindow::setupRotation()
