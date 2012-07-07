@@ -13,6 +13,7 @@
     <file>data/icon/48x48/bubble_48.png</file>
     <file>data/icon/48x48/enter_48.png</file>
     <file>data/icon/32x32/keyboard_32.png</file>
+    <file>data/icon/32x32/fullscreen_32.png</file>
     <file>data/icon/32x32/popup_32.png</file>
 </qresource>
 </RCC>

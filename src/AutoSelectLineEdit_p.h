@@ -39,7 +39,11 @@ public:
         : QLineEdit()
         , q(qq)
         , selectURLTimer(this)
+#if QTMOKO
+	, m_keyboardIcon(QImage(":/data/icon/32x32/fullscreen_32.png"))	// on QtMoko we use this key for fullscreen
+#else	
         , m_keyboardIcon(QImage(":/data/icon/32x32/keyboard_32.png"))
+#endif
         , m_focusedEditor(false)
         , m_focusChanged(false)
     {
