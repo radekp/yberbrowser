@@ -101,10 +101,18 @@ void ToolbarWidget::setTextIfUnfocused(const QString& text)
     }
 }
 
+uint ToolbarWidget::progress()
+{
+    return m_progress;
+}
+
 void ToolbarWidget::setProgress(uint progress)
 {
     m_progress = progress;
-    update();
+    if(progress < 100)
+        update();
+    else
+        hide();
 }
 
 void ToolbarWidget::showKeypad()

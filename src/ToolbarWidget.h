@@ -43,6 +43,7 @@ public:
     int toolbarHeight();
 
     void setTextIfUnfocused(const QString& text);
+    uint progress();
     void setProgress(uint progress);
 
     void showKeypad();

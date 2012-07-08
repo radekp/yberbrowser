@@ -486,6 +486,9 @@ void BrowsingView::hideToolbar()
 
 void BrowsingView::webViewMouseEvent()
 {
+    if(m_toolbarWidget->progress() < 100)
+        return;
+
     m_toolbarWidget->show();
     QTimer::singleShot(3000, this, SLOT(hideToolbar()));
 }
