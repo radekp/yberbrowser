@@ -95,7 +95,7 @@ WebViewport::WebViewport(QGraphicsItem* parent)
     connect(m_viewportWidget, SIGNAL(zoomRectForPointReceived(const QPointF&, const QRectF&)), SLOT(zoomRectForPointReceived(const QPointF&, const QRectF&)));
     m_backingStoreUpdateEnableTimer.setSingleShot(true);
     connect(&m_backingStoreUpdateEnableTimer, SIGNAL(timeout()), this, SLOT(enableBackingStoreUpdates()));
-    connect(this, SIGNAL(positionChanged(QPointF)), this, SLOT(webPanningStarted()));
+    connect(this, SIGNAL(positionChanged(const QRectF&)), this, SLOT(webPanningStarted()));
     connect(this, SIGNAL(panningStopped()), this, SLOT(webPanningStopped()));
 }
 
