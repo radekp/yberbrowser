@@ -116,16 +116,19 @@ ApplicationWindowHost::~ApplicationWindowHost()
 #ifdef QTOPIA
 bool ApplicationWindowHost::event(QEvent *event)
 {
-    if(event->type() == QEvent::WindowDeactivate)
+    if(m_mainView->isFullScreen())
     {
-        lower();
-    }
-    else if(event->type() == QEvent::WindowActivate)
-    {
-        QString title = windowTitle();
-        setWindowTitle(QLatin1String("_allow_on_top_"));
-        raise();
-        setWindowTitle(title);
+        if(event->type() == QEvent::WindowDeactivate)
+        {
+            lower();
+        }
+        else if(event->type() == QEvent::WindowActivate)
+        {
+            QString title = windowTitle();
+            setWindowTitle(QLatin1String("_allow_on_top_"));
+            raise();
+            setWindowTitle(title);
+        }
     }
     return QWidget::event(event);
 }

@@ -165,7 +165,6 @@ int main(int argc, char** argv)
 
 #if QTOPIA
     window->showMaximized();
-    window->activateWindow();
 #endif
     int retval = app->exec();
 
