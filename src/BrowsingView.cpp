@@ -81,7 +81,7 @@ BrowsingView::BrowsingView(QGraphicsItem *parent)
     setFlag(QGraphicsItem::ItemClipsToShape, true);
     setFlag(QGraphicsItem::ItemClipsChildrenToShape, true);
     m_browsingViewport = new WebViewport(this);
-    connect(m_browsingViewport, SIGNAL(mouseEvent()), this, SLOT(webViewMouseEvent()));
+    connect(m_browsingViewport, SIGNAL(toolbarVisibleHint(bool)), this, SLOT(webViewToolbarVisibleHint(bool)));
 
 
     connect(m_toolbarWidget, SIGNAL(bookmarkPressed()), SLOT(addBookmark()));
@@ -477,18 +477,13 @@ void BrowsingView::updateToolbarSpacingAndBrowsingViewportPosition()
     m_browsingViewport->setGeometry(r);
 }
 
-void BrowsingView::hideToolbar()
-{
-    if(m_toolbarWidget->urlHasFocus())
-        return;
-    m_toolbarWidget->hide();
-}
-
-void BrowsingView::webViewMouseEvent()
+void BrowsingView::webViewToolbarVisibleHint(bool visible)
 {
     if(m_toolbarWidget->progress() < 100)
         return;
 
-    m_toolbarWidget->show();
-    QTimer::singleShot(3000, this, SLOT(hideToolbar()));
+    if(visible)
+        m_toolbarWidget->show();
+    else if(!m_toolbarWidget->urlHasFocus())
+        m_toolbarWidget->hide();
 }

@@ -111,8 +111,7 @@ protected Q_SLOTS:
     void deleteHomeView();
     void updateToolbarSpacingAndBrowsingViewportPosition();
 
-    void hideToolbar();
-    void webViewMouseEvent();
+    void webViewToolbarVisibleHint(bool);
 
 private:
     Q_DISABLE_COPY(BrowsingView)

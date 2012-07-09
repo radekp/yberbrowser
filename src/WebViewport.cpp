@@ -18,6 +18,7 @@
  *
  */
 
+#include <time.h>
 #include <QApplication>
 #include "EventHelpers.h"
 #include "LinkSelectionItem.h"
@@ -78,6 +79,8 @@ WebViewport::WebViewport(QGraphicsItem* parent)
     setAutoRange(false);
     setPanDirection(Qt::Horizontal | Qt::Vertical);
     setWidget(m_viewportWidget);
+
+    m_panningTime.tv_sec = 0;
 
     m_geomAnim.addAnimation(&m_posAnim);
     m_geomAnim.addAnimation(&m_sizeAnim);
@@ -314,7 +317,7 @@ void WebViewport::adjustClickPosition(QPointF& pos)
 
 void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
 {
-    emit mouseEvent();
+    QTimer::singleShot(2000, this, SLOT(hintHideToolbar()));
 
     delete m_linkSelectionItem;
     m_linkSelectionItem = 0;
@@ -361,9 +364,17 @@ void WebViewport::startLinkSelection()
     if (!m_delayedMouseReleaseEvent)
         return;
 
-    m_selfSentEvent = m_delayedMouseReleaseEvent;
-    QApplication::sendEvent(scene(), m_delayedMouseReleaseEvent);
-    m_selfSentEvent = 0;
+    struct timespec tp;
+    clock_gettime(CLOCK_MONOTONIC, &tp);
+    time_t delta = tp.tv_sec - m_panningTime.tv_sec;
+
+    //qDebug() << "startLinkSelection tp.tv_sec=" << tp.tv_sec << ", m_panningTime.tv_sec=" << m_panningTime.tv_sec << ", delta=" << delta;
+
+    if(delta > 1) {
+        m_selfSentEvent = m_delayedMouseReleaseEvent;
+        QApplication::sendEvent(scene(), m_delayedMouseReleaseEvent);
+        m_selfSentEvent = 0;
+    }
     delete m_delayedMouseReleaseEvent;
     m_delayedMouseReleaseEvent = 0;
 }
@@ -469,6 +480,10 @@ void WebViewport::contentsSizeChangeCausedResize()
 
 void WebViewport::webPanningStarted()
 {
+    clock_gettime(CLOCK_MONOTONIC, &m_panningTime);
+    if(m_panningState != Pushing)
+        emit toolbarVisibleHint(true);
+
     // turn on and off tile creating while autoscrolling
     if (m_panningState != WebViewport::Pushing) {
         m_panningState = Pushing;
@@ -479,12 +494,26 @@ void WebViewport::webPanningStarted()
 
 void WebViewport::webPanningStopped()
 {
+    if(m_panningState == Pushing)
+        clock_gettime(CLOCK_MONOTONIC, &m_panningTime);
+
     if (m_panningState != WebViewport::Inactive) {
         // m_viewportWidget->enableContentUpdates();
         m_panningState = Inactive;
         m_backingStoreUpdateEnableTimer.start(backingStoreUpdateEnableDelay);
-
     }
+}
+
+void WebViewport::hintHideToolbar()
+{
+    struct timespec tp;
+    clock_gettime(CLOCK_MONOTONIC, &tp);
+    time_t delta = tp.tv_sec - m_panningTime.tv_sec;
+
+    if(delta >= 2)
+        emit toolbarVisibleHint(false);
+    else
+        QTimer::singleShot(2000, this, SLOT(hintHideToolbar()));
 }
 
 void WebViewport::enableBackingStoreUpdates()
@@ -492,8 +521,6 @@ void WebViewport::enableBackingStoreUpdates()
     m_panningState = Inactive;
     m_viewportWidget->enableContentUpdates();
 }
-
-
 
 QRectF WebViewport::adjustRectForPannedWidgetGeometry(const QRectF& g)
 {

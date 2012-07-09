@@ -58,7 +58,7 @@ public Q_SLOTS:
     void reset();
 
 Q_SIGNALS:
-    void mouseEvent();
+    void toolbarVisibleHint(bool visible);
 
 protected:
     bool sceneEventFilter(QGraphicsItem*, QEvent*);
@@ -101,6 +101,7 @@ protected:
  private Q_SLOTS:
     void webPanningStarted();
     void webPanningStopped();
+    void hintHideToolbar();
     void geomAnimStateChanged(QAbstractAnimation::State newState, QAbstractAnimation::State);
 
  private:
@@ -118,6 +119,8 @@ protected:
     QPropertyAnimation m_posAnim;
     QPropertyAnimation m_sizeAnim;
     QRectF m_geomAnimEndValue;
+
+    struct timespec m_panningTime;
 
 #if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
     QGraphicsRectItem* m_searchRectItem;
