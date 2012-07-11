@@ -27,7 +27,7 @@
 // double tap that can happen
 static const int s_doubleClickFilterDurationMS = 300;
 
-static const int s_minTimeHoldForClick = 100;
+static const int s_minTimeHoldForClick = 20;
 
 /* TODO
 
