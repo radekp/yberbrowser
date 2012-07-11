@@ -34,7 +34,7 @@ class CommonGestureConsumer
 {
 
 public:
-    virtual void mousePressEventFromChild(QGraphicsSceneMouseEvent*) = 0;
+    virtual void mousePressEventFromChild(QGraphicsSceneMouseEvent*, bool filtered) = 0;
     virtual void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent*) = 0;
     virtual void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent*) = 0;
     virtual void adjustClickPosition(QPointF&) = 0;

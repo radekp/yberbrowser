@@ -211,8 +211,13 @@ void WebViewport::mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent* event
     mouseDoubleClickEvent(&mappedEvent);
 }
 
-void WebViewport::mousePressEventFromChild(QGraphicsSceneMouseEvent* event)
+void WebViewport::mousePressEventFromChild(QGraphicsSceneMouseEvent* event, bool filtered)
 {
+    if(!filtered)
+    {
+        return;
+    }
+
     // FIXME: setpos for release event should be adjusted somewhere else.
     event->setPos(m_viewportWidget->webView()->mapFromScene(event->scenePos()));
 #if defined(ENABLE_LINK_SELECTION_DEBUG)

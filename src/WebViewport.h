@@ -66,7 +66,7 @@ protected:
     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent*);
     void resizeEvent(QGraphicsSceneResizeEvent* event);
 
-    void mousePressEventFromChild(QGraphicsSceneMouseEvent * event);
+    void mousePressEventFromChild(QGraphicsSceneMouseEvent * event, bool filtered);
     void mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event);
     void mouseDoubleClickEventFromChild(QGraphicsSceneMouseEvent * event);
     void adjustClickPosition(QPointF& pos);

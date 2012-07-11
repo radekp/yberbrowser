@@ -157,7 +157,7 @@ void CommonGestureRecognizer::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == m_delayedPressTimer.timerId()) {
         m_delayedPressTimer.stop();
-        m_consumer->mousePressEventFromChild(m_delayedPressEvent);
+        m_consumer->mousePressEventFromChild(m_delayedPressEvent, true);
         m_consumer->mouseReleaseEventFromChild(m_delayedReleaseEvent);
         clearDelayedPress();
     }
@@ -182,6 +182,8 @@ bool CommonGestureRecognizer::mousePressEvent(QGraphicsSceneMouseEvent* event)
 #if defined(ENABLE_EVENT_DEBUG)
     qDebug() << __PRETTY_FUNCTION__ << event << event->screenPos();
 #endif
+
+    m_consumer->mousePressEventFromChild(event, false);
 
     // long tap causes left button click, don't send it further
     if (event->button() != Qt::LeftButton)
