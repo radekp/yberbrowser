@@ -70,6 +70,7 @@ WebViewport::WebViewport(QGraphicsItem* parent)
     , m_searchRectItem(0)
     , m_clickablePointItem(0)
 #endif
+    , m_wasPanning(false)
 {
     setFiltersChildEvents(true);
     // AutoRange is set to false, because MPannableViewport observes
@@ -79,8 +80,6 @@ WebViewport::WebViewport(QGraphicsItem* parent)
     setAutoRange(false);
     setPanDirection(Qt::Horizontal | Qt::Vertical);
     setWidget(m_viewportWidget);
-
-    m_panningTime.tv_sec = 0;
 
     m_geomAnim.addAnimation(&m_posAnim);
     m_geomAnim.addAnimation(&m_sizeAnim);
@@ -215,6 +214,8 @@ void WebViewport::mousePressEventFromChild(QGraphicsSceneMouseEvent* event, bool
 {
     if(!filtered)
     {
+        m_wasPanning = false;
+        emit toolbarVisibleHint(true);
         return;
     }
 
@@ -335,7 +336,20 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
 
 #if !USE_WEBKIT2
     QWebHitTestResult result = m_viewportWidget->webView()->page()->mainFrame()->hitTestContent(QPoint(p.x(), p.y()));
-    if (!result.linkElement().isNull()) {
+
+    if (m_wasPanning) {
+        // nothing here
+    }
+    else if(result.linkElement().isNull()) {
+#if defined(ENABLE_LINK_SELECTION_DEBUG)
+        qDebug() << "hittest NOT found" << p;
+#endif
+        // zoom on click
+        QPointF hotspot(m_viewportWidget->mapFromScene(event->scenePos()));
+        QPointF viewTargetHotspot(m_viewportWidget->mapToParent(hotspot));
+        startZoomAnimToItemHotspot(hotspot, viewTargetHotspot, 1.5);
+    }
+    else {
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
         qDebug() << "hittest found" << p;
 #endif
@@ -353,10 +367,6 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
         copyMouseEvent(event, m_delayedMouseReleaseEvent);
         QTimer::singleShot(500, this, SLOT(startLinkSelection()));
         return;
-    } else {
-#if defined(ENABLE_LINK_SELECTION_DEBUG)
-        qDebug() << "hittest NOT found" << p;
-#endif
     }
 #endif
     m_selfSentEvent = event;
@@ -369,17 +379,10 @@ void WebViewport::startLinkSelection()
     if (!m_delayedMouseReleaseEvent)
         return;
 
-    struct timespec tp;
-    clock_gettime(CLOCK_MONOTONIC, &tp);
-    time_t delta = tp.tv_sec - m_panningTime.tv_sec;
+    m_selfSentEvent = m_delayedMouseReleaseEvent;
+    QApplication::sendEvent(scene(), m_delayedMouseReleaseEvent);
+    m_selfSentEvent = 0;
 
-    //qDebug() << "startLinkSelection tp.tv_sec=" << tp.tv_sec << ", m_panningTime.tv_sec=" << m_panningTime.tv_sec << ", delta=" << delta;
-
-    if(delta > 1) {
-        m_selfSentEvent = m_delayedMouseReleaseEvent;
-        QApplication::sendEvent(scene(), m_delayedMouseReleaseEvent);
-        m_selfSentEvent = 0;
-    }
     delete m_delayedMouseReleaseEvent;
     m_delayedMouseReleaseEvent = 0;
 }
@@ -485,9 +488,7 @@ void WebViewport::contentsSizeChangeCausedResize()
 
 void WebViewport::webPanningStarted()
 {
-    clock_gettime(CLOCK_MONOTONIC, &m_panningTime);
-    if(m_panningState != Pushing)
-        emit toolbarVisibleHint(true);
+    m_wasPanning = true;
 
     // turn on and off tile creating while autoscrolling
     if (m_panningState != WebViewport::Pushing) {
@@ -499,9 +500,6 @@ void WebViewport::webPanningStarted()
 
 void WebViewport::webPanningStopped()
 {
-    if(m_panningState == Pushing)
-        clock_gettime(CLOCK_MONOTONIC, &m_panningTime);
-
     if (m_panningState != WebViewport::Inactive) {
         // m_viewportWidget->enableContentUpdates();
         m_panningState = Inactive;
@@ -511,14 +509,7 @@ void WebViewport::webPanningStopped()
 
 void WebViewport::hintHideToolbar()
 {
-    struct timespec tp;
-    clock_gettime(CLOCK_MONOTONIC, &tp);
-    time_t delta = tp.tv_sec - m_panningTime.tv_sec;
-
-    if(delta >= 2)
-        emit toolbarVisibleHint(false);
-    else
-        QTimer::singleShot(2000, this, SLOT(hintHideToolbar()));
+    emit toolbarVisibleHint(false);
 }
 
 void WebViewport::enableBackingStoreUpdates()

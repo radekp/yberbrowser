@@ -120,7 +120,7 @@ protected:
     QPropertyAnimation m_sizeAnim;
     QRectF m_geomAnimEndValue;
 
-    struct timespec m_panningTime;
+    bool m_wasPanning;
 
 #if defined(ENABLE_LINK_SELECTION_VISUAL_DEBUG)
     QGraphicsRectItem* m_searchRectItem;
