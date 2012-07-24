@@ -28,6 +28,8 @@
 
 #if QTOPIA
 #include <QSoftMenuBar>
+#include <QValueSpaceItem>
+#include <QtopiaServiceRequest>
 #endif
 
 ApplicationWindow *instance;
@@ -75,14 +77,21 @@ void ApplicationWindow::setMenuBar(QMenuBar* bar)
 #else
     QMenu *menu = m_owner->menuBar()->addMenu("&File");
 #endif
-    menu->addAction(tr("Rotation"), this, SLOT(setupRotation()));
+    menu->addAction(tr("Rotate"), this, SLOT(rotate()));
     menu->addAction(tr("Fullscreen"), this, SLOT(showFullScreen()));
     menu->addAction(tr("Quit"), qApp, SLOT(closeAllWindows()));
 }
 
-void ApplicationWindow::setupRotation()
+void ApplicationWindow::rotate()
 {
-    QProcess::execute("rotation");
+#ifdef QTOPIA
+    QValueSpaceItem rotationVsi("/UI/Rotation/Current");
+    int r = rotationVsi.value().toUInt();
+    r = (r == 0 ? 90 : 0);
+    QtopiaServiceRequest svreq("RotationManager", "setCurrentRotation(int)");
+    svreq << r;
+    svreq.send();
+#endif    
 }
 
 void ApplicationWindow::show()

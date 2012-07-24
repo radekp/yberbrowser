@@ -61,7 +61,7 @@ private:
     bool m_isFullScreen;
 
 public slots:
-    void setupRotation();
+    void rotate();
     void showMaximized();
     void showFullScreen();
     static void toggleFullScreen();
