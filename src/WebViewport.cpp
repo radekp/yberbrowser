@@ -338,7 +338,7 @@ void WebViewport::mouseReleaseEventFromChild(QGraphicsSceneMouseEvent * event)
     QWebHitTestResult result = m_viewportWidget->webView()->page()->mainFrame()->hitTestContent(QPoint(p.x(), p.y()));
 
     if (m_wasPanning) {
-        // nothing here
+        return;     // ignore release after panning
     }
     else if(result.linkElement().isNull()) {
 #if defined(ENABLE_LINK_SELECTION_DEBUG)
