@@ -29,6 +29,7 @@
 #if QTOPIA
 #include <QSoftMenuBar>
 #include <QValueSpaceItem>
+#include <QtopiaApplication>
 #include <QtopiaServiceRequest>
 #endif
 
@@ -51,6 +52,10 @@ ApplicationWindow::ApplicationWindow(QWidget* parent)
 {
     instance = this;
     m_owner->setApplicationWindow(this);
+    
+#ifdef QTOPIA
+  QtopiaApplication::setInputMethodHint(this, QtopiaApplication::Text);
+#endif
 }
 
 void ApplicationWindow::setPage(QGraphicsWidget* page)
