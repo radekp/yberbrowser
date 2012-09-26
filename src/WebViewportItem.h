@@ -72,7 +72,7 @@ public:
 public Q_SLOTS:
     void commitZoom();
 #if QTWEBKIT_VERSION >= 0x020100 && !USE_WEBKIT2
-    void adjustViewport(const QWebPage::ViewportHints& viewportInfo);
+    void adjustViewport(const QWebPage::ViewportAttributes& viewportInfo);
 #endif
 
 Q_SIGNALS:

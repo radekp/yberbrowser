@@ -130,7 +130,7 @@ void WebViewportItem::connectWebViewSignals()
 #else
     connect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
 #if QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
-    connect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportHints&)), this, SLOT(adjustViewport(const QWebPage::ViewportHints&)));
+    connect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportAttributes&)), this, SLOT(adjustViewport(const QWebPage::ViewportHints&)));
 #endif
 #endif
 }
@@ -143,7 +143,7 @@ void WebViewportItem::disconnectWebViewSignals()
 #else
     disconnect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
 #if QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
-    disconnect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportHints&)), this, SLOT(adjustViewport(const QWebPage::ViewportHints&)));
+    disconnect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportHints&)), this, SLOT(adjustViewport(const QWebPage::ViewportAttributes&)));
 #endif
 #endif
 }
@@ -250,7 +250,7 @@ void WebViewportItem::updatePreferredSize()
     This method is called before the first layout of the contents and might
     come with viewport data requested by the page via the viewport meta tag.
 */
-void WebViewportItem::adjustViewport(const QWebPage::ViewportHints& viewportInfo)
+void WebViewportItem::adjustViewport(const QWebPage::ViewportAttributes& viewportInfo)
 {
     // for an explanation of pixelScale look at:
     // http://hacks.mozilla.org/2010/05/upcoming-changes-to-the-viewport-meta-tag-for-firefox-mobile/
@@ -268,10 +268,10 @@ void WebViewportItem::adjustViewport(const QWebPage::ViewportHints& viewportInfo
     // FIXME we should start using the scale range at some point
     // viewportInfo.minimumScaleFactor() and viewportInfor.maximumScaleFactor()
     if (viewportInfo.initialScaleFactor() > 0) {
-        setResizeMode(WebViewport::ContentResizePreservesScale);
+        setResizeMode(WebViewportItem::ContentResizePreservesScale);
         setZoomScale(viewportInfo.initialScaleFactor() * pixelScale, /* immediate */ true);
     } else {
-        setResizeMode(WebViewport::ContentResizePreservesWidth);
+        setResizeMode(WebViewportItem::ContentResizePreservesWidth);
         setZoomScale(1.0 * pixelScale, /* immediate */ true);
     }
 }
