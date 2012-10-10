@@ -143,7 +143,7 @@ void WebViewportItem::disconnectWebViewSignals()
 #else
     disconnect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
 #if QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
-    disconnect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportHints&)), this, SLOT(adjustViewport(const QWebPage::ViewportAttributes&)));
+    disconnect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportAttributes&)), this, SLOT(adjustViewport(const QWebPage::ViewportAttributes&)));
 #endif
 #endif
 }
