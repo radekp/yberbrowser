@@ -130,7 +130,7 @@ void WebViewportItem::connectWebViewSignals()
 #else
     connect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
 #if QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
-    connect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportAttributes&)), this, SLOT(adjustViewport(const QWebPage::ViewportHints&)));
+    connect(m_webView->page(), SIGNAL(viewportChangeRequested()), this, SLOT(adjustViewport()));
 #endif
 #endif
 }
@@ -143,7 +143,7 @@ void WebViewportItem::disconnectWebViewSignals()
 #else
     disconnect(m_webView->page()->mainFrame(), SIGNAL(contentsSizeChanged(const QSize &)), this, SLOT(webViewContentsSizeChanged(const QSize&)));
 #if QTWEBKIT_VERSION >= QTWEBKIT_VERSION_CHECK(2, 1, 0)
-    disconnect(m_webView->page(), SIGNAL(viewportChangeRequested(const QWebPage::ViewportAttributes&)), this, SLOT(adjustViewport(const QWebPage::ViewportAttributes&)));
+    disconnect(m_webView->page(), SIGNAL(viewportChangeRequested()), this, SLOT(adjustViewport()));
 #endif
 #endif
 }
@@ -250,23 +250,28 @@ void WebViewportItem::updatePreferredSize()
     This method is called before the first layout of the contents and might
     come with viewport data requested by the page via the viewport meta tag.
 */
-void WebViewportItem::adjustViewport(const QWebPage::ViewportAttributes& viewportInfo)
+void WebViewportItem::adjustViewport()
 {
     // for an explanation of pixelScale look at:
     // http://hacks.mozilla.org/2010/05/upcoming-changes-to-the-viewport-meta-tag-for-firefox-mobile/
     qreal pixelScale = s_dpiAdjustmentFactor;
 
     QSize viewportSize = QSize(s_defaultPreferredWidth, s_defaultPreferredHeight);
-
+/* We don't have any viewportInfo from the connected signal)
     if (viewportInfo.size().width() > 0)
         viewportSize.setWidth(viewportInfo.size().width());
     if (viewportInfo.size().height() > 0)
         viewportSize.setHeight(viewportInfo.size().height());
+*/
 
+    m_webView->page()->setViewportSize(viewportSize);
     m_webView->page()->setPreferredContentsSize(viewportSize / pixelScale);
 
     // FIXME we should start using the scale range at some point
     // viewportInfo.minimumScaleFactor() and viewportInfor.maximumScaleFactor()
+
+#if 0
+/* We don't have any viewportInfo from the connected signal)
     if (viewportInfo.initialScaleFactor() > 0) {
         setResizeMode(WebViewportItem::ContentResizePreservesScale);
         setZoomScale(viewportInfo.initialScaleFactor() * pixelScale, /* immediate */ true);
@@ -274,6 +279,8 @@ void WebViewportItem::adjustViewport(const QWebPage::ViewportAttributes& viewpor
         setResizeMode(WebViewportItem::ContentResizePreservesWidth);
         setZoomScale(1.0 * pixelScale, /* immediate */ true);
     }
+*/
+#endif
 }
 #endif
 
