@@ -89,7 +89,7 @@ BrowsingView::BrowsingView(QGraphicsItem *parent)
     connect(m_toolbarWidget, SIGNAL(cancelPressed()), SLOT(stopLoad()));
     connect(m_toolbarWidget, SIGNAL(urlEditingFinished(QString)), SLOT(urlEditingFinished(QString)));
     connect(m_toolbarWidget, SIGNAL(urlEditorFocusChanged(bool)), SLOT(urlEditfocusChanged(bool)));
-    connect(m_toolbarWidget, SIGNAL(sizeUpdated()), this, SLOT(updateToolbarSpacing()));
+    connect(m_toolbarWidget, SIGNAL(sizeUpdated()), this, SLOT(updateToolbarSpacingAndBrowsingViewportPosition()));
 #if USE_WEBKIT2
     m_context.adopt(WKContextGetSharedProcessContext());
 #endif
